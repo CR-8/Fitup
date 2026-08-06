@@ -1,0 +1,1 @@
+export { createPostHogProvider } from './posthog';

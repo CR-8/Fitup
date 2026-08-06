@@ -1,0 +1,888 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
+import {
+    WorkoutSelect,
+    WorkoutInsert,
+    WorkoutExerciseInsert,
+    WorkoutExerciseSelect,
+    ExerciseSetInsert,
+    ExerciseSetSelect,
+    WorkoutGroupInsert,
+    WorkoutGroupSelect,
+} from '@/db/schema';
+import {
+    getWorkouts,
+    getWorkoutById,
+    getWorkoutWithExercisesAndSets,
+    getWorkoutGroups,
+    createWorkout,
+    updateWorkout,
+    deleteWorkout,
+    startWorkout,
+    completeWorkout,
+    duplicateWorkout,
+    createWorkoutExercise,
+    updateWorkoutExercise,
+    deleteWorkoutExercise,
+    getWorkoutExercises,
+    getWorkoutExercisesWithExercise,
+    WorkoutExerciseWithExercise,
+    createWorkoutGroup,
+    updateWorkoutGroup,
+    deleteWorkoutGroup,
+    fetchWorkoutStats,
+    fetchWorkoutDaySummary,
+    fetchWorkoutDayHealthStats,
+    fetchStrengthRadarStats,
+    WorkoutStats,
+    WorkoutDaySummary,
+    StrengthRadarStats,
+    WorkoutProgressSnapshot,
+    getWorkoutProgressSnapshot,
+} from '@/crud/workout';
+import { useUser } from './use-user';
+import { useAnalytics } from './use-analytics';
+import {
+    getAnalyticsErrorType,
+    getExerciseLibraryProperties,
+    getWorkoutProgressProperties,
+} from '@/analytics/helpers';
+import {
+    createExerciseSet,
+    deleteExerciseSet,
+    ExerciseLibrarySnapshot,
+    getExerciseLibrarySnapshot,
+    getExerciseSetById,
+    getExerciseSets,
+    updateExerciseSet,
+} from '@/crud/exercise';
+import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
+import { getWorkoutOverviewExerciseMetaRows } from '@/crud/workout/home';
+import { waitForIdle } from '@/helpers/idle';
+
+export const deleteWorkoutMutationKey = ['delete-workout'] as const;
+
+type WorkoutStartSource = 'new' | 'planned' | 'repeat';
+type WorkoutCompletionSource = 'phone' | 'watch';
+type SetCompletionSource = 'phone' | 'watch' | 'auto_timer';
+type SetCreationSource = 'manual' | 'exercise_seed' | 'copied';
+
+const getProgressAnalyticsProperties = (progress: WorkoutProgressSnapshot | null) =>
+    getWorkoutProgressProperties(
+        progress?.totalExerciseCount ?? null,
+        progress?.totalSetCount ?? null,
+        progress?.completedSetCount ?? null,
+    );
+
+const getExerciseLibraryAnalyticsProperties = (library: ExerciseLibrarySnapshot | null) =>
+    getExerciseLibraryProperties(
+        library?.exerciseLibraryTotalCount ?? null,
+        library?.exerciseLibraryFitupCount ?? null,
+        library?.exerciseLibraryUserCreatedCount ?? null,
+    );
+
+const getWorkoutDiagnosticProperties = (
+    progress: WorkoutProgressSnapshot | null,
+    library: ExerciseLibrarySnapshot | null,
+) => ({
+    ...getProgressAnalyticsProperties(progress),
+    ...getExerciseLibraryAnalyticsProperties(library),
+});
+
+const getWorkoutDiagnosticSnapshot = async (workoutId: string) => {
+    const [progress, exerciseLibrary] = await Promise.all([
+        getWorkoutProgressSnapshot(workoutId),
+        getExerciseLibrarySnapshot(),
+    ]);
+    return { progress, exerciseLibrary };
+};
+
+const completingWorkoutPromises = new Map<string, ReturnType<typeof completeWorkout>>();
+const completingSetPromises = new Map<
+    string,
+    Promise<{
+        set: ExerciseSetSelect;
+        didComplete: boolean;
+        progress: WorkoutProgressSnapshot | null;
+        exerciseLibrary: ExerciseLibrarySnapshot | null;
+    }>
+>();
+
+export const useWorkouts = () => {
+    const { user } = useUser();
+
+    return useQuery({
+        queryKey: ['workouts', user?.id],
+        queryFn: () => getWorkouts(),
+        enabled: !!user?.id,
+    });
+};
+
+export interface WorkoutOverviewMeta {
+    sortedWorkoutTypes: string[];
+    sortedPrimaryMuscleGroups: string[];
+}
+
+export type WorkoutOverviewMetaMap = Record<string, WorkoutOverviewMeta>;
+
+const getSortedKeysByCount = (counts: Map<string, number>) =>
+    Array.from(counts.entries())
+        .sort(([, a], [, b]) => b - a)
+        .map(([key]) => key);
+
+export const useWorkoutsOverviewMeta = (workoutIds: string[]) => {
+    const { user } = useUser();
+    const uniqueWorkoutIds = Array.from(new Set(workoutIds));
+
+    return useQuery<WorkoutOverviewMetaMap>({
+        queryKey: ['workouts-overview-meta', user?.id, uniqueWorkoutIds],
+        queryFn: async () => {
+            if (uniqueWorkoutIds.length === 0) {
+                return {};
+            }
+
+            const rows = await getWorkoutOverviewExerciseMetaRows(uniqueWorkoutIds);
+
+            const categoryCountsByWorkoutId = new Map<string, Map<string, number>>();
+            const primaryMuscleCountsByWorkoutId = new Map<string, Map<string, number>>();
+
+            for (const workoutId of uniqueWorkoutIds) {
+                categoryCountsByWorkoutId.set(workoutId, new Map());
+                primaryMuscleCountsByWorkoutId.set(workoutId, new Map());
+            }
+
+            for (const row of rows) {
+                const categoryCounts = categoryCountsByWorkoutId.get(row.workoutId);
+                if (categoryCounts) {
+                    categoryCounts.set(row.category, (categoryCounts.get(row.category) || 0) + 1);
+                }
+
+                const primaryMuscle = getPrimaryAnchorMuscleValue(row.primaryMuscleGroups);
+                if (primaryMuscle) {
+                    const primaryMuscleCounts = primaryMuscleCountsByWorkoutId.get(row.workoutId);
+                    if (primaryMuscleCounts) {
+                        primaryMuscleCounts.set(
+                            primaryMuscle,
+                            (primaryMuscleCounts.get(primaryMuscle) || 0) + 1,
+                        );
+                    }
+                }
+            }
+
+            return uniqueWorkoutIds.reduce<WorkoutOverviewMetaMap>((acc, workoutId) => {
+                acc[workoutId] = {
+                    sortedWorkoutTypes: getSortedKeysByCount(
+                        categoryCountsByWorkoutId.get(workoutId) || new Map(),
+                    ),
+                    sortedPrimaryMuscleGroups: getSortedKeysByCount(
+                        primaryMuscleCountsByWorkoutId.get(workoutId) || new Map(),
+                    ),
+                };
+                return acc;
+            }, {});
+        },
+        enabled: !!user?.id && uniqueWorkoutIds.length > 0,
+        staleTime: 60_000 * 5,
+        gcTime: 60_000 * 10,
+    });
+};
+
+export const useWorkout = (workoutId: string) => {
+    return useQuery({
+        queryKey: ['workout', workoutId],
+        queryFn: () => getWorkoutById(workoutId),
+        enabled: !!workoutId,
+    });
+};
+
+export const useWorkoutWithDetails = (workoutId: string) => {
+    return useQuery({
+        queryKey: ['workout-details', workoutId],
+        queryFn: () => getWorkoutWithExercisesAndSets(workoutId),
+        enabled: !!workoutId,
+    });
+};
+
+export const useWorkoutGroups = (workoutId: string) => {
+    return useQuery({
+        queryKey: ['workout-groups', workoutId],
+        queryFn: () => getWorkoutGroups(workoutId),
+        enabled: !!workoutId,
+    });
+};
+
+export const useCreateWorkout = () => {
+    const queryClient = useQueryClient();
+    const { user } = useUser();
+
+    return useMutation({
+        mutationFn: (data: Omit<WorkoutInsert, 'id' | 'userId'>) =>
+            createWorkout({ ...data, userId: user!.id }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+        },
+    });
+};
+
+const invalidateWorkoutSetDerivedQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['workout-day-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+    queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
+};
+
+export const useUpdateWorkout = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<WorkoutSelect> }) =>
+            updateWorkout(id, updates),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+        },
+        onError: (error, variables) => {
+            track('workout:operation_failed', {
+                operation: 'update',
+                workoutId: variables.id,
+                errorType: getAnalyticsErrorType(error),
+            });
+        },
+    });
+};
+
+export const useDeleteWorkout = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationKey: deleteWorkoutMutationKey,
+        mutationFn: async (workoutId: string) => {
+            const [result, exerciseLibrary] = await Promise.all([
+                deleteWorkout(workoutId),
+                getExerciseLibrarySnapshot(),
+            ]);
+            return { ...result, exerciseLibrary };
+        },
+        onSuccess: (result, workoutId) => {
+            queryClient.removeQueries({ queryKey: ['workout', workoutId], exact: true });
+            queryClient.removeQueries({ queryKey: ['workout-details', workoutId], exact: true });
+            queryClient.removeQueries({ queryKey: ['workout-exercises', workoutId], exact: true });
+            queryClient.removeQueries({
+                queryKey: ['workout-exercises-with-exercise', workoutId],
+                exact: true,
+            });
+            queryClient.removeQueries({ queryKey: ['workout-groups', workoutId], exact: true });
+
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises-with-exercise'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-groups'] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            track('workout:delete', {
+                workoutId,
+                status: result.workout.status,
+                ...getWorkoutDiagnosticProperties(result.progress, result.exerciseLibrary),
+            });
+            // Cancel any stale scheduled timer notifications that may have been left
+            // from this workout. Notification identifiers are tied to setIds which are
+            // no longer accessible after deletion, so cancel all scheduled notifications.
+            // This is safe because workout timers are the only scheduled notifications.
+            Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
+        },
+        onError: (error, workoutId) => {
+            track('workout:operation_failed', {
+                operation: 'delete',
+                workoutId,
+                errorType: getAnalyticsErrorType(error),
+            });
+        },
+    });
+};
+
+export const useStartWorkout = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async (input: string | { workoutId: string; source: WorkoutStartSource }) => {
+            const workoutId = typeof input === 'string' ? input : input.workoutId;
+            const [result, exerciseLibrary] = await Promise.all([
+                startWorkout(workoutId),
+                getExerciseLibrarySnapshot(),
+            ]);
+            return { ...result, exerciseLibrary };
+        },
+        onSuccess: (result, input) => {
+            const data = result.workout;
+            const source = typeof input === 'string' ? 'planned' : input.source;
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            track('workout:start', {
+                workoutId: data.id,
+                source,
+                ...getWorkoutDiagnosticProperties(result.progress, result.exerciseLibrary),
+                $insert_id: `workout:${data.id}:start`,
+            });
+        },
+        onError: (error, input) => {
+            const workoutId = typeof input === 'string' ? input : input.workoutId;
+            track('workout:operation_failed', {
+                operation: 'start',
+                workoutId,
+                errorType: getAnalyticsErrorType(error),
+            });
+        },
+    });
+};
+
+export const useCompleteWorkout = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async (input: {
+            workoutId: string;
+            completionSource: WorkoutCompletionSource;
+            watchUsed: boolean;
+            liveActivityUsed: boolean;
+        }) => {
+            const existing = completingWorkoutPromises.get(input.workoutId);
+            if (existing) {
+                const result = await existing;
+                return { ...result, didComplete: false, exerciseLibrary: null };
+            }
+
+            const promise = completeWorkout(input.workoutId).finally(() => {
+                completingWorkoutPromises.delete(input.workoutId);
+            });
+            completingWorkoutPromises.set(input.workoutId, promise);
+            const result = await promise;
+            const exerciseLibrary = result.didComplete ? await getExerciseLibrarySnapshot() : null;
+            return { ...result, exerciseLibrary };
+        },
+        onSuccess: (result, input) => {
+            const data = result.workout;
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+
+            if (!result.didComplete) return;
+            const diagnosticProperties = {
+                ...getWorkoutProgressProperties(
+                    result.exerciseCount,
+                    result.totalSetCount,
+                    result.completedSetCount,
+                ),
+                ...getExerciseLibraryAnalyticsProperties(result.exerciseLibrary),
+            };
+
+            result.newlyCompletedSets.forEach((set) => {
+                track('workout:exercise_set_complete', {
+                    workoutId: input.workoutId,
+                    workoutExerciseId: set.workoutExerciseId,
+                    setType: set.type,
+                    source: input.completionSource,
+                    ...diagnosticProperties,
+                    $insert_id: `set:${set.id}:complete`,
+                });
+            });
+
+            track('workout:complete', {
+                workoutId: data.id,
+                duration: data.duration,
+                wallDurationSec: Math.max(0, data.duration ?? 0),
+                activeDurationSec: result.activeDurationSec,
+                exerciseCount: result.exerciseCount,
+                ...diagnosticProperties,
+                completionSource: input.completionSource,
+                watchUsed: input.watchUsed,
+                liveActivityUsed: input.liveActivityUsed,
+                $insert_id: `workout:${data.id}:complete`,
+            });
+        },
+        onError: (error, input) => {
+            track('workout:operation_failed', {
+                operation: 'complete',
+                workoutId: input.workoutId,
+                errorType: getAnalyticsErrorType(error),
+            });
+        },
+    });
+};
+
+export const useWorkoutExercises = (workoutId: string) => {
+    return useQuery({
+        queryKey: ['workout-exercises', workoutId],
+        queryFn: () => getWorkoutExercises(workoutId),
+        enabled: !!workoutId,
+    });
+};
+
+export const useWorkoutExercisesWithExercise = (workoutId: string) => {
+    return useQuery<WorkoutExerciseWithExercise[]>({
+        queryKey: ['workout-exercises-with-exercise', workoutId],
+        queryFn: () => getWorkoutExercisesWithExercise(workoutId),
+        enabled: !!workoutId,
+    });
+};
+
+export const useCreateWorkoutExercise = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: Omit<WorkoutExerciseInsert, 'id'>) => createWorkoutExercise(data),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises', data.workoutId] });
+            queryClient.invalidateQueries({
+                queryKey: ['workout-exercises-with-exercise', data.workoutId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.workoutId] });
+        },
+    });
+};
+
+export const useCreateWorkoutGroup = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: Omit<WorkoutGroupInsert, 'id'>) => createWorkoutGroup(data),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-groups', data.workoutId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.workoutId] });
+        },
+    });
+};
+
+export const useUpdateWorkoutGroup = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<WorkoutGroupSelect> }) =>
+            updateWorkoutGroup(id, updates),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-groups', data.workoutId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.workoutId] });
+        },
+    });
+};
+
+export const useDeleteWorkoutGroup = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id }: { id: string; workoutId: string }) => deleteWorkoutGroup(id),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-groups', variables.workoutId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', variables.workoutId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises', variables.workoutId] });
+            queryClient.invalidateQueries({
+                queryKey: ['workout-exercises-with-exercise', variables.workoutId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+        },
+    });
+};
+
+export const useUpdateWorkoutExercise = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<WorkoutExerciseSelect> }) =>
+            updateWorkoutExercise(id, updates),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises', data.workoutId] });
+            queryClient.invalidateQueries({
+                queryKey: ['workout-exercises-with-exercise', data.workoutId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', data.workoutId] });
+        },
+    });
+};
+
+export const useDeleteWorkoutExercise = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async ({ id, workoutId }: { id: string; workoutId: string }) => {
+            await deleteWorkoutExercise(id);
+            return await getWorkoutDiagnosticSnapshot(workoutId);
+        },
+        onSuccess: (snapshot, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['workout-exercises', variables.workoutId] });
+            queryClient.invalidateQueries({
+                queryKey: ['workout-exercises-with-exercise', variables.workoutId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details', variables.workoutId] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-groups', variables.workoutId] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+            track('workout:exercise_remove', {
+                workoutId: variables.workoutId,
+                ...getWorkoutDiagnosticProperties(snapshot.progress, snapshot.exerciseLibrary),
+            });
+        },
+    });
+};
+
+export const useExerciseSets = (workoutExerciseId: string) => {
+    return useQuery({
+        queryKey: ['exercise-sets', workoutExerciseId],
+        queryFn: () => getExerciseSets(workoutExerciseId),
+        enabled: !!workoutExerciseId,
+    });
+};
+
+export type CreateExerciseSetInput = Omit<ExerciseSetInsert, 'id'> & {
+    workoutId: string;
+    analyticsSource?: SetCreationSource;
+};
+
+export const useCreateExerciseSet = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async (input: CreateExerciseSetInput) => {
+            const { analyticsSource: _analyticsSource, workoutId: _workoutId, ...data } = input;
+            const created = await createExerciseSet(data);
+            const analyticsSnapshot = await getWorkoutDiagnosticSnapshot(input.workoutId);
+            return { ...created, analyticsSnapshot };
+        },
+        onSuccess: (data, input) => {
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+            track('workout:exercise_set_add', {
+                workoutId: input.workoutId,
+                workoutExerciseId: data.workoutExerciseId,
+                setType: data.type,
+                source: input.analyticsSource ?? 'manual',
+                ...getWorkoutDiagnosticProperties(
+                    data.analyticsSnapshot.progress,
+                    data.analyticsSnapshot.exerciseLibrary,
+                ),
+            });
+        },
+    });
+};
+
+export const useUpdateExerciseSet = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<ExerciseSetSelect> }) =>
+            updateExerciseSet(id, updates),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+        },
+    });
+};
+
+export const useCompleteExerciseSet = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async (input: {
+            id: string;
+            workoutId: string;
+            workoutExerciseId: string;
+            setType: ExerciseSetSelect['type'];
+            source: SetCompletionSource;
+            updates?: Partial<ExerciseSetSelect>;
+        }) => {
+            const existingPromise = completingSetPromises.get(input.id);
+            if (existingPromise) {
+                const result = await existingPromise;
+                return { ...result, didComplete: false };
+            }
+
+            const promise = (async () => {
+                const existingSet = await getExerciseSetById(input.id);
+                if (!existingSet) throw new Error('Exercise set not found');
+                if (existingSet.completedAt) {
+                    return {
+                        set: existingSet,
+                        didComplete: false,
+                        progress: null,
+                        exerciseLibrary: null,
+                    };
+                }
+
+                const set = await updateExerciseSet(input.id, {
+                    ...(input.updates ?? {}),
+                    completedAt: input.updates?.completedAt ?? new Date(),
+                });
+                const snapshot = await getWorkoutDiagnosticSnapshot(input.workoutId);
+                return { set, didComplete: true, ...snapshot };
+            })().finally(() => {
+                completingSetPromises.delete(input.id);
+            });
+
+            completingSetPromises.set(input.id, promise);
+            return await promise;
+        },
+        onSuccess: (result, input) => {
+            queryClient.invalidateQueries({
+                queryKey: ['exercise-sets', input.workoutExerciseId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+
+            if (!result.didComplete) return;
+            track('workout:exercise_set_complete', {
+                workoutId: input.workoutId,
+                workoutExerciseId: input.workoutExerciseId,
+                setType: input.setType,
+                source: input.source,
+                ...getWorkoutDiagnosticProperties(result.progress, result.exerciseLibrary),
+                $insert_id: `set:${input.id}:complete`,
+            });
+        },
+    });
+};
+
+export const useDeleteExerciseSet = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async ({
+            id,
+            workoutId,
+        }: {
+            id: string;
+            workoutId: string;
+            workoutExerciseId: string;
+        }) => {
+            await deleteExerciseSet(id);
+            return await getWorkoutDiagnosticSnapshot(workoutId);
+        },
+        onSuccess: (snapshot, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['exercise-sets', variables.workoutExerciseId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+            track('workout:exercise_set_remove', {
+                workoutId: variables.workoutId,
+                workoutExerciseId: variables.workoutExerciseId,
+                ...getWorkoutDiagnosticProperties(snapshot.progress, snapshot.exerciseLibrary),
+            });
+        },
+    });
+};
+
+export const useActiveWorkout = () => {
+    const { user } = useUser();
+
+    return useQuery({
+        queryKey: ['active-workout', user?.id],
+        queryFn: async () => {
+            const workouts = await getWorkouts();
+            return workouts.find((w) => w.status === 'in_progress') || null;
+        },
+        enabled: !!user?.id,
+    });
+};
+
+export const useDuplicateWorkout = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async ({
+            workoutId,
+            mode,
+        }: {
+            workoutId: string;
+            mode: 'now' | 'planned' | 'completed';
+        }) => {
+            const [result, exerciseLibrary] = await Promise.all([
+                duplicateWorkout(workoutId, mode),
+                getExerciseLibrarySnapshot(),
+            ]);
+            return { ...result, exerciseLibrary };
+        },
+        onSuccess: (result, variables) => {
+            const data = result.workout;
+            const diagnosticProperties = getWorkoutDiagnosticProperties(
+                result.progress,
+                result.exerciseLibrary,
+            );
+            queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: ['workout'] });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            track('workout:duplicate', {
+                sourceWorkoutId: variables.workoutId,
+                workoutId: data.id,
+                mode: variables.mode,
+                ...diagnosticProperties,
+            });
+            if (variables.mode === 'now') {
+                track('workout:start', {
+                    workoutId: data.id,
+                    source: 'repeat',
+                    ...diagnosticProperties,
+                    $insert_id: `workout:${data.id}:start`,
+                });
+            }
+        },
+        onError: (error, variables) => {
+            track('workout:operation_failed', {
+                operation: 'duplicate',
+                workoutId: variables.workoutId,
+                errorType: getAnalyticsErrorType(error),
+            });
+        },
+    });
+};
+
+const defaultStats: WorkoutStats = {
+    trainingWeeks: null,
+    trainingDays: null,
+    trainingHours: null,
+    workoutsCount: null,
+    volume: null,
+    exercisesCount: null,
+    setsCount: null,
+    repsCount: null,
+};
+
+const defaultStrengthRadarStats: StrengthRadarStats = {
+    periodDays: 30,
+    totalVolume: {
+        chest: 0,
+        back: 0,
+        legs: 0,
+        shoulders: 0,
+        core: 0,
+        arms: 0,
+        neck: 0,
+    },
+    workoutFrequency: {
+        chest: 0,
+        back: 0,
+        legs: 0,
+        shoulders: 0,
+        core: 0,
+        arms: 0,
+        neck: 0,
+    },
+    muscularLoad: {
+        chest: 0,
+        back: 0,
+        legs: 0,
+        shoulders: 0,
+        core: 0,
+        arms: 0,
+        neck: 0,
+    },
+};
+
+export const useWorkoutStats = (): WorkoutStats => {
+    const { user } = useUser();
+
+    const { data: stats = defaultStats } = useQuery({
+        queryKey: ['workout-stats', user?.id, user?.weightUnits],
+        queryFn: () => fetchWorkoutStats(user!.weightUnits || 'kg'),
+        enabled: !!user?.id,
+        placeholderData: defaultStats,
+        staleTime: 60000 * 10, // Cache for 10 minutes to avoid refetching on every navigation
+    });
+
+    return stats;
+};
+
+export const useStrengthRadarStats = (): StrengthRadarStats => {
+    const { user } = useUser();
+
+    const { data: stats = defaultStrengthRadarStats } = useQuery({
+        queryKey: ['workout-stats', 'strength-radar', user?.id, user?.weightUnits],
+        queryFn: () => fetchStrengthRadarStats(user!.weightUnits || 'kg', 30),
+        enabled: !!user?.id,
+        placeholderData: defaultStrengthRadarStats,
+        staleTime: 60000 * 10,
+    });
+
+    return stats;
+};
+
+const defaultDaySummary: WorkoutDaySummary = {
+    workoutsCount: 0,
+    totalWorkoutDurationSeconds: 0,
+    totalSetTimeSeconds: 0,
+    totalRestTimeSeconds: 0,
+    volume: 0,
+    exercisesCount: 0,
+    setsCount: 0,
+    repsCount: 0,
+    healthStats: null,
+    hasLocomotionMetricsSource: false,
+};
+
+export const useWorkoutDaySummary = (dateKey: string): WorkoutDaySummary => {
+    const { user } = useUser();
+
+    const { data: summary = defaultDaySummary } = useQuery({
+        queryKey: ['workout-day-summary', user?.id, user?.weightUnits, dateKey],
+        queryFn: () => fetchWorkoutDaySummary(dateKey, user!.weightUnits || 'kg'),
+        enabled: !!user?.id && !!dateKey,
+        placeholderData: defaultDaySummary,
+        staleTime: 60000 * 5,
+    });
+
+    return summary;
+};
+
+export const useWorkoutDayHealthStats = (dateKey: string): WorkoutDaySummary['healthStats'] => {
+    const { user } = useUser();
+
+    const userId = user?.id;
+    const userMhrFormula = user?.mhrFormula;
+    const userMhrManualValue = user?.mhrManualValue;
+    const userBirthdayMs = user?.birthday?.getTime?.();
+
+    const { data: healthStats = null } = useQuery({
+        queryKey: [
+            'workout-day-health-stats',
+            userId,
+            userMhrFormula,
+            userMhrManualValue,
+            userBirthdayMs,
+            dateKey,
+        ],
+        queryFn: async () => {
+            await waitForIdle();
+            return fetchWorkoutDayHealthStats(dateKey);
+        },
+        enabled: !!userId && !!dateKey,
+        placeholderData: null,
+        staleTime: 60000 * 5,
+    });
+
+    return healthStats;
+};

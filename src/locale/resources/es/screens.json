@@ -458,5 +458,76 @@
             "zone4": "Zona 4 — Pico",
             "zone5": "Zona 5 — Máximo"
         }
+    },
+    "tony": {
+        "title": "Tony",
+        "empty": {
+            "title": "Pregunta a Tony",
+            "message": "Consigue un plan de entrenamiento, una tabla de comidas o pregunta sobre tu entrenamiento."
+        },
+        "unavailable": {
+            "title": "Tony está desactivado",
+            "message": "Esta compilación no tiene un host de IA configurado. Define EXPO_PUBLIC_AI_BASE_URL para activarlo."
+        },
+        "composer": {
+            "placeholder": "Escribe a Tony…",
+            "send": "Enviar"
+        },
+        "actions": {
+            "workout": "Plan de entrenamiento",
+            "nutrition": "Tabla de comidas",
+            "workoutIntent": "Créame un plan de entrenamiento para la semana.",
+            "nutritionIntent": "Créame una tabla de comidas para la semana."
+        },
+        "quota": {
+            "remaining": "Quedan {{remaining}} de {{limit}} planes este mes",
+            "title": "Sin planes disponibles",
+            "message": "Has usado los {{limit}} planes de este mes. El chat sigue funcionando."
+        },
+        "clear": {
+            "title": "Borrar conversación",
+            "message": "Esto elimina todos los mensajes y borradores de planes. Los entrenamientos ya añadidos se mantienen.",
+            "confirm": "Borrar"
+        },
+        "plan": {
+            "day": "Día {{number}}",
+            "sets": "{{sets}} series",
+            "setsReps": "{{sets}} × {{reps}}",
+            "kcal": "{{value}} kcal",
+            "protein": "P {{value}} g",
+            "carbs": "C {{value}} g",
+            "fat": "G {{value}} g",
+            "applied": "Añadido",
+            "showMore": "Ver plan completo",
+            "showLess": "Ver menos",
+            "addToSchedule": "Añadir al calendario",
+            "undo": "Deshacer",
+            "cancel": "Cancelar",
+            "applyTitle": "Añadir al calendario",
+            "applyMessage": "Esto crea entrenamientos planificados. Los entrenamientos completados nunca se modifican.",
+            "applyConfirm": "Añadir",
+            "applyFailed": "No se pudo añadir el plan a tu calendario.",
+            "revertTitle": "Deshacer plan",
+            "revertMessage": "Esto elimina los entrenamientos planificados que creó este plan.",
+            "revertConfirm": "Deshacer",
+            "revertFailed": "No se pudo deshacer el plan.",
+            "slots": {
+                "breakfast": "Desayuno",
+                "lunch": "Comida",
+                "dinner": "Cena",
+                "snack": "Tentempié"
+            }
+        },
+        "errors": {
+            "disabled": "El asistente no está configurado en esta compilación.",
+            "offline": "Sin conexión. Inténtalo cuando vuelvas a estar en línea.",
+            "timeout": "Ha tardado demasiado. Inténtalo de nuevo.",
+            "rateLimit": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+            "quota": "La cuenta de IA se ha quedado sin crédito.",
+            "auth": "Se rechazó la credencial de IA. Revisa tu configuración.",
+            "invalid": "No se pudo leer la respuesta como un plan. Inténtalo de nuevo.",
+            "provider": "El asistente no está disponible en este momento.",
+            "truncated": "La respuesta se cortó antes de terminar. Prueba con un plan más corto."
+        }
     }
 }

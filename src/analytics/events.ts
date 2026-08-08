@@ -21,6 +21,16 @@ type CampaignProperties = {
 
 type WorkoutStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled';
 
+type AiPlanKindProperty = 'workout' | 'nutrition' | 'combined';
+
+/**
+ * Model identity only. Prompts, profile fields, and declared conditions are never
+ * attached to an analytics event.
+ */
+type AiProperties = {
+    model: string | null;
+};
+
 type WorkoutEditorProperties = {
     mode: 'create' | 'edit';
     status: WorkoutStatus;
@@ -265,6 +275,23 @@ export type AnalyticsEventMap = {
         storeReviewAvailable: boolean;
         storeReviewHasAction: boolean;
     };
+    'ai:chat_message': AiProperties;
+    'ai:plan_generated': AiProperties & {
+        kind: AiPlanKindProperty;
+        /** How many items the validator had to drop or correct. */
+        repairs: number;
+    };
+    'ai:plan_applied': {
+        kind: AiPlanKindProperty;
+        workouts: number;
+    };
+    'ai:plan_reverted': {
+        kind: AiPlanKindProperty;
+    };
+    'ai:failed': {
+        code: string;
+        surface: 'chat' | 'plan';
+    };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
@@ -294,4 +321,5 @@ export type AnalyticsScreenName =
     | 'settings_sound'
     | 'settings_theme'
     | 'settings_units'
+    | 'tony'
     | 'not_found';

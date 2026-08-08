@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { useKeyboard } from '@react-native-community/hooks';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Tabs } from './components';
@@ -38,6 +39,14 @@ const styles = StyleSheet.create((theme, rt) => ({
 }));
 
 const Menu = ({ state }: BottomTabBarProps) => {
+    const { keyboardShown } = useKeyboard();
+
+    // The bar is pinned to the bottom of the window, and Android is configured to pan
+    // the window on keyboard open, so leaving it mounted drags the whole nav up over
+    // the keyboard. Standing it down while typing is both the fix and the behaviour
+    // people expect from a text entry surface.
+    if (keyboardShown) return null;
+
     return (
         <Box style={styles.menuContainer}>
             <Tabs state={state} />

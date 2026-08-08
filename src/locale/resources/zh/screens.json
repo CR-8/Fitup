@@ -456,5 +456,76 @@
             "zone4": "区间 4 — 峰值",
             "zone5": "区间 5 — 极限"
         }
+    },
+    "tony": {
+        "title": "Tony",
+        "empty": {
+            "title": "问问 Tony",
+            "message": "获取训练计划、饮食表，或询问训练相关的问题。"
+        },
+        "unavailable": {
+            "title": "Tony 已关闭",
+            "message": "此版本未配置 AI 主机。设置 EXPO_PUBLIC_AI_BASE_URL 即可启用。"
+        },
+        "composer": {
+            "placeholder": "给 Tony 发消息…",
+            "send": "发送"
+        },
+        "actions": {
+            "workout": "训练计划",
+            "nutrition": "饮食表",
+            "workoutIntent": "帮我制定本周的训练计划。",
+            "nutritionIntent": "帮我制定本周的饮食表。"
+        },
+        "quota": {
+            "remaining": "本月还剩 {{remaining}}/{{limit}} 个计划",
+            "title": "计划已用完",
+            "message": "本月的 {{limit}} 个计划已全部用完。聊天功能仍可使用。"
+        },
+        "clear": {
+            "title": "清除对话",
+            "message": "这将删除所有消息和计划草稿。已添加的训练会保留。",
+            "confirm": "清除"
+        },
+        "plan": {
+            "day": "第 {{number}} 天",
+            "sets": "{{sets}} 组",
+            "setsReps": "{{sets}} × {{reps}}",
+            "kcal": "{{value}} 千卡",
+            "protein": "蛋白 {{value}} 克",
+            "carbs": "碳水 {{value}} 克",
+            "fat": "脂肪 {{value}} 克",
+            "applied": "已添加",
+            "showMore": "查看完整计划",
+            "showLess": "收起",
+            "addToSchedule": "添加到日程",
+            "undo": "撤销",
+            "cancel": "取消",
+            "applyTitle": "添加到日程",
+            "applyMessage": "这会创建已计划的训练。已完成的训练不会被修改。",
+            "applyConfirm": "添加",
+            "applyFailed": "无法将计划添加到日程。",
+            "revertTitle": "撤销计划",
+            "revertMessage": "这将删除该计划创建的已计划训练。",
+            "revertConfirm": "撤销",
+            "revertFailed": "无法撤销该计划。",
+            "slots": {
+                "breakfast": "早餐",
+                "lunch": "午餐",
+                "dinner": "晚餐",
+                "snack": "加餐"
+            }
+        },
+        "errors": {
+            "disabled": "此版本未配置助手。",
+            "offline": "无网络连接。恢复联网后再试。",
+            "timeout": "耗时过长，请重试。",
+            "rateLimit": "请求过于频繁，请稍后再试。",
+            "quota": "AI 账户余额不足。",
+            "auth": "AI 凭据被拒绝，请检查配置。",
+            "invalid": "无法将回复解析为计划，请重试。",
+            "provider": "助手当前不可用。",
+            "truncated": "回复未完成就被截断了。试试更短的计划。"
+        }
     }
 }

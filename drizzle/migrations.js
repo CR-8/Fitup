@@ -22,30 +22,33 @@ import m0017 from './0017_curved_morlocks.sql';
 import m0018 from './0018_legal_cerebro.sql';
 import m0019 from './0019_nebulous_shape.sql';
 import m0020 from './0020_blue_lady_ursula.sql';
+import m0021 from './0021_happy_snowbird.sql';
 
-export default {
+  export default {
     journal,
     migrations: {
-        m0000,
-        m0001,
-        m0002,
-        m0003,
-        m0004,
-        m0005,
-        m0006,
-        m0007,
-        m0008,
-        m0009,
-        m0010,
-        m0011,
-        m0012,
-        m0013,
-        m0014,
-        m0015,
-        m0016,
-        m0017,
-        m0018,
-        m0019,
-        m0020,
-    },
-};
+      m0000,
+m0001,
+m0002,
+m0003,
+m0004,
+m0005,
+m0006,
+m0007,
+m0008,
+m0009,
+m0010,
+m0011,
+m0012,
+m0013,
+m0014,
+m0015,
+m0016,
+m0017,
+m0018,
+m0019,
+m0020,
+m0021
+    }
+  }
+  

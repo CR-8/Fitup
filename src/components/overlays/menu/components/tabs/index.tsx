@@ -4,7 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { RelativePathString, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { LucideIcon, House, Settings2, CircleGauge, ChartNoAxesColumn } from 'lucide-react-native';
+import {
+    LucideIcon,
+    House,
+    Settings2,
+    CircleGauge,
+    ChartNoAxesColumn,
+    MessageCircle,
+} from 'lucide-react-native';
 
 import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
@@ -101,6 +108,11 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 screen: 'results',
                 title: 'results.title',
                 icon: ChartNoAxesColumn,
+            },
+            {
+                screen: 'tony',
+                title: 'tony.title',
+                icon: MessageCircle,
             },
             {
                 screen: 'exercises',

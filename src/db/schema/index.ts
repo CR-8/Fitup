@@ -5,3 +5,4 @@ export * from './workout';
 export * from './app-review';
 export * from './relations';
 export * from './measurement';
+export * from './ai';

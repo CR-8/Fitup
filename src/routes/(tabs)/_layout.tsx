@@ -7,6 +7,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { useHomeTab } from '@/screens/home/hooks';
 import { useSettingsTab } from '@/screens/settings/settings/hooks';
 import { useResultsTab } from '@/screens/results/results/hooks';
+import { useTonyTab } from '@/screens/tony/hooks';
 
 export default function TabLayout() {
     const { options } = useScreen();
@@ -15,6 +16,7 @@ export default function TabLayout() {
     const exercises = useExercisesTab();
     const settings = useSettingsTab();
     const results = useResultsTab();
+    const tony = useTonyTab();
 
     return (
         <Tabs
@@ -27,6 +29,7 @@ export default function TabLayout() {
         >
             <Tabs.Screen {...home} />
             <Tabs.Screen {...results} />
+            <Tabs.Screen {...tony} />
             <Tabs.Screen {...exercises} />
             <Tabs.Screen {...settings} />
         </Tabs>

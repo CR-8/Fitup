@@ -458,5 +458,76 @@
             "zone4": "Zone 4 — Peak",
             "zone5": "Zone 5 — Max"
         }
+    },
+    "tony": {
+        "title": "Tony",
+        "empty": {
+            "title": "Ask Tony",
+            "message": "Get a training plan, a food chart, or just ask about your training."
+        },
+        "unavailable": {
+            "title": "Tony is off",
+            "message": "This build has no AI host configured. Set EXPO_PUBLIC_AI_BASE_URL to turn it on."
+        },
+        "composer": {
+            "placeholder": "Message Tony…",
+            "send": "Send"
+        },
+        "actions": {
+            "workout": "Training plan",
+            "nutrition": "Food chart",
+            "workoutIntent": "Build me a training plan for the week.",
+            "nutritionIntent": "Build me a food chart for the week."
+        },
+        "quota": {
+            "remaining": "{{remaining}} of {{limit}} plans left this month",
+            "title": "No plans left",
+            "message": "You have used all {{limit}} plans this month. Chat still works."
+        },
+        "clear": {
+            "title": "Clear conversation",
+            "message": "This removes every message and plan draft. Workouts you already added stay.",
+            "confirm": "Clear"
+        },
+        "plan": {
+            "day": "Day {{number}}",
+            "sets": "{{sets}} sets",
+            "setsReps": "{{sets}} × {{reps}}",
+            "kcal": "{{value}} kcal",
+            "protein": "P {{value}}g",
+            "carbs": "C {{value}}g",
+            "fat": "F {{value}}g",
+            "applied": "Added",
+            "showMore": "Show full plan",
+            "showLess": "Show less",
+            "addToSchedule": "Add to schedule",
+            "undo": "Undo",
+            "cancel": "Cancel",
+            "applyTitle": "Add to schedule",
+            "applyMessage": "This creates planned workouts. Completed workouts are never changed.",
+            "applyConfirm": "Add",
+            "applyFailed": "Could not add the plan to your schedule.",
+            "revertTitle": "Undo plan",
+            "revertMessage": "This deletes the planned workouts this plan created.",
+            "revertConfirm": "Undo",
+            "revertFailed": "Could not undo the plan.",
+            "slots": {
+                "breakfast": "Breakfast",
+                "lunch": "Lunch",
+                "dinner": "Dinner",
+                "snack": "Snack"
+            }
+        },
+        "errors": {
+            "disabled": "The assistant is not configured in this build.",
+            "offline": "No connection. Try again when you are back online.",
+            "timeout": "That took too long. Try again.",
+            "rateLimit": "Too many requests. Wait a moment and try again.",
+            "quota": "The AI account is out of credit.",
+            "auth": "The AI credential was rejected. Check your configuration.",
+            "invalid": "The reply could not be read as a plan. Try again.",
+            "provider": "The assistant is unavailable right now.",
+            "truncated": "The reply was cut off before it finished. Try a shorter plan."
+        }
     }
 }

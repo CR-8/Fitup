@@ -529,5 +529,122 @@
             "provider": "El asistente no está disponible en este momento.",
             "truncated": "La respuesta se cortó antes de terminar. Prueba con un plan más corto."
         }
+    },
+    "signIn": {
+        "title": "Bienvenido a Fitup",
+        "subtitle": "Inicia sesión para sincronizar entre dispositivos y usar a Tony. También puedes empezar sin cuenta.",
+        "google": "Continuar con Google",
+        "apple": "Continuar con Apple",
+        "email": "Correo",
+        "password": "Contraseña",
+        "continue": "Continuar",
+        "createAccount": "Crear cuenta",
+        "needAccount": "¿Eres nuevo? Crea una cuenta",
+        "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+        "confirmEmail": "Revisa tu correo para confirmar tu dirección.",
+        "skip": "Continuar sin cuenta",
+        "skipHint": "Tus entrenamientos se quedan en este dispositivo. Puedes iniciar sesión más tarde en Ajustes.",
+        "errors": {
+            "invalidCredentials": "Ese correo y contraseña no coinciden.",
+            "emailInUse": "Ese correo ya está registrado. Prueba a iniciar sesión.",
+            "weakPassword": "Elige una contraseña más larga.",
+            "emailNotConfirmed": "Confirma primero tu dirección de correo.",
+            "network": "Sin conexión. Inténtalo cuando vuelvas a estar en línea.",
+            "unavailable": "El inicio de sesión no está disponible en esta compilación.",
+            "unknown": "No se pudo iniciar sesión. Inténtalo de nuevo."
+        }
+    },
+    "onboarding": {
+        "title": "Sobre ti",
+        "subtitle": "Esto es lo que Tony usa para adaptar tus planes. Todos los campos son opcionales y puedes cambiarlos luego.",
+        "save": "Guardar y continuar",
+        "skip": "Omitir por ahora",
+        "saveFailed": "No se pudieron guardar tus datos. Inténtalo de nuevo.",
+        "somatotypeHint": "Una descripción aproximada, no una medición.",
+        "fields": {
+            "name": "¿Cómo te llamamos?",
+            "age": "Edad",
+            "sex": "Sexo biológico",
+            "weight": "Peso actual (kg)",
+            "height": "Altura (cm)",
+            "goal": "Objetivo",
+            "targetWeight": "Peso objetivo (kg)",
+            "somatotype": "Tipo de cuerpo",
+            "activity": "Actividad diaria",
+            "sessions": "Días de entrenamiento por semana"
+        },
+        "sex": {
+            "female": "Mujer",
+            "male": "Hombre",
+            "other": "Otro"
+        },
+        "goal": {
+            "lose": "Definir",
+            "maintain": "Mantenerme",
+            "gain": "Volumen",
+            "recomp": "Recomposición"
+        },
+        "somatotype": {
+            "ectomorph": "Delgado",
+            "mesomorph": "Atlético",
+            "endomorph": "Robusto"
+        },
+        "activity": {
+            "sedentary": "Sedentaria",
+            "light": "Ligera",
+            "moderate": "Moderada",
+            "active": "Activa",
+            "very_active": "Muy activa"
+        },
+        "next": "Continuar",
+        "back": "Atrás",
+        "steps": {
+            "about": {
+                "title": "Sobre ti",
+                "subtitle": "Solo lo básico, para que los planes encajen contigo."
+            },
+            "body": {
+                "title": "Tu cuerpo",
+                "subtitle": "Sirve para ajustar porciones y cargas iniciales."
+            },
+            "goal": {
+                "title": "Tu objetivo",
+                "subtitle": "Qué quieres conseguir en los próximos meses."
+            },
+            "training": {
+                "title": "Tu entrenamiento",
+                "subtitle": "El tiempo del que dispones realmente."
+            }
+        }
+    },
+    "timer": {
+        "inProgress": "En curso",
+        "elapsed": "Transcurrido",
+        "done": "Listo"
+    },
+    "diet": {
+        "title": "Dieta",
+        "today": "Hoy",
+        "previousDay": "Día anterior",
+        "nextDay": "Día siguiente",
+        "calories": "Calorías",
+        "protein": "Proteína",
+        "carbs": "Carbohidratos",
+        "fat": "Grasa",
+        "kcal": "{{value}} kcal",
+        "plannedRemaining": "Quedan {{value}} kcal planificadas para hoy",
+        "removeTitle": "Eliminar elemento",
+        "remove": "Eliminar",
+        "cancel": "Cancelar",
+        "slots": {
+            "breakfast": "Desayuno",
+            "lunch": "Comida",
+            "dinner": "Cena",
+            "snack": "Tentempié"
+        },
+        "empty": {
+            "title": "Nada registrado aún",
+            "message": "Pide una tabla de comidas a Tony y añádela aquí, o registra lo que comiste."
+        }
     }
 }

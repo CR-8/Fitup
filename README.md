@@ -232,6 +232,23 @@ please run `bun run verify` before submitting a change.
 - [Sync provider protocol](docs/SYNC_PROTOCOL.md)
 - [Release process](docs/RELEASING.md)
 
+## Exercise catalogue
+
+The bundled catalogue of 1,324 exercises — names, body parts, equipment, muscle groups, and
+step-by-step instructions in five languages — is derived from
+[exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset) (© Hasan Emir Yıldırım),
+used under the MIT License. Regenerate it with `bun run exercises`.
+
+**Animations are not included.** The GIFs that accompany that dataset are © Gym visual, not
+MIT, and its NOTICE states that cloning the repository grants no rights to the media. To show
+animations you must obtain your own rights from
+[Gym visual](https://gymvisual.com/content/3-terms-and-conditions-of-use), host the files
+yourself, and set `EXPO_PUBLIC_EXERCISE_MEDIA_BASE_URL`. Without it the app shows text
+instructions only. Where an animation is rendered, the app displays the required
+"© Gym visual — gymvisual.com" attribution automatically.
+
+See [assets/exercises/ATTRIBUTION.md](assets/exercises/ATTRIBUTION.md).
+
 ## License
 
 Fitup is licensed under the [GNU General Public License v3.0](LICENSE).

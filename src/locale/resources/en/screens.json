@@ -529,5 +529,122 @@
             "provider": "The assistant is unavailable right now.",
             "truncated": "The reply was cut off before it finished. Try a shorter plan."
         }
+    },
+    "signIn": {
+        "title": "Welcome to Fitup",
+        "subtitle": "Sign in to sync across devices and use Tony. You can also start straight away without an account.",
+        "google": "Continue with Google",
+        "apple": "Continue with Apple",
+        "email": "Email",
+        "password": "Password",
+        "continue": "Continue",
+        "createAccount": "Create account",
+        "needAccount": "New here? Create an account",
+        "haveAccount": "Already have an account? Sign in",
+        "confirmEmail": "Check your inbox to confirm your email address.",
+        "skip": "Continue without an account",
+        "skipHint": "Your workouts stay on this device. You can sign in later from Settings.",
+        "errors": {
+            "invalidCredentials": "That email and password do not match.",
+            "emailInUse": "That email is already registered. Try signing in.",
+            "weakPassword": "Pick a longer password.",
+            "emailNotConfirmed": "Confirm your email address first.",
+            "network": "No connection. Try again when you are back online.",
+            "unavailable": "Sign-in is not available in this build.",
+            "unknown": "Could not sign you in. Try again."
+        }
+    },
+    "onboarding": {
+        "title": "About you",
+        "subtitle": "This is what Tony uses to tailor your plans. Every field is optional and you can change it later.",
+        "save": "Save and continue",
+        "skip": "Skip for now",
+        "saveFailed": "Could not save your details. Try again.",
+        "somatotypeHint": "A rough self-description, not a measurement.",
+        "fields": {
+            "name": "What should we call you?",
+            "age": "Age",
+            "sex": "Biological sex",
+            "weight": "Current weight (kg)",
+            "height": "Height (cm)",
+            "goal": "Goal",
+            "targetWeight": "Target weight (kg)",
+            "somatotype": "Body type",
+            "activity": "Daily activity",
+            "sessions": "Training days per week"
+        },
+        "sex": {
+            "female": "Female",
+            "male": "Male",
+            "other": "Other"
+        },
+        "goal": {
+            "lose": "Get lean",
+            "maintain": "Stay in shape",
+            "gain": "Bulk",
+            "recomp": "Recomp"
+        },
+        "somatotype": {
+            "ectomorph": "Lean",
+            "mesomorph": "Athletic",
+            "endomorph": "Solid"
+        },
+        "activity": {
+            "sedentary": "Sedentary",
+            "light": "Light",
+            "moderate": "Moderate",
+            "active": "Active",
+            "very_active": "Very active"
+        },
+        "next": "Continue",
+        "back": "Back",
+        "steps": {
+            "about": {
+                "title": "About you",
+                "subtitle": "Just the basics, so plans fit the person doing them."
+            },
+            "body": {
+                "title": "Your body",
+                "subtitle": "Used to size portions and starting loads."
+            },
+            "goal": {
+                "title": "Your goal",
+                "subtitle": "What you want out of the next few months."
+            },
+            "training": {
+                "title": "Your training",
+                "subtitle": "How much time you actually have."
+            }
+        }
+    },
+    "timer": {
+        "inProgress": "In progress",
+        "elapsed": "Elapsed",
+        "done": "Done"
+    },
+    "diet": {
+        "title": "Diet",
+        "today": "Today",
+        "previousDay": "Previous day",
+        "nextDay": "Next day",
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "kcal": "{{value}} kcal",
+        "plannedRemaining": "{{value}} kcal still planned for today",
+        "removeTitle": "Remove item",
+        "remove": "Remove",
+        "cancel": "Cancel",
+        "slots": {
+            "breakfast": "Breakfast",
+            "lunch": "Lunch",
+            "dinner": "Dinner",
+            "snack": "Snack"
+        },
+        "empty": {
+            "title": "Nothing logged yet",
+            "message": "Ask Tony for a food chart and add it here, or log what you ate."
+        }
     }
 }

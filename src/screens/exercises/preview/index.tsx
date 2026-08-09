@@ -4,7 +4,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 
 import { Box } from '@/components/primitives/box';
-import { buildExerciseGifUrl, EXERCISE_GIF_PREVIEW_RESOLUTION } from '@/constants/fitup';
+import { Text } from '@/components/primitives/text';
+import {
+    buildExerciseGifUrl,
+    EXERCISE_GIF_PREVIEW_RESOLUTION,
+    EXERCISE_MEDIA_ATTRIBUTION,
+} from '@/constants/fitup';
 
 import { Header } from './components/header';
 
@@ -22,6 +27,13 @@ const styles = StyleSheet.create((theme, rt) => ({
     gifImage: {
         width: '100%',
         height: '100%',
+    },
+    // The media licence requires this notice wherever the animation is shown.
+    attribution: {
+        paddingHorizontal: theme.space(4),
+        paddingBottom: rt.insets.bottom + theme.space(3),
+        textAlign: 'center',
+        color: theme.colors.neutral[500],
     },
 }));
 
@@ -52,14 +64,19 @@ const PreviewScreen: FC = () => {
         <Box style={styles.container}>
             <Header exerciseName={name} handleClose={handleClose} />
             {gifUrl ? (
-                <Box style={styles.gifContainer}>
-                    <ExpoImage
-                        source={{ uri: gifUrl }}
-                        style={styles.gifImage}
-                        contentFit="contain"
-                        autoplay
-                    />
-                </Box>
+                <>
+                    <Box style={styles.gifContainer}>
+                        <ExpoImage
+                            source={{ uri: gifUrl }}
+                            style={styles.gifImage}
+                            contentFit="contain"
+                            autoplay
+                        />
+                    </Box>
+                    <Text fontSize="2xs" style={styles.attribution}>
+                        {EXERCISE_MEDIA_ATTRIBUTION}
+                    </Text>
+                </>
             ) : null}
         </Box>
     );

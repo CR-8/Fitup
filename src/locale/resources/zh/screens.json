@@ -527,5 +527,122 @@
             "provider": "助手当前不可用。",
             "truncated": "回复未完成就被截断了。试试更短的计划。"
         }
+    },
+    "signIn": {
+        "title": "欢迎使用 Fitup",
+        "subtitle": "登录后可在多设备间同步并使用 Tony。你也可以不注册直接开始。",
+        "google": "使用 Google 继续",
+        "apple": "使用 Apple 继续",
+        "email": "邮箱",
+        "password": "密码",
+        "continue": "继续",
+        "createAccount": "创建账户",
+        "needAccount": "第一次使用？创建账户",
+        "haveAccount": "已有账户？登录",
+        "confirmEmail": "请查收邮件以确认你的邮箱地址。",
+        "skip": "不使用账户继续",
+        "skipHint": "你的训练记录会保存在本设备。之后可在设置中登录。",
+        "errors": {
+            "invalidCredentials": "邮箱与密码不匹配。",
+            "emailInUse": "该邮箱已注册，请尝试登录。",
+            "weakPassword": "请设置更长的密码。",
+            "emailNotConfirmed": "请先确认你的邮箱地址。",
+            "network": "无网络连接。恢复联网后再试。",
+            "unavailable": "此版本不支持登录。",
+            "unknown": "登录失败，请重试。"
+        }
+    },
+    "onboarding": {
+        "title": "关于你",
+        "subtitle": "Tony 依据这些信息为你定制计划。所有项目均可选，之后也能修改。",
+        "save": "保存并继续",
+        "skip": "暂时跳过",
+        "saveFailed": "无法保存你的资料，请重试。",
+        "somatotypeHint": "这是大致的自我描述，并非测量结果。",
+        "fields": {
+            "name": "怎么称呼你？",
+            "age": "年龄",
+            "sex": "生理性别",
+            "weight": "当前体重（公斤）",
+            "height": "身高（厘米）",
+            "goal": "目标",
+            "targetWeight": "目标体重（公斤）",
+            "somatotype": "体型",
+            "activity": "日常活动量",
+            "sessions": "每周训练天数"
+        },
+        "sex": {
+            "female": "女",
+            "male": "男",
+            "other": "其他"
+        },
+        "goal": {
+            "lose": "减脂",
+            "maintain": "保持体型",
+            "gain": "增肌",
+            "recomp": "增肌减脂"
+        },
+        "somatotype": {
+            "ectomorph": "偏瘦",
+            "mesomorph": "健壮",
+            "endomorph": "厚实"
+        },
+        "activity": {
+            "sedentary": "久坐",
+            "light": "轻度",
+            "moderate": "中等",
+            "active": "活跃",
+            "very_active": "非常活跃"
+        },
+        "next": "继续",
+        "back": "返回",
+        "steps": {
+            "about": {
+                "title": "关于你",
+                "subtitle": "只需基本信息，让计划更贴合你。"
+            },
+            "body": {
+                "title": "你的身体",
+                "subtitle": "用于确定食量和起始负重。"
+            },
+            "goal": {
+                "title": "你的目标",
+                "subtitle": "接下来几个月你想达成什么。"
+            },
+            "training": {
+                "title": "你的训练",
+                "subtitle": "你实际能安排多少时间。"
+            }
+        }
+    },
+    "timer": {
+        "inProgress": "进行中",
+        "elapsed": "已用时",
+        "done": "完成"
+    },
+    "diet": {
+        "title": "饮食",
+        "today": "今天",
+        "previousDay": "前一天",
+        "nextDay": "后一天",
+        "calories": "热量",
+        "protein": "蛋白质",
+        "carbs": "碳水",
+        "fat": "脂肪",
+        "kcal": "{{value}} 千卡",
+        "plannedRemaining": "今天还有 {{value}} 千卡的计划未完成",
+        "removeTitle": "移除条目",
+        "remove": "移除",
+        "cancel": "取消",
+        "slots": {
+            "breakfast": "早餐",
+            "lunch": "午餐",
+            "dinner": "晚餐",
+            "snack": "加餐"
+        },
+        "empty": {
+            "title": "还没有记录",
+            "message": "向 Tony 要一份饮食表并添加到这里，或记录你吃了什么。"
+        }
     }
 }

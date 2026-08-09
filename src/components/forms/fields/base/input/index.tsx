@@ -51,7 +51,10 @@ const styles = StyleSheet.create((theme) => ({
         backgroundColor: error ? theme.colors.red[100] : theme.colors.background,
         borderRadius: theme.radius.full,
         borderWidth: stableOutlineWidth,
-        borderColor: error ? theme.colors.red[100] : theme.colors.background,
+        // Previously painted in the background colour, which made the field edge
+        // invisible against the surface it sits on — a form read as loose labels
+        // with nothing obviously tappable.
+        borderColor: error ? theme.colors.red[400] : theme.colors.border,
         paddingHorizontal: theme.space(4),
         variants: {
             size: {

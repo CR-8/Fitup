@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { AiPlanPayload } from '@/types/ai';
 
@@ -107,7 +107,21 @@ export const aiProfile = sqliteTable('ai_profile', {
     conditions: text('conditions', { mode: 'json' }).$type<string[]>(),
     equipment: text('equipment', { mode: 'json' }).$type<string[]>(),
     dailyCalorieTarget: integer('daily_calorie_target'),
+    /** Macro targets in grams, used by the diet screen's daily progress. */
+    dailyProteinTargetG: integer('daily_protein_target_g'),
+    dailyCarbsTargetG: integer('daily_carbs_target_g'),
+    dailyFatTargetG: integer('daily_fat_target_g'),
+    /** Goal weight in kilograms; units are a display concern. */
+    targetWeightKg: real('target_weight_kg'),
+    /**
+     * Self-reported build. Somatotype is a self-perception input, not a
+     * measurement, so it informs tone and starting volume rather than driving
+     * any calculation.
+     */
+    somatotype: text('somatotype', { enum: ['ectomorph', 'mesomorph', 'endomorph'] }),
     notes: text('notes'),
+    /** Marks onboarding as answered, so it is not offered again. */
+    completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
         .notNull()
         .default(sql`(strftime('%s','now') * 1000)`),

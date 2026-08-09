@@ -10,7 +10,11 @@ import { ExerciseSelect } from '@/db/schema';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { normalizeMuscleValues } from '@/constants/muscles';
-import { buildExerciseGifUrl } from '@/constants/fitup';
+import {
+    buildExerciseGifUrl,
+    EXERCISE_GIF_PREVIEW_RESOLUTION,
+    EXERCISE_MEDIA_ATTRIBUTION,
+} from '@/constants/fitup';
 
 interface HeaderProps {
     exercise: ExerciseSelect;
@@ -57,6 +61,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     gifImage: {
         width: '100%',
     },
+    // The media licence requires this notice wherever the animation is shown.
+    attribution: {
+        color: theme.colors.neutral[500],
+        textAlign: 'center',
+    },
 }));
 
 export const Header = ({ exercise }: HeaderProps) => {
@@ -66,7 +75,7 @@ export const Header = ({ exercise }: HeaderProps) => {
 
     const gifUrl = useMemo(() => {
         if (!exercise.gifFilename) return null;
-        return buildExerciseGifUrl(exercise.gifFilename, 1080);
+        return buildExerciseGifUrl(exercise.gifFilename, EXERCISE_GIF_PREVIEW_RESOLUTION);
     }, [exercise.gifFilename]);
 
     return (
@@ -85,6 +94,11 @@ export const Header = ({ exercise }: HeaderProps) => {
                         autoplay
                         onLoad={(e) => setAspectRatio(e.source.width / e.source.height)}
                     />
+                )}
+                {gifUrl && (
+                    <Text fontSize="2xs" style={styles.attribution}>
+                        {EXERCISE_MEDIA_ATTRIBUTION}
+                    </Text>
                 )}
                 {(exercise.tracking || primaryMuscleGroups.length > 0) && (
                     <VStack style={styles.infoContainer}>

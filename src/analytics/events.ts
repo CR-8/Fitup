@@ -322,4 +322,8 @@ export type AnalyticsScreenName =
     | 'settings_theme'
     | 'settings_units'
     | 'tony'
+    | 'sign_in'
+    | 'onboarding'
+    | 'exercise_timer'
+    | 'diet'
     | 'not_found';

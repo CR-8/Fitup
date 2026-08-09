@@ -57,6 +57,16 @@ export const user = sqliteTable('user', {
     mhrManualValue: integer('mhr_manual_value'),
     birthday: integer('birthday', { mode: 'timestamp_ms' }),
     biologicalSex: text('biological_sex', { enum: ['female', 'male', 'other'] }),
+    /** What the user asked to be called. Free text, not an identity claim. */
+    displayName: text('display_name', { length: 80 }),
+    /**
+     * Identity-provider subject for the signed-in account, or null while the app
+     * is used without one. Local records keep their own 21-char id either way, so
+     * signing in links an existing local history rather than replacing it.
+     */
+    accountId: text('account_id'),
+    accountEmail: text('account_email'),
+    accountProvider: text('account_provider', { enum: ['google', 'apple', 'email'] }),
     activityLevel: text('activity_level', { enum: ['sedentary', 'active', 'trained'] }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
         .notNull()

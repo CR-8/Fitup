@@ -132,7 +132,9 @@ export const Actions: FC<ActionsProps> = ({
     );
 
     const workoutStatus = workoutDetails?.workout.status;
-    const workoutInfo = getWorkoutState(orderedExercises, executionOrderSets);
+    // Scoped to the exercise on screen, so the action acts on what the user is
+    // looking at rather than on the workout's global pointer.
+    const workoutInfo = getWorkoutState(orderedExercises, executionOrderSets, workoutExerciseId);
 
     const currentExercise = useMemo(() => {
         return workoutDetails?.exercises.find((x) => x.workoutExercise.id === workoutExerciseId)
@@ -201,11 +203,10 @@ export const Actions: FC<ActionsProps> = ({
                 return;
             }
 
-            // Navigate to different exercise if needed
-            if (workoutInfo.exerciseId && workoutInfo.exerciseId !== workoutExerciseId) {
-                router.setParams({ workoutExerciseId: workoutInfo.exerciseId });
-                return;
-            }
+            // There is deliberately no "jump to another exercise" branch here: the
+            // state above is scoped to this screen, so the action always applies to
+            // the exercise being viewed. Advancing to the next exercise happens
+            // after a set completes, via startNextSetOrExercise.
 
             // Handle current state
             switch (workoutInfo.state) {
@@ -348,9 +349,11 @@ export const Actions: FC<ActionsProps> = ({
                 case 'ready':
                     // Start next set
                     if (workoutInfo.nextSet) {
+                        const startedAt = new Date();
+
                         await updateSet({
                             id: workoutInfo.nextSet.id,
-                            updates: { startedAt: new Date() },
+                            updates: { startedAt },
                         });
 
                         // Navigate to exercise containing the next set
@@ -359,6 +362,19 @@ export const Actions: FC<ActionsProps> = ({
                         );
                         if (nextSetExercise && nextSetExercise.id !== workoutExerciseId) {
                             router.setParams({ workoutExerciseId: nextSetExercise.id });
+                        }
+
+                        // Show the movement and its instructions for the set that
+                        // just began. Opened only on an explicit start, so it never
+                        // interrupts someone already mid-session.
+                        if (currentExercise?.id) {
+                            router.push({
+                                pathname: '/timer',
+                                params: {
+                                    exerciseId: currentExercise.id,
+                                    startedAt: String(startedAt.getTime()),
+                                },
+                            });
                         }
                     }
                     break;
@@ -375,6 +391,7 @@ export const Actions: FC<ActionsProps> = ({
         completeSet,
         updateSet,
         currentExercise?.timeOptions,
+        currentExercise?.id,
         isMainActionPending,
         workoutDetails,
     ]);

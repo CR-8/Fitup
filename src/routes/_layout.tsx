@@ -28,6 +28,9 @@ import { RunningWorkoutProvider } from '@/hooks/use-running-workout';
 import { AnalyticsProvider } from '@/hooks/use-analytics';
 import { AnalyticsTracker } from '@/analytics/tracker';
 import { useHealthImporter } from '@/hooks/use-health-importer';
+import { useExerciseCatalogue } from '@/hooks/use-exercise-catalogue';
+import { AccountProvider } from '@/hooks/use-account';
+import { useFirstLaunchGate } from '@/hooks/use-first-launch-gate';
 import { PendingStoreReviewCoordinator } from '@/hooks/use-pending-store-review';
 import { StoreReviewGateProvider } from '@/hooks/use-store-review-gate';
 
@@ -71,6 +74,8 @@ const App: FC = () => {
     const { options } = useScreen();
 
     useHealthImporter(user ?? undefined);
+    useExerciseCatalogue();
+    useFirstLaunchGate();
 
     useEffect(() => {
         if (user) {
@@ -93,6 +98,26 @@ const App: FC = () => {
                             }}
                         >
                             <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="sign-in" />
+                            <Stack.Screen name="onboarding" />
+                            <Stack.Screen
+                                name="diet"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="timer"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
                             <Stack.Screen name="workout" />
                             <Stack.Screen name="settings" />
                             <Stack.Screen
@@ -200,7 +225,9 @@ const RootLayout: FC = () => {
                             <NotificationsProvider>
                                 <AnalyticsTracker />
                                 <AudioProvider>
-                                    <App />
+                                    <AccountProvider>
+                                        <App />
+                                    </AccountProvider>
                                 </AudioProvider>
                             </NotificationsProvider>
                         </AnalyticsProvider>

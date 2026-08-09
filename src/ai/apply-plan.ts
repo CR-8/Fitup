@@ -8,6 +8,7 @@ import {
 } from '@/crud/workout';
 import { createExerciseSet } from '@/crud/exercise';
 import { markPlanApplied } from '@/crud/ai';
+import { createMealItems, deleteMealsForPlan, getOrCreateMeal, toDateKey } from '@/crud/nutrition';
 import { reportError } from '@/services/error-reporting';
 import type { AiPlanPayload, AiPlanWorkout } from '@/types/ai';
 
@@ -25,6 +26,8 @@ import type { AiPlanPayload, AiPlanWorkout } from '@/types/ai';
 export interface ApplyPlanResult {
     workoutIds: string[];
     skipped: number;
+    /** Meals written into the diet log. */
+    mealsCreated: number;
 }
 
 const resolveStartAt = (dayOffset: number, startDate: Date): Date =>
@@ -76,6 +79,47 @@ const applyWorkout = async (
     return created.id;
 };
 
+/**
+ * Writes a plan's meals into the diet log.
+ *
+ * Items land unticked: the plan says what to eat, and the user confirms what they
+ * actually ate. Treating a generated plan as consumed would make the day's totals
+ * fiction.
+ */
+const applyMeals = async (
+    payload: AiPlanPayload,
+    planId: string,
+    userId: string,
+    startDate: Date,
+): Promise<number> => {
+    let created = 0;
+
+    for (const planMeal of payload.meals) {
+        if (planMeal.items.length === 0) continue;
+
+        const date = toDateKey(dayjs(startDate).add(planMeal.dayOffset, 'day').toDate());
+
+        const target = await getOrCreateMeal({ userId, date, slot: planMeal.slot, planId });
+
+        await createMealItems(
+            planMeal.items.map((item, index) => ({
+                mealId: target.id,
+                name: item.name,
+                quantity: item.quantity ?? null,
+                calories: item.calories ?? null,
+                proteinG: item.proteinG ?? null,
+                carbsG: item.carbsG ?? null,
+                fatG: item.fatG ?? null,
+                order: index,
+            })),
+        );
+
+        created += 1;
+    }
+
+    return created;
+};
+
 export const applyPlanToSchedule = async (
     planId: string,
     payload: AiPlanPayload,
@@ -84,6 +128,7 @@ export const applyPlanToSchedule = async (
 ): Promise<ApplyPlanResult> => {
     const workoutIds: string[] = [];
     let skipped = 0;
+    let mealsCreated = 0;
 
     try {
         for (const planWorkout of payload.workouts) {
@@ -95,9 +140,11 @@ export const applyPlanToSchedule = async (
             workoutIds.push(await applyWorkout(planWorkout, userId, startDate));
         }
 
+        mealsCreated = await applyMeals(payload, planId, userId, startDate);
+
         await markPlanApplied(planId, workoutIds);
 
-        return { workoutIds, skipped };
+        return { workoutIds, skipped, mealsCreated };
     } catch (error) {
         // A partially applied plan is worse than none: the user would be left with an
         // incoherent schedule and no clear way to tell which parts came from where.
@@ -110,13 +157,30 @@ export const applyPlanToSchedule = async (
             }
         }
 
+        try {
+            await deleteMealsForPlan(planId);
+        } catch (cleanupError) {
+            reportError(cleanupError, 'Failed to roll back meals from a partially applied plan');
+        }
+
         reportError(error, 'Failed to apply AI plan to schedule');
         throw error;
     }
 };
 
-/** Undo: removes the workouts a plan created, leaving history untouched. */
-export const revertAppliedPlan = async (workoutIds: string[]): Promise<void> => {
+/**
+ * Undo: removes everything a plan created — scheduled workouts and logged meals
+ * alike — leaving hand-entered records and completed history untouched.
+ */
+export const revertAppliedPlan = async (workoutIds: string[], planId?: string): Promise<void> => {
+    if (planId) {
+        try {
+            await deleteMealsForPlan(planId);
+        } catch (error) {
+            reportError(error, 'Failed to remove meals while undoing a plan');
+        }
+    }
+
     for (const workoutId of workoutIds) {
         try {
             await deleteWorkout(workoutId);

@@ -27,13 +27,29 @@ export interface WorkoutInfo {
 export const getWorkoutState = (
     exercises: OrderedExercise[],
     executionOrderSets?: ExecutionOrderSet[],
+    scopeExerciseId?: string,
 ): WorkoutInfo => {
     const now = Date.now();
 
     // Build flat execution list for next-set lookups
-    const flatSets: ExecutionOrderSet[] = executionOrderSets
+    const allSets: ExecutionOrderSet[] = executionOrderSets
         ? executionOrderSets
         : exercises.flatMap((ex) => ex.sets.map((set) => ({ set, exerciseId: ex.id })));
+
+    /**
+     * When a specific exercise is being viewed, resolve state within it.
+     *
+     * Without this the primary action is global: standing on the third exercise
+     * and pressing it would act on whichever set the workout pointer happened to
+     * be on — normally the first exercise's first set. The button is rendered on
+     * one exercise's screen, so it has to act on that exercise.
+     *
+     * Advancing between exercises still happens automatically after a set is
+     * completed; this only governs what the visible control does.
+     */
+    const flatSets = scopeExerciseId
+        ? allSets.filter((entry) => entry.exerciseId === scopeExerciseId)
+        : allSets;
 
     // 1. Find active rest first. In a desynced state this is safer than
     // letting a stray started set jump ahead while another set is still resting.
@@ -51,11 +67,20 @@ export const getWorkoutState = (
             .slice(restIdx === -1 ? 0 : restIdx + 1)
             .find((eo) => !eo.set.completedAt);
 
+        // "No next set" has to mean the workout is finished, not merely that this
+        // exercise is. Fall back to the full order so the rest of the session is
+        // still counted when the view is scoped to one exercise.
+        const globalNextEntry =
+            nextEntry ??
+            allSets
+                .slice(allSets.findIndex((eo) => eo.set.id === activeRestEntry.set.id) + 1)
+                .find((eo) => !eo.set.completedAt);
+
         return {
-            state: nextEntry ? 'resting' : 'resting_no_next',
+            state: globalNextEntry ? 'resting' : 'resting_no_next',
             exerciseId: activeRestEntry.exerciseId,
             activeRestSet: activeRestEntry.set,
-            nextSet: nextEntry?.set,
+            nextSet: nextEntry?.set ?? globalNextEntry?.set,
         };
     }
 

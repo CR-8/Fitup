@@ -10,3 +10,7 @@ export { default as SelectScreen } from './select';
 export { default as WorkoutScreen } from './workouts/workout';
 export { default as WorkoutExerciseScreen } from './workouts/exercise';
 export { default as TonyScreen } from './tony';
+export { default as SignInScreen } from './auth/sign-in';
+export { default as OnboardingScreen } from './onboarding';
+export { default as TimerScreen } from './workouts/timer';
+export { default as DietScreen } from './diet';

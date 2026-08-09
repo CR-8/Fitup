@@ -276,7 +276,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                 </Pressable>
             ) : null}
 
-            {payload.workouts.length > 0 ? (
+            {payload.workouts.length > 0 || payload.meals.length > 0 ? (
                 <Box>
                     {isApplied ? (
                         <Button

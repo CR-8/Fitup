@@ -342,7 +342,7 @@ export const useApplyAiPlan = () => {
 
     const { mutateAsync: revert, isPending: isReverting } = useMutation({
         mutationFn: async (plan: AiPlanSelect) => {
-            await revertAppliedPlan(plan.appliedWorkoutIds ?? []);
+            await revertAppliedPlan(plan.appliedWorkoutIds ?? [], plan.id);
             await markPlanDiscarded(plan.id);
         },
         onSuccess: () => {

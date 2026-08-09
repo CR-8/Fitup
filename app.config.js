@@ -44,6 +44,8 @@ module.exports = {
             usesNonExemptEncryption: false,
         },
         associatedDomains: ['applinks:fitup.app', 'webcredentials:fitup.app'],
+        // Adds the Sign in with Apple entitlement to the build.
+        usesAppleSignIn: true,
         infoPlist: {
             CFBundleAllowMixedLocalizations: true,
             UIBackgroundModes: ['audio', 'remote-notification'],
@@ -162,6 +164,10 @@ module.exports = {
             : './assets/images/icon.png',
     plugins: [
         'expo-sqlite',
+        'expo-web-browser',
+        // Sign in with Apple is required by App Review guideline 4.8 whenever a
+        // third-party social login is offered.
+        'expo-apple-authentication',
         'expo-audio',
         'expo-asset',
         'expo-mail-composer',

@@ -21,6 +21,7 @@ import { WorkoutItem } from './types';
 import { Exercise } from './components/exercise';
 import { Pushes } from '@/components/promo/pushes';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
+import { useExerciseMediaPrefetch } from '@/hooks/use-exercise-media-prefetch';
 import { useWorkoutHealthStats } from '@/hooks/use-workout-health-stats';
 import { useUser } from '@/hooks/use-user';
 import { type ExerciseSetSelect } from '@/db/schema';
@@ -275,6 +276,15 @@ const WorkoutScreen: FC = () => {
     const { data: groups } = useWorkoutGroups(workoutId);
 
     const { stats: liveWorkoutStats } = useWorkoutHealthStats(workoutDetails?.workout);
+
+    // Warm the animation cache for this workout's exercises, so the media is on
+    // disk before the user reaches the exercise that needs it.
+    useExerciseMediaPrefetch(
+        useMemo(
+            () => (workoutDetails?.exercises ?? []).map((item) => item.exercise.gifFilename),
+            [workoutDetails?.exercises],
+        ),
+    );
 
     const isLoading = isWorkoutExercisesLoading || isWorkoutDetailsLoading;
 

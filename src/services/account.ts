@@ -146,14 +146,105 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 export const isGoogleAvailable = (): boolean => isAuthConfigured() && AUTH_CONFIG.googleEnabled;
 
 /**
+ * The path half of the OAuth redirect. Must stay in step with the route that receives
+ * it as a deep link, `src/routes/auth/callback.tsx` — the two are coupled by string,
+ * and nothing enforces that but this comment.
+ */
+const OAUTH_REDIRECT_PATH = 'auth/callback';
+
+const oauthRedirectUri = (): string =>
+    AuthSession.makeRedirectUri({ scheme: 'fitup', path: OAUTH_REDIRECT_PATH });
+
+/**
+ * Decides which side of the redirect race is allowed to navigate.
+ *
+ * The callback can land twice: `openAuthSessionAsync` resolving and Android delivering
+ * the deep link are not mutually exclusive. Both sides then want to move the user on,
+ * and two `router.replace` calls for one sign-in show up as a flicker or as landing on
+ * the wrong screen. A ref inside either screen cannot see the other, so the claim has
+ * to live here, above both.
+ */
+let oauthNavigationClaimed = false;
+
+/** Opens a fresh attempt; the previous winner no longer holds the claim. */
+const beginOAuthAttempt = (): void => {
+    oauthNavigationClaimed = false;
+};
+
+/** True for the first caller after an attempt begins, false for everyone after it. */
+export const claimOAuthNavigation = (): boolean => {
+    if (oauthNavigationClaimed) return false;
+    oauthNavigationClaimed = true;
+    return true;
+};
+
+/** Supabase reports both outcomes of the OAuth hop in the callback fragment. */
+const oauthResultParams = (url: string): URLSearchParams =>
+    new URLSearchParams(url.split('#')[1] ?? '');
+
+/**
+ * Whether a URL carries an OAuth outcome at all.
+ *
+ * The app receives plenty of URLs that are not this one — the development client
+ * launches on its own deep link, for instance — so a screen waiting for the redirect
+ * has to be able to tell "not the callback" from "the callback, and it failed".
+ */
+export const isOAuthRedirectUrl = (url: string): boolean => {
+    const params = oauthResultParams(url);
+    return params.has('access_token') || params.has('error') || params.has('error_description');
+};
+
+/**
+ * Turns a callback URL into a session.
+ *
+ * The redirect reaches the app by one of two routes and which one wins is not ours
+ * to decide: `openAuthSessionAsync` may capture it, or Android may deliver it as a
+ * deep link first, waking the app on `/auth/callback`. Both funnel through here so
+ * the tokens are never dropped on the floor.
+ */
+export const completeOAuthRedirect = async (url: string): Promise<Session> => {
+    try {
+        const params = oauthResultParams(url);
+
+        // Backing out of the provider sheet comes back as an error, not an absence.
+        if (params.has('error') || params.has('error_description')) {
+            const reason = params.get('error');
+            throw new AuthError(
+                reason === 'access_denied' ? 'CANCELLED' : 'UNKNOWN',
+                params.get('error_description') ?? reason ?? undefined,
+            );
+        }
+
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (!accessToken || !refreshToken) throw new AuthError('UNKNOWN');
+
+        const { data, error } = await requireSupabase().auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+        });
+
+        if (error) throw error;
+        if (!data.session) throw new AuthError('UNKNOWN');
+
+        return data.session;
+    } catch (error) {
+        throw classifyAuthError(error);
+    }
+};
+
+/**
  * Google runs through the system browser rather than a webview, which is what
  * Google's own policy requires and what keeps an existing browser session usable.
  */
 export const signInWithGoogle = async (): Promise<Session> => {
     if (!isGoogleAvailable()) throw new AuthError('DISABLED');
 
+    beginOAuthAttempt();
+
     const client = requireSupabase();
-    const redirectTo = AuthSession.makeRedirectUri({ scheme: 'fitup', path: 'auth/callback' });
+    const redirectTo = oauthRedirectUri();
 
     try {
         const { data, error } = await client.auth.signInWithOAuth({
@@ -168,23 +259,7 @@ export const signInWithGoogle = async (): Promise<Session> => {
 
         if (result.type !== 'success') throw new AuthError('CANCELLED');
 
-        // Supabase returns the tokens in the callback fragment.
-        const fragment = result.url.split('#')[1] ?? '';
-        const params = new URLSearchParams(fragment);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (!accessToken || !refreshToken) throw new AuthError('UNKNOWN');
-
-        const { data: sessionData, error: sessionError } = await client.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-        });
-
-        if (sessionError) throw sessionError;
-        if (!sessionData.session) throw new AuthError('UNKNOWN');
-
-        return sessionData.session;
+        return await completeOAuthRedirect(result.url);
     } catch (error) {
         throw classifyAuthError(error);
     } finally {
@@ -210,6 +285,11 @@ export const isAppleAvailable = async (): Promise<boolean> => {
  */
 export const signInWithApple = async (): Promise<Session> => {
     if (!(await isAppleAvailable())) throw new AuthError('UNSUPPORTED');
+
+    // Apple returns its token inline with no redirect, so nothing races it — but the
+    // claim still has to be reopened, or a previous Google attempt would hold it and
+    // this sign-in would complete without ever moving the user on.
+    beginOAuthAttempt();
 
     try {
         const rawNonce = Crypto.randomUUID();

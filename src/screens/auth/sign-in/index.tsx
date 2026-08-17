@@ -17,8 +17,11 @@ import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { Separator } from '@/components/layout/separator';
 import { MIN_PASSWORD_LENGTH } from '@/constants/auth';
+import { useUser } from '@/hooks/use-user';
+import { hasCompletedOnboarding } from '@/crud/onboarding';
 import {
     AuthError,
+    claimOAuthNavigation,
     isAppleAvailable,
     isGoogleAvailable,
     signInWithApple,
@@ -105,6 +108,8 @@ const errorKey = (error: unknown): string => {
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
     const { theme, rt } = useUnistyles();
+    const { user } = useUser();
+    const userId = user?.id;
     const [appleAvailable, setAppleAvailable] = useState(false);
     const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
@@ -121,10 +126,15 @@ const SignInScreen = () => {
             .catch(() => setAppleAvailable(false));
     }, []);
 
-    /** Onboarding follows sign-in; the profile it collects is what Tony reads. */
-    const onAuthenticated = useCallback(() => {
-        router.replace('/onboarding');
-    }, []);
+    /**
+     * Onboarding follows sign-in for a new account, because the profile it collects is
+     * what Tony reads. Someone who already completed it is returning, not starting, so
+     * they go straight to training rather than answering the same questions again.
+     */
+    const onAuthenticated = useCallback(async () => {
+        const onboarded = userId ? await hasCompletedOnboarding(userId) : false;
+        router.replace(onboarded ? '/' : '/onboarding');
+    }, [userId]);
 
     const runProvider = useCallback(
         async (provider: 'google' | 'apple', signIn: () => Promise<unknown>) => {
@@ -132,7 +142,10 @@ const SignInScreen = () => {
 
             try {
                 await signIn();
-                onAuthenticated();
+
+                // The deep-link callback screen may have got here first and already
+                // moved on; navigating again would replace its destination with ours.
+                if (claimOAuthNavigation()) await onAuthenticated();
             } catch (error) {
                 // A user backing out of the provider sheet is not a failure.
                 if (error instanceof AuthError && error.code === 'CANCELLED') return;
@@ -164,7 +177,7 @@ const SignInScreen = () => {
                 await signInWithEmail(values.email, values.password);
             }
 
-            onAuthenticated();
+            await onAuthenticated();
         } catch (error) {
             reportError(error, 'Email sign-in failed');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));

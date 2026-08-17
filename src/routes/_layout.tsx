@@ -99,6 +99,7 @@ const App: FC = () => {
                         >
                             <Stack.Screen name="(tabs)" />
                             <Stack.Screen name="sign-in" />
+                            <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
                             <Stack.Screen name="onboarding" />
                             <Stack.Screen
                                 name="diet"

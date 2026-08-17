@@ -323,6 +323,7 @@ export type AnalyticsScreenName =
     | 'settings_units'
     | 'tony'
     | 'sign_in'
+    | 'auth_callback'
     | 'onboarding'
     | 'exercise_timer'
     | 'diet'

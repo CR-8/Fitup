@@ -260,6 +260,10 @@ module.exports = {
                 organization: process.env.APP_SENTRY_ORGANIZATION || '',
             },
         ],
+        // Works around a Reanimated/Unistyles shadow tree conflict that crashes Android
+        // on launch under React Native 0.86. Delete once upstream resolves it; see
+        // reanimated issues 8077 and 9695.
+        './plugins/with-fabric-mount-props-flag',
     ],
     runtimeVersion: {
         policy: 'appVersion',

@@ -5,11 +5,12 @@ import { ensureExerciseCatalogue } from '@/services/exercise-catalogue';
 import { runInBackground } from '@/services/error-reporting';
 
 /**
- * Seeds the bundled exercise catalogue after migrations, and refreshes its
- * instruction text when the interface language changes.
+ * Fetches the exercise catalogue after migrations, and refetches it when the
+ * interface language changes, since instruction text is served per locale.
  *
- * Both operations are no-ops once the current version is seeded in the current
- * language, so this is safe to mount for the lifetime of the app.
+ * A no-op within the refresh window in the same language, so this is safe to
+ * mount for the lifetime of the app. It never throws: a device that cannot
+ * reach the API keeps whatever catalogue it already has.
  */
 export const useExerciseCatalogue = (): void => {
     const { i18n } = useTranslation();

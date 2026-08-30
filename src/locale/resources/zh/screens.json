@@ -90,7 +90,15 @@
         "title": "训练",
         "empty": {
             "title": "暂无练习",
-            "description": "点击\"+\"创建您的第一个练习。"
+            "description": "点击\"+\"创建您的第一个练习。",
+            "notDownloaded": {
+                "title": "尚未下载动作库",
+                "description": "连接一次网络即可下载动作库。您的训练记录和历史不受影响。"
+            },
+            "unavailable": {
+                "title": "动作库不可用",
+                "description": "此版本未配置动作来源。您仍然可以创建自己的动作。"
+            }
         }
     },
     "filter": {

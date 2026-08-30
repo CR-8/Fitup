@@ -41,3 +41,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Seed ledger — records which GIFs are already uploaded
+.cache/

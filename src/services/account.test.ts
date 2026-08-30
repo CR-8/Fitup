@@ -1,4 +1,11 @@
 import { describe, expect, jest, test } from '@jest/globals';
+import {
+    AuthError,
+    claimOAuthNavigation,
+    completeOAuthRedirect,
+    isOAuthRedirectUrl,
+    signInWithGoogle,
+} from '@/services/account';
 
 /**
  * Guards the question "is this URL the OAuth callback?".
@@ -23,14 +30,6 @@ jest.mock('@/constants/auth', () => ({
     AUTH_CONFIG: { googleEnabled: true },
     isAuthConfigured: () => true,
 }));
-
-import {
-    AuthError,
-    claimOAuthNavigation,
-    completeOAuthRedirect,
-    isOAuthRedirectUrl,
-    signInWithGoogle,
-} from '@/services/account';
 
 describe('claimOAuthNavigation', () => {
     // The claim is module state by design — it has to outlive both screens that race

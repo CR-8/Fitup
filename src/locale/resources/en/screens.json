@@ -92,7 +92,15 @@
         "title": "Exercises",
         "empty": {
             "title": "No exercises",
-            "description": "Tap \"+\" and create your first exercise."
+            "description": "Tap \"+\" and create your first exercise.",
+            "notDownloaded": {
+                "title": "Exercises not downloaded",
+                "description": "Connect to the internet once to download the exercise library. Your workouts and history are unaffected."
+            },
+            "unavailable": {
+                "title": "Exercise library unavailable",
+                "description": "This build has no exercise source configured. You can still create your own exercises."
+            }
         }
     },
     "filter": {

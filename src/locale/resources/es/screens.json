@@ -92,7 +92,15 @@
         "title": "Ejercicios",
         "empty": {
             "title": "No hay ejercicios",
-            "description": "Toca \"+\" y crea tu primer ejercicio."
+            "description": "Toca \"+\" y crea tu primer ejercicio.",
+            "notDownloaded": {
+                "title": "Ejercicios no descargados",
+                "description": "Conéctate a internet una vez para descargar la biblioteca de ejercicios. Tus entrenamientos e historial no se ven afectados."
+            },
+            "unavailable": {
+                "title": "Biblioteca de ejercicios no disponible",
+                "description": "Esta versión no tiene una fuente de ejercicios configurada. Aún puedes crear tus propios ejercicios."
+            }
         }
     },
     "filter": {

@@ -29,7 +29,8 @@ import { AnalyticsProvider } from '@/hooks/use-analytics';
 import { AnalyticsTracker } from '@/analytics/tracker';
 import { useHealthImporter } from '@/hooks/use-health-importer';
 import { useExerciseCatalogue } from '@/hooks/use-exercise-catalogue';
-import { AccountProvider } from '@/hooks/use-account';
+import { AccountProvider, useAccount } from '@/hooks/use-account';
+import { isAuthConfigured } from '@/constants/auth';
 import { useFirstLaunchGate } from '@/hooks/use-first-launch-gate';
 import { PendingStoreReviewCoordinator } from '@/hooks/use-pending-store-review';
 import { StoreReviewGateProvider } from '@/hooks/use-store-review-gate';
@@ -72,18 +73,29 @@ SplashScreen.preventAutoHideAsync();
 const App: FC = () => {
     const { user } = useUser();
     const { options } = useScreen();
+    const { isSignedIn, isReady } = useAccount();
+
+    // A build with no account backend cannot require an account; it would be
+    // unusable. That is the only configuration that reaches the app signed out.
+    const authRequired = isAuthConfigured();
 
     useHealthImporter(user ?? undefined);
     useExerciseCatalogue();
     useFirstLaunchGate();
 
+    // Held until the stored session has been read as well as the user row, or the
+    // splash would lift onto the blank frame below rather than onto a screen.
+    const ready = !!user && (!authRequired || isReady);
+
     useEffect(() => {
-        if (user) {
+        if (ready) {
             SplashScreen.hideAsync();
         }
-    }, [user]);
+    }, [ready]);
 
-    if (!user) return null;
+    // Rendering nothing until the session is known is what stops a signed-in user
+    // seeing sign-in flash past on the way to Home.
+    if (!ready) return null;
 
     return (
         <SyncProvider>
@@ -97,93 +109,103 @@ const App: FC = () => {
                                 headerShown: false,
                             }}
                         >
-                            <Stack.Screen name="(tabs)" />
+                            {/* The only two screens reachable without a session:
+                                sign-in itself, and the OAuth redirect target, which
+                                by definition lands before a session exists. */}
                             <Stack.Screen name="sign-in" />
                             <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
-                            <Stack.Screen name="onboarding" />
-                            <Stack.Screen
-                                name="diet"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="timer"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen name="workout" />
-                            <Stack.Screen name="settings" />
-                            <Stack.Screen
-                                name="editor"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="select"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="preview"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="guide"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="review"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="day"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="filter"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
+
+                            {/* Removing these from the navigator — rather than
+                                redirecting away from them — is what makes signing out a
+                                real logout: their history entries go with them, so back
+                                cannot re-enter the app. */}
+                            <Stack.Protected guard={!authRequired || isSignedIn}>
+                                <Stack.Screen name="(tabs)" />
+                                <Stack.Screen name="onboarding" />
+                                <Stack.Screen
+                                    name="diet"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="timer"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen name="workout" />
+                                <Stack.Screen name="settings" />
+                                <Stack.Screen
+                                    name="editor"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="select"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="preview"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="guide"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="review"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="day"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                                <Stack.Screen
+                                    name="filter"
+                                    options={{
+                                        presentation: 'card',
+                                        animationTypeForReplace: 'pop',
+                                        cardOverlayEnabled: false,
+                                        animation: 'slide_from_bottom',
+                                    }}
+                                />
+                            </Stack.Protected>
                         </Stack>
                         <Actions />
                         <RestInput />
@@ -221,18 +243,24 @@ const RootLayout: FC = () => {
         <GestureHandlerRootView>
             <KeyboardProvider>
                 <QueryClientProvider client={queryClient}>
-                    <UserProvider>
-                        <AnalyticsProvider>
-                            <NotificationsProvider>
-                                <AnalyticsTracker />
-                                <AudioProvider>
-                                    <AccountProvider>
+                    {/* Above `UserProvider`, which is what stops the local user
+                        row being created before anyone knows whether a session
+                        is being restored — the race that used to leave a second,
+                        unlinked user behind on the first launch after an
+                        upgrade. `AccountProvider` no longer reads `useUser`, so
+                        this nesting is available. */}
+                    <AccountProvider>
+                        <UserProvider>
+                            <AnalyticsProvider>
+                                <NotificationsProvider>
+                                    <AnalyticsTracker />
+                                    <AudioProvider>
                                         <App />
-                                    </AccountProvider>
-                                </AudioProvider>
-                            </NotificationsProvider>
-                        </AnalyticsProvider>
-                    </UserProvider>
+                                    </AudioProvider>
+                                </NotificationsProvider>
+                            </AnalyticsProvider>
+                        </UserProvider>
+                    </AccountProvider>
                 </QueryClientProvider>
             </KeyboardProvider>
         </GestureHandlerRootView>

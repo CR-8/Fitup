@@ -29,6 +29,11 @@ function Input<T extends FieldValues, TName extends FieldPath<T>>({
     suffix,
     numericThousandSeparator,
     placeholder,
+    secureTextEntry,
+    autoCapitalize,
+    autoComplete,
+    autoCorrect,
+    textContentType,
 }: InputType<T, TName>) {
     const {
         field: { onChange, value },
@@ -50,6 +55,11 @@ function Input<T extends FieldValues, TName extends FieldPath<T>>({
         title: label,
         numericThousandSeparator,
         placeholder,
+        secureTextEntry,
+        autoCapitalize,
+        autoComplete,
+        autoCorrect,
+        textContentType,
     });
 }
 

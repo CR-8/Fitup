@@ -1,10 +1,15 @@
 /**
  * Account configuration.
  *
- * Accounts are optional. The app is local-first: training, logging and history
- * work with no account and no network. Signing in adds cross-device sync, backup
- * and the assistant. Leaving EXPO_PUBLIC_SUPABASE_URL empty ships a build with
- * no accounts at all, and the sign-in screen never appears.
+ * An account is required to use the app. The data stays local-first — training,
+ * logging and history are read and written on the device, with no network — but
+ * the app is held behind sign-in, and signing out returns to it.
+ *
+ * `isAuthConfigured()` is what enforces that, so leaving EXPO_PUBLIC_SUPABASE_URL
+ * or EXPO_PUBLIC_SUPABASE_ANON_KEY empty does the opposite of locking the build
+ * down: it ships one with no accounts at all, where the requirement cannot be
+ * satisfied and is therefore not applied. That is the only configuration in
+ * which the app opens signed out.
  */
 
 const readString = (value: string | undefined): string | null => {

@@ -5,7 +5,9 @@ import {
     completeOAuthRedirect,
     isOAuthRedirectUrl,
     signInWithGoogle,
+    signOut,
 } from '@/services/account';
+import { clearAuthSession } from '@/services/auth';
 
 /**
  * Guards the question "is this URL the OAuth callback?".
@@ -23,6 +25,8 @@ jest.mock('@/services/supabase', () => ({
 }));
 
 jest.mock('@/services/error-reporting', () => ({ reportError: jest.fn() }));
+
+jest.mock('@/services/auth', () => ({ clearAuthSession: jest.fn() }));
 
 // Only what these tests actually reach for. Mirroring the whole of AUTH_CONFIG here
 // would just rot quietly as the real one grows.
@@ -115,5 +119,23 @@ describe('completeOAuthRedirect', () => {
         await expect(
             completeOAuthRedirect('fitup://auth/callback#access_token=abc'),
         ).rejects.toMatchObject({ code: 'UNKNOWN' });
+    });
+});
+
+describe('signOut', () => {
+    /**
+     * The app holds two credentials, and only one of them is Supabase's. The sync
+     * service keeps its own JWT plus the user id it re-bootstraps from, and
+     * `src/api`'s 401 interceptor will happily mint a fresh token from that id — so
+     * a sign-out that clears only the session leaves the previous account able to
+     * sync. Supabase is mocked as absent here, which is also the configuration that
+     * proves the point: the sync credential must go either way.
+     */
+    test('clears the sync credential even when no account backend is configured', async () => {
+        (clearAuthSession as jest.Mock).mockClear();
+
+        await expect(signOut()).resolves.toBeUndefined();
+
+        expect(clearAuthSession).toHaveBeenCalledTimes(1);
     });
 });

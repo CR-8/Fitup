@@ -153,7 +153,9 @@
             "empty": {
                 "title": "No guide",
                 "description": "There is no guide available for this exercise yet."
-            }
+            },
+            "muscles": "Muscles worked",
+            "steps": "Steps"
         },
         "stats": {
             "empty": {
@@ -374,6 +376,12 @@
                 "confirmDescription": "This clears cached watch sync state on iPhone. Workouts data will not be deleted.",
                 "successTitle": "Watch Sync Reset",
                 "successDescription": "Sync state was reset. Reopen the Watch app if it does not reconnect automatically."
+            },
+            "profile": {
+                "title": "Profile"
+            },
+            "account": {
+                "title": "Account"
             }
         },
         "watch": {
@@ -400,6 +408,33 @@
                     "title": "Review in the App Store",
                     "message": "Here's my favorite workout logging app: {{url}}"
                 }
+            }
+        },
+        "profile": {
+            "email": "Email",
+            "emailNote": "Your email comes from the account you signed in with and cannot be changed here yet.",
+            "save": "Save changes",
+            "saveFailed": "Could not save your profile. Try again."
+        },
+        "account": {
+            "signedOut": {
+                "title": "Not signed in",
+                "description": "Your training is saved on this device. Sign in to back it up to your account and get it back on a new phone.",
+                "action": "Sign in"
+            },
+            "signedIn": {
+                "label": "Signed in as",
+                "noEmail": "No email address",
+                "provider": {
+                    "google": "Google",
+                    "apple": "Apple",
+                    "email": "Email"
+                },
+                "note": "Your profile and workouts are backed up to this account. Signing out keeps them on this device too.",
+                "action": "Sign out",
+                "confirmTitle": "Sign out?",
+                "confirmBody": "Your workouts and history stay on this device, and stay backed up to your account.",
+                "cancel": "Cancel"
             }
         }
     },
@@ -540,7 +575,7 @@
     },
     "signIn": {
         "title": "Welcome to Fitup",
-        "subtitle": "Sign in to sync across devices and use Tony. You can also start straight away without an account.",
+        "subtitle": "Sign in to start training. Your account keeps your workouts if you change phones.",
         "google": "Continue with Google",
         "apple": "Continue with Apple",
         "email": "Email",
@@ -550,8 +585,6 @@
         "needAccount": "New here? Create an account",
         "haveAccount": "Already have an account? Sign in",
         "confirmEmail": "Check your inbox to confirm your email address.",
-        "skip": "Continue without an account",
-        "skipHint": "Your workouts stay on this device. You can sign in later from Settings.",
         "errors": {
             "invalidCredentials": "That email and password do not match.",
             "emailInUse": "That email is already registered. Try signing in.",
@@ -560,7 +593,8 @@
             "network": "No connection. Try again when you are back online.",
             "unavailable": "Sign-in is not available in this build.",
             "unknown": "Could not sign you in. Try again."
-        }
+        },
+        "titleReturning": "Sign in"
     },
     "onboarding": {
         "title": "About you",

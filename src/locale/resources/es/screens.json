@@ -153,7 +153,9 @@
             "empty": {
                 "title": "Sin guía",
                 "description": "Aún no hay guía disponible para este ejercicio."
-            }
+            },
+            "muscles": "Músculos trabajados",
+            "steps": "Pasos"
         },
         "stats": {
             "empty": {
@@ -374,6 +376,12 @@
                 "confirmDescription": "Se borrará el estado de sincronización en caché del iPhone. Los datos de entrenamientos no se eliminarán.",
                 "successTitle": "Sincronización restablecida",
                 "successDescription": "El estado de sincronización se restableció. Si no se reconecta automáticamente, abre de nuevo la app del reloj."
+            },
+            "profile": {
+                "title": "Perfil"
+            },
+            "account": {
+                "title": "Cuenta"
             }
         },
         "watch": {
@@ -400,6 +408,33 @@
                     "title": "Opinar en el App Store",
                     "message": "Esta es mi app favorita para registrar entrenamientos: {{url}}"
                 }
+            }
+        },
+        "profile": {
+            "email": "Correo electrónico",
+            "emailNote": "Tu correo proviene de la cuenta con la que iniciaste sesión y todavía no se puede cambiar aquí.",
+            "save": "Guardar cambios",
+            "saveFailed": "No se pudo guardar tu perfil. Inténtalo de nuevo."
+        },
+        "account": {
+            "signedOut": {
+                "title": "Sin sesión iniciada",
+                "description": "Tu entrenamiento se guarda en este dispositivo. Inicia sesión para respaldarlo en tu cuenta y recuperarlo en un teléfono nuevo.",
+                "action": "Iniciar sesión"
+            },
+            "signedIn": {
+                "label": "Sesión iniciada como",
+                "noEmail": "Sin dirección de correo",
+                "provider": {
+                    "google": "Google",
+                    "apple": "Apple",
+                    "email": "Correo"
+                },
+                "note": "Tu perfil y tus entrenamientos están respaldados en esta cuenta. Al cerrar sesión también se mantienen en este dispositivo.",
+                "action": "Cerrar sesión",
+                "confirmTitle": "¿Cerrar sesión?",
+                "confirmBody": "Tus entrenamientos y tu historial se mantienen en este dispositivo y siguen respaldados en tu cuenta.",
+                "cancel": "Cancelar"
             }
         }
     },
@@ -540,7 +575,7 @@
     },
     "signIn": {
         "title": "Bienvenido a Fitup",
-        "subtitle": "Inicia sesión para sincronizar entre dispositivos y usar a Tony. También puedes empezar sin cuenta.",
+        "subtitle": "Inicia sesión para empezar a entrenar. Tu cuenta conserva tus entrenamientos si cambias de teléfono.",
         "google": "Continuar con Google",
         "apple": "Continuar con Apple",
         "email": "Correo",
@@ -550,8 +585,6 @@
         "needAccount": "¿Eres nuevo? Crea una cuenta",
         "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
         "confirmEmail": "Revisa tu correo para confirmar tu dirección.",
-        "skip": "Continuar sin cuenta",
-        "skipHint": "Tus entrenamientos se quedan en este dispositivo. Puedes iniciar sesión más tarde en Ajustes.",
         "errors": {
             "invalidCredentials": "Ese correo y contraseña no coinciden.",
             "emailInUse": "Ese correo ya está registrado. Prueba a iniciar sesión.",
@@ -560,7 +593,8 @@
             "network": "Sin conexión. Inténtalo cuando vuelvas a estar en línea.",
             "unavailable": "El inicio de sesión no está disponible en esta compilación.",
             "unknown": "No se pudo iniciar sesión. Inténtalo de nuevo."
-        }
+        },
+        "titleReturning": "Iniciar sesión"
     },
     "onboarding": {
         "title": "Sobre ti",

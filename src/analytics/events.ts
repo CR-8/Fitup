@@ -313,6 +313,8 @@ export type AnalyticsScreenName =
     | 'active_exercise'
     | 'exercise_detail'
     | 'measurement_editor'
+    | 'settings_account'
+    | 'settings_profile'
     | 'settings_autolock'
     | 'settings_datetime'
     | 'settings_heart_rate'

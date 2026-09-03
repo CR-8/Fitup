@@ -151,7 +151,9 @@
             "empty": {
                 "title": "暂无指南",
                 "description": "此练习暂无指南。"
-            }
+            },
+            "muscles": "锻炼肌群",
+            "steps": "步骤"
         },
         "stats": {
             "empty": {
@@ -372,6 +374,12 @@
                 "confirmDescription": "这会清除 iPhone 上缓存的手表同步状态，不会删除训练数据。",
                 "successTitle": "手表同步已重置",
                 "successDescription": "同步状态已重置。如果没有自动重新连接，请重新打开手表 App。"
+            },
+            "profile": {
+                "title": "个人资料"
+            },
+            "account": {
+                "title": "账户"
             }
         },
         "watch": {
@@ -398,6 +406,33 @@
                     "title": "在 App Store 中评价",
                     "message": "这是我最喜欢的训练记录应用：{{url}}"
                 }
+            }
+        },
+        "profile": {
+            "email": "邮箱",
+            "emailNote": "邮箱来自你登录使用的账号，目前还无法在这里更改。",
+            "save": "保存更改",
+            "saveFailed": "无法保存你的个人资料，请重试。"
+        },
+        "account": {
+            "signedOut": {
+                "title": "未登录",
+                "description": "你的训练记录保存在这台设备上。登录后可备份到账号，换新手机也能找回。",
+                "action": "登录"
+            },
+            "signedIn": {
+                "label": "已登录",
+                "noEmail": "无邮箱地址",
+                "provider": {
+                    "google": "Google",
+                    "apple": "Apple",
+                    "email": "邮箱"
+                },
+                "note": "你的个人资料和训练已备份到此账号。退出登录后它们仍保留在这台设备上。",
+                "action": "退出登录",
+                "confirmTitle": "退出登录？",
+                "confirmBody": "你的训练和历史记录会保留在这台设备上，并且仍备份在你的账号中。",
+                "cancel": "取消"
             }
         }
     },
@@ -538,7 +573,7 @@
     },
     "signIn": {
         "title": "欢迎使用 Fitup",
-        "subtitle": "登录后可在多设备间同步并使用 Tony。你也可以不注册直接开始。",
+        "subtitle": "登录后开始训练。换手机时，你的账户会保留训练记录。",
         "google": "使用 Google 继续",
         "apple": "使用 Apple 继续",
         "email": "邮箱",
@@ -548,8 +583,6 @@
         "needAccount": "第一次使用？创建账户",
         "haveAccount": "已有账户？登录",
         "confirmEmail": "请查收邮件以确认你的邮箱地址。",
-        "skip": "不使用账户继续",
-        "skipHint": "你的训练记录会保存在本设备。之后可在设置中登录。",
         "errors": {
             "invalidCredentials": "邮箱与密码不匹配。",
             "emailInUse": "该邮箱已注册，请尝试登录。",
@@ -558,7 +591,8 @@
             "network": "无网络连接。恢复联网后再试。",
             "unavailable": "此版本不支持登录。",
             "unknown": "登录失败，请重试。"
-        }
+        },
+        "titleReturning": "登录"
     },
     "onboarding": {
         "title": "关于你",

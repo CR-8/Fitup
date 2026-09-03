@@ -16,6 +16,8 @@ import { z } from 'zod';
 import { storage } from '@/storage';
 import { readBiologicalSex, readDateOfBirth } from '@/services/health';
 
+import { useAccount } from './use-account';
+
 export const themes = ['auto', 'light', 'dark'] as const;
 
 export const editUserSchema = z.object({
@@ -65,6 +67,12 @@ const useUser = () => {
 };
 
 const useUserProvider = () => {
+    // False until the local row this session owns has been decided. Creating a
+    // user before that is what produced a second, unlinked one on upgrade: the
+    // row this device already had was linked to an account nobody had looked for
+    // yet, so `getCurrentUser` found nothing and this made another.
+    const { isPrepared } = useAccount();
+
     const { data: user } = useQuery({
         queryKey: ['user'],
         queryFn: async () => {
@@ -174,8 +182,12 @@ const useUserProvider = () => {
             });
         };
 
-        initUser();
-    }, [mutate]);
+        if (isPrepared) initUser();
+        // Re-runs when the active row changes, which happens when an account is
+        // resolved on sign-in. A row restored from a backup carries the profile
+        // but none of this device's own settings — units, locale, build number —
+        // because those describe the phone rather than the person.
+    }, [isPrepared, mutate, user?.id]);
 
     return {
         user,

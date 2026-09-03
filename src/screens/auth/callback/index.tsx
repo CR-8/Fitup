@@ -5,7 +5,6 @@ import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { useUser } from '@/hooks/use-user';
-import { hasCompletedOnboarding } from '@/crud/onboarding';
 import {
     AuthError,
     claimOAuthNavigation,
@@ -13,6 +12,7 @@ import {
     getSession,
     isOAuthRedirectUrl,
 } from '@/services/account';
+import { resolveAuthDestination } from '@/services/auth-navigation';
 import { reportError } from '@/services/error-reporting';
 
 /**
@@ -53,9 +53,10 @@ const AuthCallbackScreen = () => {
         return true;
     }, []);
 
-    const goOnward = useCallback(async (id: string): Promise<void> => {
-        const onboarded = await hasCompletedOnboarding(id);
-        router.replace(onboarded ? '/' : '/onboarding');
+    // Shared with the sign-in screen: either may land the redirect, and the two
+    // must agree on where it goes.
+    const goOnward = useCallback(async (): Promise<void> => {
+        router.replace(await resolveAuthDestination());
     }, []);
 
     // The redirect itself, whenever it arrives.
@@ -72,7 +73,7 @@ const AuthCallbackScreen = () => {
             // Claimed only once the exchange succeeds. Claiming earlier would gag the
             // sign-in screen even when this path is the one that ends up failing.
             .then(() => {
-                if (claimOAuthNavigation()) return goOnward(userId);
+                if (claimOAuthNavigation()) return goOnward();
             })
             .catch((error) => {
                 // Backing out of the provider is a choice, not a fault worth reporting.
@@ -95,7 +96,7 @@ const AuthCallbackScreen = () => {
             .then(async (session) => {
                 if (!active || !session || !actOnce()) return;
                 if (!claimOAuthNavigation()) return;
-                await goOnward(userId);
+                await goOnward();
             })
             .catch(() => undefined);
 

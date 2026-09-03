@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -17,8 +17,6 @@ import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { Separator } from '@/components/layout/separator';
 import { MIN_PASSWORD_LENGTH } from '@/constants/auth';
-import { useUser } from '@/hooks/use-user';
-import { hasCompletedOnboarding } from '@/crud/onboarding';
 import {
     AuthError,
     claimOAuthNavigation,
@@ -28,7 +26,9 @@ import {
     signInWithEmail,
     signInWithGoogle,
     signUpWithEmail,
+    setOAuthReturnTo,
 } from '@/services/account';
+import { resolveAuthDestination } from '@/services/auth-navigation';
 import { reportError } from '@/services/error-reporting';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -65,11 +65,11 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         gap: theme.space(3),
     },
-    footer: {
-        alignItems: 'center',
-        gap: theme.space(3),
-    },
     link: {
+        // 44dp, the Apple HIG / WCAG 2.5.5 minimum. Padding alone gave these
+        // roughly 32dp, which is a hard target to hit and easy to miss.
+        minHeight: theme.space(11),
+        justifyContent: 'center',
         paddingVertical: theme.space(2),
     },
 }));
@@ -108,8 +108,9 @@ const errorKey = (error: unknown): string => {
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
     const { theme, rt } = useUnistyles();
-    const { user } = useUser();
-    const userId = user?.id;
+    // Set when the screen is opened deliberately (from Settings) rather than by
+    // the first-launch gate.
+    const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
     const [appleAvailable, setAppleAvailable] = useState(false);
     const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
@@ -127,14 +128,16 @@ const SignInScreen = () => {
     }, []);
 
     /**
-     * Onboarding follows sign-in for a new account, because the profile it collects is
-     * what Tony reads. Someone who already completed it is returning, not starting, so
-     * they go straight to training rather than answering the same questions again.
+     * Published so the callback screen can honour the same destination: the OAuth
+     * redirect may be landed by either screen, and only this one saw the param.
      */
+    useEffect(() => {
+        setOAuthReturnTo(returnTo ?? null);
+    }, [returnTo]);
+
     const onAuthenticated = useCallback(async () => {
-        const onboarded = userId ? await hasCompletedOnboarding(userId) : false;
-        router.replace(onboarded ? '/' : '/onboarding');
-    }, [userId]);
+        router.replace(await resolveAuthDestination());
+    }, []);
 
     const runProvider = useCallback(
         async (provider: 'google' | 'apple', signIn: () => Promise<unknown>) => {
@@ -186,17 +189,14 @@ const SignInScreen = () => {
         }
     });
 
-    const handleSkip = useCallback(() => {
-        // The local-first promise: training never requires an account.
-        router.replace('/onboarding');
-    }, []);
-
     const busy = pending !== null;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <VStack style={styles.intro}>
-                <Title type="h1">{t('signIn.title', { ns: 'screens' })}</Title>
+                <Title type="h1">
+                    {t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
+                </Title>
                 <Text fontSize="sm" style={styles.muted}>
                     {t('signIn.subtitle', { ns: 'screens' })}
                 </Text>
@@ -233,7 +233,17 @@ const SignInScreen = () => {
 
                 <VStack style={styles.fieldContainer}>
                     <Label>{t('signIn.email', { ns: 'screens' })}</Label>
-                    <Input control={control} name="email" valueType="text" error={errors.email} />
+                    <Input
+                        control={control}
+                        name="email"
+                        valueType="text"
+                        error={errors.email}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="email"
+                        textContentType="emailAddress"
+                    />
                 </VStack>
 
                 <VStack style={styles.fieldContainer}>
@@ -243,6 +253,13 @@ const SignInScreen = () => {
                         name="password"
                         valueType="text"
                         error={errors.password}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        // Telling the OS which of the two this is decides whether it
+                        // offers to fill an existing password or save a new one.
+                        autoComplete={isRegistering ? 'new-password' : 'current-password'}
+                        textContentType={isRegistering ? 'newPassword' : 'password'}
                     />
                 </VStack>
 
@@ -270,17 +287,6 @@ const SignInScreen = () => {
                             : t('signIn.needAccount', { ns: 'screens' })}
                     </Text>
                 </Pressable>
-            </VStack>
-
-            <VStack style={styles.footer}>
-                <Pressable style={styles.link} onPress={handleSkip} disabled={busy}>
-                    <Text fontSize="sm" fontWeight="semibold">
-                        {t('signIn.skip', { ns: 'screens' })}
-                    </Text>
-                </Pressable>
-                <Text fontSize="2xs" style={[styles.muted, { textAlign: 'center' }]}>
-                    {t('signIn.skipHint', { ns: 'screens' })}
-                </Text>
             </VStack>
         </ScrollView>
     );

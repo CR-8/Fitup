@@ -1,5 +1,5 @@
 import { FC, ForwardedRef, forwardRef, ReactNode, useMemo, useState, ComponentRef } from 'react';
-import { KeyboardTypeOptions, StyleProp, TextInput, TextInputProps, TextStyle } from 'react-native';
+import { KeyboardTypeOptions, StyleProp, TextInput, TextStyle } from 'react-native';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { NumberFormatValues, NumericFormat } from 'react-number-format';
 import { StyleSheet, UnistylesVariants } from 'react-native-unistyles';
@@ -12,7 +12,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { getNumericValue, valueToType } from '@/helpers/values';
 
-import { FieldValueType, InputType, OnChangeType } from '../../types';
+import { FieldValueType, InputType, OnChangeType, TextEntryProps } from '../../types';
 import { Label, Error, Help } from '../../components';
 import { useTranslation } from 'react-i18next';
 
@@ -28,10 +28,7 @@ interface InputContainerBaseProps extends Pick<InputType, 'error' | 'inputContai
 
 type InputContainerProps = InputContainerBaseProps & UnistylesVariants<typeof styles>;
 
-interface InputComponentProps extends Pick<
-    TextInputProps,
-    'onSubmitEditing' | 'placeholder' | 'onFocus' | 'onBlur'
-> {
+interface InputComponentProps extends TextEntryProps {
     defaultValue?: string;
     inputValue?: string;
     valueType: FieldValueType;
@@ -124,9 +121,23 @@ const InputComponent = forwardRef<TextInput, InputComponentProps>(
             placeholder,
             onFocus,
             onBlur,
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
         }: InputComponentProps,
         ref: ForwardedRef<TextInput>,
     ) => {
+        // Spread into both branches so a numeric field can still be masked.
+        const entry = {
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
+        };
+
         return (
             <>
                 {['number', 'decimal'].includes(valueType) ? (
@@ -141,6 +152,7 @@ const InputComponent = forwardRef<TextInput, InputComponentProps>(
                         displayType={'text'}
                         renderText={(value) => (
                             <InputPrimitive
+                                {...entry}
                                 ref={ref}
                                 value={value}
                                 keyboardType={keyboardType}
@@ -155,6 +167,7 @@ const InputComponent = forwardRef<TextInput, InputComponentProps>(
                     />
                 ) : (
                     <InputPrimitive
+                        {...entry}
                         ref={ref}
                         defaultValue={defaultValue}
                         keyboardType={keyboardType}
@@ -192,9 +205,22 @@ const SheetInputComponent = forwardRef<
             onChangeText,
             onSubmitEditing,
             placeholder,
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
         }: InputComponentProps,
         ref: ForwardedRef<ComponentRef<typeof BottomSheetTextInput>>,
     ) => {
+        const entry = {
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
+        };
+
         return (
             <>
                 {['number', 'decimal'].includes(valueType) ? (
@@ -209,6 +235,7 @@ const SheetInputComponent = forwardRef<
                         displayType={'text'}
                         renderText={(value) => (
                             <SheetInputPrimitive
+                                {...entry}
                                 ref={ref}
                                 value={value}
                                 keyboardType={keyboardType}
@@ -221,6 +248,7 @@ const SheetInputComponent = forwardRef<
                     />
                 ) : (
                     <SheetInputPrimitive
+                        {...entry}
                         ref={ref}
                         defaultValue={defaultValue}
                         keyboardType={keyboardType}
@@ -257,6 +285,11 @@ const BaseInput = forwardRef(
             size,
             onFocus,
             onBlur,
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
         }: InputProps,
         ref: ForwardedRef<TextInput | ComponentRef<typeof BottomSheetTextInput>>,
     ) => {
@@ -341,6 +374,11 @@ const BaseInput = forwardRef(
             placeholder,
             onFocus,
             onBlur,
+            secureTextEntry,
+            autoCapitalize,
+            autoComplete,
+            autoCorrect,
+            textContentType,
             style: [styles.input(!!error), inputStyle],
         };
 

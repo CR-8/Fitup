@@ -7,6 +7,7 @@ import type { Session } from '@supabase/supabase-js';
 
 import { AUTH_CONFIG, isAuthConfigured } from '@/constants/auth';
 import { requireSupabase, supabase } from '@/services/supabase';
+import { clearAuthSession } from '@/services/auth';
 import { reportError } from '@/services/error-reporting';
 
 /**
@@ -67,6 +68,30 @@ const classifyAuthError = (error: unknown): AuthError => {
     }
 
     return new AuthError('UNKNOWN', error instanceof Error ? error.message : undefined);
+};
+
+export interface AccountIdentity {
+    accountId: string;
+    accountEmail: string | null;
+    accountProvider: AuthProvider | null;
+}
+
+/**
+ * The parts of a session the local user row mirrors.
+ *
+ * Lives here rather than beside either reader because two of them need it now —
+ * the provider that prepares the account, and the navigation that has to wait
+ * for it — and a second copy of "which provider is this" would drift.
+ */
+export const accountIdentityFromSession = (session: Session): AccountIdentity => {
+    const provider = session.user.app_metadata.provider;
+
+    return {
+        accountId: session.user.id,
+        accountEmail: session.user.email ?? null,
+        accountProvider:
+            provider === 'google' || provider === 'apple' || provider === 'email' ? provider : null,
+    };
 };
 
 export const getSession = async (): Promise<Session | null> => {
@@ -176,6 +201,29 @@ export const claimOAuthNavigation = (): boolean => {
     if (oauthNavigationClaimed) return false;
     oauthNavigationClaimed = true;
     return true;
+};
+
+/**
+ * Where to land once this sign-in finishes, when it is not the first-launch flow.
+ *
+ * Lives here for the same reason the claim above does: the redirect can be
+ * landed by either the sign-in screen or the callback screen, and only one of
+ * them ever saw the search param that asked for a destination. A ref in either
+ * screen is invisible to the other, so the intent has to sit above both.
+ *
+ * Null means "use the first-launch rules" — onboarding, or home if that is done.
+ */
+let pendingReturnTo: string | null = null;
+
+export const setOAuthReturnTo = (path: string | null): void => {
+    pendingReturnTo = path;
+};
+
+/** Read-and-clear, so a later sign-in does not inherit an old destination. */
+export const consumeOAuthReturnTo = (): string | null => {
+    const value = pendingReturnTo;
+    pendingReturnTo = null;
+    return value;
 };
 
 /** Supabase reports both outcomes of the OAuth hop in the callback fragment. */
@@ -336,15 +384,26 @@ export const signInWithApple = async (): Promise<Session> => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Ends the session. Local training data is deliberately left in place: it was
- * usable before any account existed and stays usable after signing out.
+ * Ends the session completely.
+ *
+ * Two credentials exist, not one: the Supabase session, and the sync service's
+ * own JWT with the user id it re-bootstraps from. Clearing only the first left
+ * the second usable, so `src/api`'s 401 interceptor could mint a fresh sync
+ * token for the account that had just signed out.
+ *
+ * The sync credential is cleared even when Supabase is absent — the two are
+ * configured independently, and "signed out" has to mean the same thing either
+ * way.
+ *
+ * Local training data is deliberately left in place: it was usable before any
+ * account existed and stays usable after signing out.
  */
 export const signOut = async (): Promise<void> => {
-    if (!supabase) return;
-
     try {
-        await supabase.auth.signOut();
+        await supabase?.auth.signOut();
     } catch (error) {
         reportError(error, 'Failed to sign out cleanly');
+    } finally {
+        clearAuthSession();
     }
 };

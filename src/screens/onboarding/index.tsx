@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
@@ -14,6 +14,8 @@ import { Input } from '@/components/forms/fields/input';
 import { Buttons } from '@/components/forms/fields/buttons';
 import { useUser } from '@/hooks/use-user';
 import { saveOnboardingAnswers, skipOnboarding } from '@/crud/onboarding';
+import { GUIDELINE_SESSIONS_PER_WEEK, MEDIAN_AGE_YEARS, worldAverages } from '@/constants/averages';
+import { queryClient } from '@/queries';
 import { reportError } from '@/services/error-reporting';
 
 import { OnboardingStep } from './components/step';
@@ -52,7 +54,22 @@ const schema = z.object({
 
 type OnboardingForm = z.infer<typeof schema>;
 
-const STEP_COUNT = 4;
+/**
+ * Which step each field is asked on.
+ *
+ * Needed because the last step's Save runs `handleSubmit` over the whole form:
+ * a field left in a state zod rejects — an age of 5, say — aborted the submit
+ * with the error rendered on a step nobody could see, so the button simply did
+ * nothing. This is the map back to it.
+ */
+const STEP_FIELDS: readonly (keyof OnboardingForm)[][] = [
+    ['displayName', 'age', 'biologicalSex'],
+    ['bodyWeightKg', 'heightCm', 'somatotype'],
+    ['goal', 'targetWeightKg'],
+    ['activityLevel', 'sessionsPerWeek'],
+];
+
+const STEP_COUNT = STEP_FIELDS.length;
 
 /** Age is friendlier to answer than a date, so it is converted on save. */
 const ageToBirthday = (age: number | null | undefined): Date | null => {
@@ -75,6 +92,18 @@ const OnboardingScreen = () => {
         formState: { errors, isSubmitting },
     } = useForm<OnboardingForm>({ resolver: zodResolver(schema) });
 
+    /**
+     * Hints, not values. Nothing here is ever saved — body weight and height are
+     * written as `measurement` rows, so a number the user did not type would
+     * appear on their weight chart as a real reading.
+     *
+     * They follow the answer to "biological sex", which is asked on the step
+     * before the body questions. No guard is needed against overwriting typed
+     * input: a placeholder is only visible while the field is empty.
+     */
+    const biologicalSex = useWatch({ control, name: 'biologicalSex' });
+    const averages = worldAverages(biologicalSex);
+
     const choices = useCallback(
         (group: string, values: readonly string[]) =>
             values.map((value) => ({
@@ -85,35 +114,52 @@ const OnboardingScreen = () => {
     );
 
     const finish = useCallback(() => {
+        // `useFirstLaunchGate` caches this answer with `staleTime: Infinity`, so
+        // without an explicit invalidation it keeps reporting "not onboarded" for
+        // the rest of the launch — and sends the user back here the next time it
+        // re-evaluates, which is every time the session changes.
+        queryClient.invalidateQueries({ queryKey: ['onboarding', 'completed'] });
+
         // Replace rather than push: onboarding should not sit in the back stack.
         router.replace('/');
     }, []);
 
     const userId = user?.id;
 
-    const onSubmit = handleSubmit(async (values) => {
-        if (!userId) return finish();
+    const onSubmit = handleSubmit(
+        async (values) => {
+            if (!userId) return finish();
 
-        try {
-            await saveOnboardingAnswers(userId, {
-                displayName: values.displayName ?? null,
-                birthday: ageToBirthday(values.age),
-                biologicalSex: values.biologicalSex ?? null,
-                bodyWeightKg: values.bodyWeightKg ?? null,
-                heightCm: values.heightCm ?? null,
-                targetWeightKg: values.targetWeightKg ?? null,
-                goal: values.goal ?? null,
-                somatotype: values.somatotype ?? null,
-                activityLevel: values.activityLevel ?? null,
-                sessionsPerWeek: values.sessionsPerWeek ?? null,
-            });
+            try {
+                await saveOnboardingAnswers(userId, {
+                    displayName: values.displayName ?? null,
+                    birthday: ageToBirthday(values.age),
+                    biologicalSex: values.biologicalSex ?? null,
+                    bodyWeightKg: values.bodyWeightKg ?? null,
+                    heightCm: values.heightCm ?? null,
+                    targetWeightKg: values.targetWeightKg ?? null,
+                    goal: values.goal ?? null,
+                    somatotype: values.somatotype ?? null,
+                    activityLevel: values.activityLevel ?? null,
+                    sessionsPerWeek: values.sessionsPerWeek ?? null,
+                });
 
-            finish();
-        } catch (error) {
-            reportError(error, 'Failed to save onboarding answers');
-            Alert.alert(t('onboarding.saveFailed', { ns: 'screens' }));
-        }
-    });
+                finish();
+            } catch (error) {
+                reportError(error, 'Failed to save onboarding answers');
+                Alert.alert(t('onboarding.saveFailed', { ns: 'screens' }));
+            }
+        },
+        // Send the user to the answer that is holding up the save, rather than
+        // leaving them tapping a button that has nothing to say.
+        (formErrors) => {
+            const step = STEP_FIELDS.findIndex((fields) =>
+                fields.some((field) => formErrors[field]),
+            );
+
+            if (step >= 0) setStepIndex(step);
+        },
+    );
 
     const handleSkip = useCallback(() => {
         if (!userId) return finish();
@@ -158,6 +204,7 @@ const OnboardingScreen = () => {
                                 control={control}
                                 name="age"
                                 valueType="number"
+                                placeholder={String(MEDIAN_AGE_YEARS)}
                                 error={errors.age}
                             />
                         </VStack>
@@ -185,6 +232,7 @@ const OnboardingScreen = () => {
                                 control={control}
                                 name="bodyWeightKg"
                                 valueType="decimal"
+                                placeholder={String(averages.bodyWeightKg)}
                                 error={errors.bodyWeightKg}
                             />
                         </VStack>
@@ -195,6 +243,7 @@ const OnboardingScreen = () => {
                                 control={control}
                                 name="heightCm"
                                 valueType="decimal"
+                                placeholder={String(averages.heightCm)}
                                 error={errors.heightCm}
                             />
                         </VStack>
@@ -272,6 +321,7 @@ const OnboardingScreen = () => {
                                 control={control}
                                 name="sessionsPerWeek"
                                 valueType="number"
+                                placeholder={String(GUIDELINE_SESSIONS_PER_WEEK)}
                                 error={errors.sessionsPerWeek}
                             />
                         </VStack>
@@ -279,7 +329,7 @@ const OnboardingScreen = () => {
                 ),
             },
         ],
-        [choices, control, errors, t],
+        [averages, choices, control, errors, t],
     );
 
     const step = steps[stepIndex];

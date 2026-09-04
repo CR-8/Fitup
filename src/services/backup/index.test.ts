@@ -69,6 +69,13 @@ const loadModule = () => {
     return require('.');
 };
 
+const loadPending = () => {
+    // Deliberately not mocked: the point of these is that a write announces
+    // itself and the backup hears it.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('./pending');
+};
+
 const identity = {
     accountId: 'account-1',
     accountEmail: 'a@example.com',
@@ -188,6 +195,93 @@ describe('preparing an account', () => {
             await pending;
 
             expect(mockPushEverythingCalls).toEqual([]);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+});
+
+/**
+ * A workout is not one write. The row, its groups, its exercises and every set
+ * are queued in turn, so reacting to each one would send a workout with no sets
+ * and then push again for every set that followed.
+ */
+describe('pushing when a write lands', () => {
+    beforeEach(reset);
+
+    test('a burst of changes is one push, not one each', async () => {
+        jest.useFakeTimers();
+
+        try {
+            const { startBackupPushes } = loadModule();
+            const { notifyPendingChange } = loadPending();
+
+            const stop = startBackupPushes();
+
+            // `startBackupPushes` pushes once on its own, to catch up on
+            // anything left over from a previous run.
+            await jest.advanceTimersByTimeAsync(0);
+            mockPushCalls = 0;
+
+            notifyPendingChange();
+            notifyPendingChange();
+            notifyPendingChange();
+
+            expect(mockPushCalls).toBe(0);
+
+            await jest.advanceTimersByTimeAsync(3_000);
+
+            expect(mockPushCalls).toBe(1);
+
+            stop();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a change after the debounce has fired starts a new one', async () => {
+        jest.useFakeTimers();
+
+        try {
+            const { startBackupPushes } = loadModule();
+            const { notifyPendingChange } = loadPending();
+
+            const stop = startBackupPushes();
+            await jest.advanceTimersByTimeAsync(0);
+            mockPushCalls = 0;
+
+            notifyPendingChange();
+            await jest.advanceTimersByTimeAsync(3_000);
+
+            notifyPendingChange();
+            await jest.advanceTimersByTimeAsync(3_000);
+
+            expect(mockPushCalls).toBe(2);
+
+            stop();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('stopping unsubscribes, so a later write pushes nothing', async () => {
+        jest.useFakeTimers();
+
+        try {
+            const { startBackupPushes } = loadModule();
+            const { notifyPendingChange } = loadPending();
+
+            const stop = startBackupPushes();
+            await jest.advanceTimersByTimeAsync(0);
+            stop();
+            mockPushCalls = 0;
+
+            notifyPendingChange();
+            await jest.advanceTimersByTimeAsync(3_000);
+
+            expect(mockPushCalls).toBe(0);
+
+            stop();
         } finally {
             jest.useRealTimers();
         }

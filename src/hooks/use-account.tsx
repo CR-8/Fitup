@@ -17,7 +17,12 @@ import {
     onAuthStateChange,
     signOut as signOutOfAccount,
 } from '@/services/account';
-import { forgetAccountPreparation, prepareAccount, startBackupPushes } from '@/services/backup';
+import {
+    flushBackup,
+    forgetAccountPreparation,
+    prepareAccount,
+    startBackupPushes,
+} from '@/services/backup';
 import { queryClient } from '@/queries';
 import { runInBackground } from '@/services/error-reporting';
 
@@ -117,6 +122,12 @@ export const AccountProvider: FC<{ children: ReactNode }> = ({ children }) => {
     useEffect(() => startBackupPushes(), []);
 
     const signOut = useCallback(async () => {
+        // Before the session goes, not after: pushing needs one, so anything
+        // still queued would otherwise wait for the next sign-in — which may be
+        // a different account entirely. Bounded inside, so a dead network costs
+        // a moment rather than the ability to sign out.
+        await flushBackup();
+
         await signOutOfAccount();
 
         // Both cleared so signing back into the same account restores and merges

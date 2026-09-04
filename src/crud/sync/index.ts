@@ -12,6 +12,7 @@ import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
 import { isSyncEnabled } from '@/sync/config';
 import { isBackupEnabled } from '@/services/backup/config';
+import { notifyPendingChange } from '@/services/backup/pending';
 
 const SYNC_QUEUE_CLEANUP_BATCH_SIZE = 1000;
 const SYNC_QUEUE_INSERT_BATCH_SIZE = 250;
@@ -33,6 +34,8 @@ export const queueSyncOperation = async (operation: Omit<SyncQueueInsert, 'id' |
         target: syncQueue.id,
         set: syncOperation,
     });
+
+    notifyPendingChange();
 };
 
 export const queueSyncOperations = async (
@@ -46,6 +49,8 @@ export const queueSyncOperations = async (
         const rows = chunk.map((operation) => ({ id: nanoid(), ...operation }));
         await db.insert(syncQueue).values(rows);
     }
+
+    notifyPendingChange();
 };
 
 export const getPendingSyncOperations = async (): Promise<SyncQueueSelect[]> => {

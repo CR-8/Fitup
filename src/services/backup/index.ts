@@ -15,6 +15,7 @@ import {
 } from './config';
 import { pushBackup, pushEverything } from './push';
 import { readBackupLocalUserId, restoreFromBackup } from './restore';
+import { onPendingChange } from './pending';
 
 export { isBackupEnabled } from './config';
 export { pushBackup } from './push';
@@ -223,21 +224,54 @@ export const currentUserForSession = async (): Promise<UserSelect | null> => {
 };
 
 /**
- * Pushes on the two moments that matter — leaving the app, and coming back to
- * it — plus a slow tick while it is open.
- *
- * The tick is what covers the case the two events miss: a set logged, then the
- * app killed from the recents list without ever going through `background`.
+ * Long-stop only. A write announces itself, so this is what covers a change that
+ * somehow never did — not the normal path.
  */
 const PUSH_INTERVAL_MS = 2 * 60 * 1000;
+
+/**
+ * Long enough for a save to finish arriving.
+ *
+ * A workout is not one write: the workout row, its groups, its exercises and
+ * every set are queued in turn. Pushing on the first would send a workout with
+ * no sets and then push again for each one.
+ */
+const PUSH_DEBOUNCE_MS = 3_000;
+
+/**
+ * Sends what is pending and waits for it.
+ *
+ * Signing out is the one moment this has to be awaited: it clears the session,
+ * and without one there is nothing to push with — so anything still queued would
+ * sit there until the next sign-in, which may well be a different account.
+ */
+const FLUSH_TIMEOUT_MS = 5_000;
+
+export const flushBackup = async (): Promise<void> => {
+    // Bounded: a backup that cannot reach the network must not hold someone in
+    // an app they have asked to leave. What does not go now stays queued, and
+    // goes up the next time this account is signed in.
+    await runQuietly(
+        withTimeout(pushBackup(), FLUSH_TIMEOUT_MS),
+        'Failed to back up before signing out:',
+    );
+};
 
 export const startBackupPushes = (): (() => void) => {
     if (!isBackupEnabled()) return () => undefined;
 
     let running = false;
+    let pendingAgain = false;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
 
     const push = () => {
-        if (running) return;
+        if (running) {
+            // A write landed mid-push and may not have been in the batch this
+            // one read. Rather than skip it, go round once more when this ends.
+            pendingAgain = true;
+            return;
+        }
+
         running = true;
 
         pushBackup()
@@ -249,7 +283,17 @@ export const startBackupPushes = (): (() => void) => {
             )
             .finally(() => {
                 running = false;
+
+                if (pendingAgain) {
+                    pendingAgain = false;
+                    push();
+                }
             });
+    };
+
+    const pushSoon = () => {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(push, PUSH_DEBOUNCE_MS);
     };
 
     const onAppStateChange = (state: AppStateStatus) => {
@@ -258,11 +302,14 @@ export const startBackupPushes = (): (() => void) => {
 
     const subscription = AppState.addEventListener('change', onAppStateChange);
     const interval = setInterval(push, PUSH_INTERVAL_MS);
+    const unsubscribe = onPendingChange(pushSoon);
 
     push();
 
     return () => {
         subscription.remove();
         clearInterval(interval);
+        unsubscribe();
+        if (debounce) clearTimeout(debounce);
     };
 };

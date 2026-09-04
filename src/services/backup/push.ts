@@ -32,8 +32,17 @@ type ColumnMap = Record<string, SQLiteColumn>;
 
 interface TableWork {
     spec: BackupTableSpec;
-    /** Queue rows this table accounts for, settled together or not at all. */
-    operationIds: string[];
+    /**
+     * Queue rows per record, rather than one list for the whole table.
+     *
+     * A table's rows are not all uploaded: any belonging to a different local
+     * user are filtered out, because writing them would stamp one account's
+     * data into another's. Settling the whole table regardless marked those
+     * writes as done without ever sending them, and the queue is the only
+     * memory of what still needs uploading — so they were never backed up
+     * again. Only records that were actually handled get settled now.
+     */
+    operationsByRecord: Map<string, string[]>;
     upsertIds: Set<string>;
     deleteIds: Set<string>;
 }
@@ -53,11 +62,18 @@ const planWork = (operations: SyncQueueSelect[]) => {
 
         if (!entry) {
             const spec = BACKUP_TABLES.find((item) => item.local === operation.tableName)!;
-            entry = { spec, operationIds: [], upsertIds: new Set(), deleteIds: new Set() };
+            entry = {
+                spec,
+                operationsByRecord: new Map(),
+                upsertIds: new Set(),
+                deleteIds: new Set(),
+            };
             work.set(operation.tableName, entry);
         }
 
-        entry.operationIds.push(operation.id);
+        const forRecord = entry.operationsByRecord.get(operation.recordId) ?? [];
+        forRecord.push(operation.id);
+        entry.operationsByRecord.set(operation.recordId, forRecord);
 
         // Operations arrive oldest first, so the last word on a record wins —
         // a row created and then deleted is a delete, not both.
@@ -100,7 +116,12 @@ const upsertRows = async (
     }
 };
 
-const pushTable = async (entry: TableWork, accountId: string, ownerId: string): Promise<void> => {
+/** Returns the records it finished with, whether by sending them or by design. */
+const pushTable = async (
+    entry: TableWork,
+    accountId: string,
+    ownerId: string,
+): Promise<Set<string>> => {
     const client = supabase!;
     const { spec } = entry;
     const columns = getTableColumns(spec.table) as ColumnMap;
@@ -161,6 +182,21 @@ const pushTable = async (entry: TableWork, accountId: string, ownerId: string): 
             if (error) throw error;
         }
     }
+
+    /**
+     * Everything this table is done with.
+     *
+     * `owned` counts even where `spec.include` dropped the row — a catalogue
+     * exercise is excluded by design and will never become eligible, so leaving
+     * its operation pending would grow the queue forever. What is deliberately
+     * absent is any row belonging to another local user: those stay pending and
+     * go up when that user is the active one.
+     */
+    const handled = new Set(owned.map((row) => String(row[spec.idColumn])));
+
+    for (const id of deleteIds) handled.add(id);
+
+    return handled;
 };
 
 /**
@@ -191,7 +227,6 @@ export const pushBackup = async (): Promise<boolean> => {
 
     const { work, ignored } = planWork(operations);
     const settled = [...ignored];
-    let complete = true;
 
     // In declaration order, so a workout reaches the account before the sets
     // that reference it.
@@ -200,11 +235,12 @@ export const pushBackup = async (): Promise<boolean> => {
         if (!entry) continue;
 
         try {
-            await pushTable(entry, accountId, owner.id);
-            settled.push(...entry.operationIds);
-        } catch (error) {
-            complete = false;
+            const handled = await pushTable(entry, accountId, owner.id);
 
+            for (const recordId of handled) {
+                settled.push(...(entry.operationsByRecord.get(recordId) ?? []));
+            }
+        } catch (error) {
             // Every remaining table would fail the same way, and so would every
             // push after this one.
             if (isMissingBackupSchema(error)) {
@@ -222,7 +258,9 @@ export const pushBackup = async (): Promise<boolean> => {
         await markSyncOperationsAsDone(settled);
     }
 
-    return complete;
+    // Anything left pending is a record this push could not finish with — a
+    // table that failed, or a row owned by a user who is not the active one.
+    return settled.length === operations.length;
 };
 
 /**

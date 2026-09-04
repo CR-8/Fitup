@@ -220,9 +220,12 @@ module.exports = {
         [
             'expo-localization',
             {
+                // Drives `locales_config.xml`, which is what Android 13+ offers
+                // in its per-app language picker. Listing a language the app has
+                // no translations for lets the OS switch to it and get English.
                 supportedLocales: {
-                    ios: ['en', 'es', 'hi', 'ru', 'zh'],
-                    android: ['en', 'es', 'hi', 'ru', 'zh'],
+                    ios: ['en', 'hi'],
+                    android: ['en', 'hi'],
                 },
             },
         ],

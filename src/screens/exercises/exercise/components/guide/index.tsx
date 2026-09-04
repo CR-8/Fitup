@@ -12,6 +12,7 @@ import { Title } from '@/components/typography/title';
 import { ExerciseSelect } from '@/db/schema';
 import { equipmentTranslationKey } from '@/constants/equipment';
 import { sanitizeMuscleGroupSelections } from '@/constants/muscles';
+import { exerciseDisplayName } from '@/helpers/exercise-name';
 import {
     buildExerciseGifUrl,
     EXERCISE_GIF_PREVIEW_RESOLUTION,
@@ -267,7 +268,7 @@ export const Guide: FC<GuideProps> = ({ exercise, showHero = true }) => {
             {hasHero && (
                 <VStack style={styles.hero}>
                     <Title type="h3" style={styles.heroTitle}>
-                        {exercise.name}
+                        {exerciseDisplayName(exercise)}
                     </Title>
                     <ExpoImage
                         source={{ uri: gifUrl! }}

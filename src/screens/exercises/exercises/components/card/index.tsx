@@ -3,7 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { Trash2 } from 'lucide-react-native';
+import { ChevronDown, Trash2 } from 'lucide-react-native';
 
 import { Text } from '@/components/primitives/text';
 import { Box } from '@/components/primitives/box';
@@ -12,12 +12,23 @@ import { VStack } from '@/components/primitives/vstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { ExerciseListItem } from '@/hooks/use-exercises';
+import { exerciseDisplayName } from '@/helpers/exercise-name';
 
 const styles = StyleSheet.create((theme) => ({
     categoryHeaderContainer: {
-        paddingVertical: theme.space(3),
+        paddingTop: theme.space(6),
+        paddingBottom: theme.space(2),
         paddingHorizontal: theme.space(4),
         backgroundColor: theme.colors.background,
+    },
+    // The eyebrow treatment from the design: small, quiet and spaced out, so it
+    // labels the section without competing with the muscle groups under it.
+    categoryEyebrow: {
+        color: theme.colors.mutedTypography,
+        fontSize: theme.fontSize['2xs'].fontSize,
+        lineHeight: theme.fontSize['2xs'].lineHeight,
+        letterSpacing: 1.8,
+        textTransform: 'uppercase',
     },
     sectionDivider: {
         height: StyleSheet.hairlineWidth,
@@ -34,9 +45,30 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
         opacity: 0.6,
     },
-    muscleGroupHeaderContainer: {
-        paddingVertical: theme.space(2),
+    // This is the control people actually use, so it gets a real row height and
+    // a card of its own rather than reading as a caption.
+    muscleGroupHeaderContainer: (open: boolean) => ({
+        minHeight: theme.space(13),
+        justifyContent: 'center',
+        paddingVertical: theme.space(3),
         paddingHorizontal: theme.space(4),
+        marginHorizontal: theme.space(4),
+        marginTop: theme.space(2),
+        borderRadius: theme.radius['2xl'],
+        backgroundColor: open ? theme.colors.elevated : theme.colors.foreground,
+    }),
+    muscleGroupChevron: (open: boolean) => ({
+        transform: [{ rotate: open ? '180deg' : '0deg' }],
+    }),
+    countPill: {
+        paddingHorizontal: theme.space(2),
+        paddingVertical: theme.space(0.5),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.background,
+    },
+    headerRight: {
+        alignItems: 'center',
+        gap: theme.space(2),
     },
     muscleGroupHeaderWrapper: {
         justifyContent: 'space-between',
@@ -46,8 +78,7 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     muscleGroupCount: {
-        color: theme.colors.typography,
-        opacity: 0.6,
+        color: theme.colors.mutedTypography,
     },
     exerciseItemContainer: (left: boolean, right: boolean) => ({
         paddingVertical: theme.space(2),
@@ -58,8 +89,7 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     exerciseTracking: {
-        color: theme.colors.typography,
-        opacity: 0.6,
+        color: theme.colors.mutedTypography,
         marginTop: theme.space(1),
     },
     exerciseItemSeparator: (borderStyle: 'default' | 'wide' | 'none') => ({
@@ -113,6 +143,9 @@ interface ExerciseListItemProps {
     selected?: boolean;
     onSelectToggle?: (exerciseId: string) => void;
     selectionPosition?: 'left' | 'right';
+    /** Headers only. Absent while searching, when nothing may be shut. */
+    sectionOpen?: boolean;
+    onToggleSection?: () => void;
 }
 
 interface RightActionProps {
@@ -126,23 +159,33 @@ interface SelectionAccessoryProps {
     onToggle: () => void;
 }
 
-const CategoryHeaderComponent = ({ item }: { item: ExerciseListItem & { type: 'category' } }) => {
+const CategoryHeaderComponent = ({
+    item,
+    open = true,
+    onToggle,
+}: {
+    item: ExerciseListItem & { type: 'category' };
+    open?: boolean;
+    onToggle?: () => void;
+}) => {
     const { t } = useTranslation(['common']);
+    const { theme } = useUnistyles();
 
     return (
-        <Box>
+        <Pressable onPress={onToggle} disabled={!onToggle}>
             <Box style={styles.categoryHeaderContainer}>
                 <HStack style={styles.categoryHeaderWrapper}>
-                    <Text fontSize="xl" fontWeight="bold" style={styles.categoryTitle}>
-                        {t(`exerciseCategory.${item.name}`, { ns: 'common' })}
+                    <Text fontWeight="semibold" style={styles.categoryEyebrow}>
+                        {t(`exerciseCategory.${item.name}`, { ns: 'common' })} · {item.count}
                     </Text>
-                    <Text fontSize="sm" fontWeight="medium" style={styles.categoryCount}>
-                        {item.count}
-                    </Text>
+                    {onToggle ? (
+                        <Box style={styles.muscleGroupChevron(open)}>
+                            <ChevronDown size={16} color={theme.colors.mutedTypography} />
+                        </Box>
+                    ) : null}
                 </HStack>
             </Box>
-            <Box style={styles.sectionDivider} />
-        </Box>
+        </Pressable>
     );
 };
 
@@ -150,25 +193,38 @@ const CategoryHeader = memo(CategoryHeaderComponent);
 
 const MuscleGroupHeaderComponent = ({
     item,
+    open = false,
+    onToggle,
 }: {
     item: ExerciseListItem & { type: 'muscle-group' };
+    open?: boolean;
+    onToggle?: () => void;
 }) => {
     const { t } = useTranslation(['common']);
+    const { theme } = useUnistyles();
 
     return (
-        <Box>
-            <Box style={styles.muscleGroupHeaderContainer}>
+        <Pressable onPress={onToggle} disabled={!onToggle}>
+            <Box style={styles.muscleGroupHeaderContainer(open)}>
                 <HStack style={styles.muscleGroupHeaderWrapper}>
-                    <Text fontWeight="bold" style={styles.muscleGroupTitle}>
+                    <Text fontWeight="semibold" style={styles.muscleGroupTitle}>
                         {t(`muscleGroup.${item.name}`, { ns: 'common' })}
                     </Text>
-                    <Text fontSize="xs" fontWeight="medium" style={styles.muscleGroupCount}>
-                        {item.count}
-                    </Text>
+                    <HStack style={styles.headerRight}>
+                        <Box style={styles.countPill}>
+                            <Text fontSize="xs" fontWeight="medium" style={styles.muscleGroupCount}>
+                                {item.count}
+                            </Text>
+                        </Box>
+                        {onToggle ? (
+                            <Box style={styles.muscleGroupChevron(open)}>
+                                <ChevronDown size={18} color={theme.colors.mutedTypography} />
+                            </Box>
+                        ) : null}
+                    </HStack>
                 </HStack>
             </Box>
-            <Box style={styles.sectionDivider} />
-        </Box>
+        </Pressable>
     );
 };
 
@@ -282,7 +338,7 @@ const ExerciseCardComponent = ({
                     styles.exerciseContentFlex,
                 ]}
             >
-                <Text style={styles.exerciseName}>{item.exercise.name}</Text>
+                <Text style={styles.exerciseName}>{exerciseDisplayName(item.exercise)}</Text>
                 <Text fontSize="xs" style={styles.exerciseTracking}>
                     {item.exercise.tracking
                         .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
@@ -332,12 +388,14 @@ const ExerciseListItemComponentInner = ({
     selected,
     onSelectToggle,
     selectionPosition,
+    sectionOpen,
+    onToggleSection,
 }: ExerciseListItemProps) => {
     switch (item.type) {
         case 'category':
-            return <CategoryHeader item={item} />;
+            return <CategoryHeader item={item} open={sectionOpen} onToggle={onToggleSection} />;
         case 'muscle-group':
-            return <MuscleGroupHeader item={item} />;
+            return <MuscleGroupHeader item={item} open={sectionOpen} onToggle={onToggleSection} />;
         case 'exercise':
             return (
                 <ExerciseCard

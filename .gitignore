@@ -44,3 +44,6 @@ yarn-error.*
 
 # Seed ledger — records which GIFs are already uploaded
 .cache/
+
+# Local build guide — generated, not tracked
+FitSync-Build-Guide.pdf

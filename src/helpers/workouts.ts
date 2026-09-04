@@ -10,7 +10,7 @@ export interface WorkoutGroup {
 
 export const groupWorkoutsByWeek = (
     workouts: WorkoutSelect[],
-    locale: string = 'ru',
+    locale: string = 'en',
     firstWeekday: number = 2,
 ): WorkoutGroup[] => {
     const groups: WorkoutGroup[] = [];

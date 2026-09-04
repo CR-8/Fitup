@@ -50,6 +50,12 @@ const styles = StyleSheet.create((theme) => ({
     muted: {
         color: theme.colors.neutral[400],
     },
+    secondaryButton: {
+        backgroundColor: theme.colors.foreground,
+    },
+    secondaryButtonText: {
+        color: theme.colors.typography,
+    },
 }));
 
 const AccountScreen = () => {
@@ -96,11 +102,19 @@ const AccountScreen = () => {
         );
     }, [signOut, t]);
 
+    const handleChangePassword = useCallback(() => {
+        router.navigate(`/auth/new-password?returnTo=${encodeURIComponent(RETURN_TO)}`);
+    }, []);
+
     const provider = session?.user.app_metadata.provider;
     const providerLabel =
         provider === 'google' || provider === 'apple' || provider === 'email'
             ? t(`settings.account.signedIn.provider.${provider}`, { ns: 'screens' })
             : null;
+
+    // Only an email account has a password of its own. Google and Apple sign-ins
+    // have one, and it is not ours to change.
+    const canChangePassword = provider === 'email';
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -123,6 +137,19 @@ const AccountScreen = () => {
                         <Text fontSize="xs" style={styles.muted}>
                             {t('settings.account.signedIn.note', { ns: 'screens' })}
                         </Text>
+
+                        {canChangePassword ? (
+                            <Button
+                                size="sm"
+                                title={t('settings.account.signedIn.changePassword', {
+                                    ns: 'screens',
+                                })}
+                                disabled={pending}
+                                onPress={handleChangePassword}
+                                containerStyle={styles.secondaryButton}
+                                textStyle={styles.secondaryButtonText}
+                            />
+                        ) : null}
 
                         <Button
                             size="sm"

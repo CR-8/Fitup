@@ -13,6 +13,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { router } from 'expo-router';
 import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
 import { PreviewThumbnail } from '@/components/layout/preview';
+import { exerciseDisplayName } from '@/helpers/exercise-name';
 
 interface HeaderProps {
     exerciseInfo: {
@@ -158,7 +159,7 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
             </Box>
             <Box style={styles.titleContainer}>
                 <Title type="h5" style={styles.title}>
-                    {exerciseInfo?.exercise.name || 'Exercise'}
+                    {exerciseInfo ? exerciseDisplayName(exerciseInfo.exercise) : 'Exercise'}
                 </Title>
                 <Text style={styles.subtitle}>
                     {exerciseInfo?.exercise.tracking
@@ -169,7 +170,7 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
             <HStack style={styles.actionsContainer}>
                 <Box style={styles.leftActionsContainer}>
                     <PreviewThumbnail
-                        name={exerciseInfo?.exercise.name ?? ''}
+                        name={exerciseInfo ? exerciseDisplayName(exerciseInfo.exercise) : ''}
                         gifFilename={exerciseInfo?.exercise.gifFilename}
                         onOpen={handlePreviewOpen}
                         analyticsSurface="active_workout"

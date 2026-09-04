@@ -16,7 +16,7 @@ import generated from './translations/resources.json';
  * so immediately.
  */
 
-const LOCALES = ['en', 'ru', 'zh', 'es', 'hi'] as const;
+const LOCALES = ['en', 'hi'] as const;
 const NAMESPACES = ['common', 'menu', 'screens'] as const;
 
 const readSource = (locale: string, namespace: string): unknown =>

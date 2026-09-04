@@ -10,6 +10,7 @@ import { ExerciseSelect } from '@/db/schema';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { normalizeMuscleValues } from '@/constants/muscles';
+import { exerciseDisplayName } from '@/helpers/exercise-name';
 import {
     buildExerciseGifUrl,
     EXERCISE_GIF_PREVIEW_RESOLUTION,
@@ -83,7 +84,7 @@ export const Header = ({ exercise }: HeaderProps) => {
             <VStack style={styles.container}>
                 <Box>
                     <Title type="h3" style={styles.title}>
-                        {exercise.name}
+                        {exerciseDisplayName(exercise)}
                     </Title>
                 </Box>
                 {gifUrl && (

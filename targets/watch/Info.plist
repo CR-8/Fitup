@@ -3,11 +3,11 @@
 <plist version="1.0">
   <dict>
     <key>CFBundleDisplayName</key>
-    <string>Fitup</string>
+    <string>FitSync</string>
     <key>NSHealthShareUsageDescription</key>
-    <string>Fitup uses your health data to track your heart rate during workouts.</string>
+    <string>FitSync uses your health data to track your heart rate during workouts.</string>
     <key>NSHealthUpdateUsageDescription</key>
-    <string>Fitup saves your workout data to Apple Health.</string>
+    <string>FitSync saves your workout data to Apple Health.</string>
     <key>WKBackgroundModes</key>
     <array>
       <string>workout-processing</string>

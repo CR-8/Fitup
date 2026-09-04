@@ -154,37 +154,64 @@ const func = {
     },
 };
 
-const colors = {
+/**
+ * FitSync's palette, taken from the design's own stylesheet rather than sampled
+ * by eye.
+ *
+ * The ramps matter as much as the semantic tokens below them: around 150 places
+ * in the app reach for `neutral[n]` or `brand[n]` directly, and re-deriving the
+ * ramps is what moves those with everything else instead of leaving Tailwind
+ * greys and cyan scattered through the screens.
+ */
+export const colors = {
     white: '#FFFFFF',
+    black: '#000000',
+
+    /**
+     * Rebuilt around the design's surfaces, so the steps the app already uses
+     * land on real FitSync colours: 50 and 950 are the two page grounds, 900 the
+     * dark card, 200 the light border, 400 and 500 the muted text.
+     */
     neutral: {
-        50: '#fafafa',
-        100: '#f5f5f5',
-        200: '#e5e5e5',
-        300: '#d4d4d4',
-        400: '#a3a3a3',
-        500: '#737373',
-        600: '#525252',
-        700: '#404040',
-        800: '#262626',
-        900: '#171717',
-        925: '#101010',
-        950: '#0a0a0a',
+        50: '#f4f4f6',
+        100: '#ebebef',
+        200: '#e0e0e6',
+        300: '#c9c9d2',
+        400: '#8e8ea0',
+        500: '#6c6c78',
+        600: '#55555f',
+        700: '#34343c',
+        800: '#292930',
+        900: '#1e1e22',
+        925: '#141417',
+        950: '#0b0b0c',
     },
-    // Fitup brand ramp. Keyed by role rather than hue so a future palette change
-    // stays contained to this block.
+
+    /**
+     * The brand ramp keeps its name and shape and changes hue — it was cyan.
+     * Every place already reaching for `brand` becomes the coral accent without
+     * being touched.
+     */
     brand: {
-        50: '#ecfeff',
-        100: '#cffafe',
-        200: '#a5f3fc',
-        300: '#67e8f9',
-        400: '#22d3ee',
-        500: '#06b6d4',
-        600: '#0891b2',
-        700: '#0e7490',
-        800: '#155e75',
-        900: '#164e63',
-        950: '#083344',
+        50: '#fff1ef',
+        100: '#ffe7e4',
+        200: '#ffcdc7',
+        300: '#ffa99f',
+        400: '#ff8a7f',
+        500: '#ff453a',
+        600: '#e0342a',
+        700: '#c02a21',
+        800: '#8f1f19',
+        900: '#5e1410',
+        950: '#2f0a08',
     },
+
+    /**
+     * Left as it was. In an app accented in coral a destructive red is never
+     * going to be strikingly different, and these are used on filled warning
+     * cards where the context carries the meaning; re-tinting them would add
+     * churn across 30-odd call sites to no real end.
+     */
     red: {
         50: '#fef2f2',
         100: '#fee2e2',
@@ -213,25 +240,114 @@ const colors = {
     },
 };
 
-const lightTheme = {
+/**
+ * Naming follows the app's existing vocabulary rather than the stylesheet's.
+ *
+ * Here `foreground` already means the raised surface a card is drawn on and
+ * `typography` means text, so the design's `--card` and `--foreground` map onto
+ * those. Importing the CSS names would have left two different meanings of
+ * "foreground" in one file.
+ */
+export const lightTheme = {
     colors: {
-        background: colors.white,
-        foreground: colors.neutral[100],
-        typography: colors.neutral[950],
-        border: colors.neutral[300],
+        background: colors.neutral[50],
+        foreground: colors.white,
+        elevated: colors.neutral[100],
+        typography: colors.neutral[900],
+        mutedTypography: colors.neutral[500],
+        border: colors.neutral[200],
+        input: '#d5d5dd',
+        primary: colors.brand[500],
+        primaryTypography: colors.white,
+        primarySoft: colors.brand[100],
+        accent: colors.neutral[900],
+        accentTypography: colors.neutral[50],
+        success: '#1f9d63',
+        destructive: '#e0342a',
         ...colors,
+    },
+    gradients: {
+        brand: ['#ff6a55', '#ff2d20'],
+        ink: ['#1e1e22', '#3a3a44'],
+        surface: ['#ffffff', '#f7f7f9'],
+        /** Stands in for the design's radial bloom; see `glow` in the theme. */
+        glow: ['rgba(255, 69, 58, 0.14)', 'rgba(255, 69, 58, 0)'],
+    },
+    shadows: {
+        soft: {
+            shadowColor: '#1e1e22',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.14,
+            shadowRadius: 18,
+            elevation: 4,
+        },
+        lift: {
+            shadowColor: '#1e1e22',
+            shadowOffset: { width: 0, height: 18 },
+            shadowOpacity: 0.18,
+            shadowRadius: 24,
+            elevation: 10,
+        },
+        glow: {
+            shadowColor: colors.brand[500],
+            shadowOffset: { width: 0, height: 14 },
+            shadowOpacity: 0.45,
+            shadowRadius: 20,
+            elevation: 10,
+        },
     },
     ...common,
     ...func,
 } as const;
 
-const darkTheme = {
+export const darkTheme = {
     colors: {
         background: colors.neutral[950],
         foreground: colors.neutral[900],
-        typography: colors.white,
-        border: colors.neutral[700],
+        elevated: colors.neutral[800],
+        typography: colors.neutral[50],
+        mutedTypography: colors.neutral[400],
+        border: '#2c2c33',
+        input: colors.neutral[700],
+        primary: colors.brand[500],
+        primaryTypography: colors.white,
+        // The design tints this one rather than using a solid, so the card
+        // beneath shows through a pill.
+        primarySoft: 'rgba(255, 69, 58, 0.16)',
+        accent: '#ff7a6e',
+        accentTypography: colors.neutral[950],
+        success: '#35c47f',
+        destructive: '#ff5a4e',
         ...colors,
+    },
+    gradients: {
+        brand: ['#ff6a55', '#e0342a'],
+        ink: ['#1e1e22', '#0b0b0c'],
+        surface: ['#1e1e22', '#17171a'],
+        glow: ['rgba(255, 69, 58, 0.20)', 'rgba(255, 69, 58, 0)'],
+    },
+    shadows: {
+        soft: {
+            shadowColor: colors.black,
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.5,
+            shadowRadius: 18,
+            elevation: 4,
+        },
+        lift: {
+            shadowColor: colors.black,
+            shadowOffset: { width: 0, height: 18 },
+            shadowOpacity: 0.65,
+            shadowRadius: 24,
+            elevation: 10,
+        },
+        glow: {
+            shadowColor: colors.brand[500],
+            shadowOffset: { width: 0, height: 14 },
+            shadowOpacity: 0.55,
+            shadowRadius: 20,
+            elevation: 10,
+        },
     },
     ...common,
     ...func,

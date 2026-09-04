@@ -314,6 +314,70 @@ export const groupExercises = (exercises: ExerciseListSelect[]): ExerciseListIte
     return grouped;
 };
 
+/**
+ * Which sections are shut.
+ *
+ * The two sets carry opposite polarity on purpose, because that is what encodes
+ * the defaults with no special-casing anywhere: a category is open unless it is
+ * named here, a muscle group is shut unless it is. Opening the library on a
+ * short index of muscle groups is the point — one category holds 1,295 of the
+ * 1,324 exercises, so an expanded list is a scroll nobody finishes.
+ */
+export interface ExerciseCollapseState {
+    collapsedCategories: ReadonlySet<string>;
+    expandedMuscleGroups: ReadonlySet<string>;
+}
+
+/** The same muscle appears under more than one category, so the key needs both. */
+export const muscleGroupKey = (category: string, name: string): string => `${category}:${name}`;
+
+/**
+ * Filters the grouped list down to what is currently visible.
+ *
+ * A single pass, which works because `groupExercises` emits each category
+ * followed by its own muscle groups and their exercises — so "which section am I
+ * inside" is just the last header seen.
+ */
+export const collapseGroupedExercises = (
+    items: ExerciseListItem[],
+    state: ExerciseCollapseState,
+): ExerciseListItem[] => {
+    const visible: ExerciseListItem[] = [];
+
+    let insideCollapsedCategory = false;
+    let insideCollapsedMuscleGroup = false;
+
+    for (const item of items) {
+        if (item.type === 'category') {
+            insideCollapsedCategory = state.collapsedCategories.has(item.name);
+            insideCollapsedMuscleGroup = false;
+            visible.push(item);
+            continue;
+        }
+
+        if (item.type === 'muscle-group') {
+            // A shut category takes its muscle groups with it, not just their
+            // exercises — otherwise collapsing Strength still leaves fifteen rows.
+            if (insideCollapsedCategory) {
+                insideCollapsedMuscleGroup = true;
+                continue;
+            }
+
+            insideCollapsedMuscleGroup = !state.expandedMuscleGroups.has(
+                muscleGroupKey(item.category, item.name),
+            );
+            visible.push(item);
+            continue;
+        }
+
+        if (insideCollapsedCategory || insideCollapsedMuscleGroup) continue;
+
+        visible.push(item);
+    }
+
+    return visible;
+};
+
 export const createExerciseSearchIndex = (
     items: ExerciseListItem[],
 ): ExerciseSearchIndex | null => {

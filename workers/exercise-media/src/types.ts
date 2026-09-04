@@ -3,7 +3,15 @@ export interface Env {
     API_RATE_LIMITER: RateLimit;
 }
 
-/** The five locales the app ships. Anything else is rejected before it reaches SQL. */
+/**
+ * Locales this API accepts. Anything else is rejected before it reaches SQL.
+ *
+ * Wider than the two the app now ships, deliberately. Spanish, Russian and
+ * Chinese instructions have been deleted from D1, but builds released before
+ * that still ask for them — and an unlisted locale is a 400, which would break
+ * their catalogue sync outright. Listed, they fall through the LEFT JOIN in
+ * `db.ts` to English, which is the degradation we want.
+ */
 export const LOCALES = ['en', 'es', 'hi', 'ru', 'zh'] as const;
 export type Locale = (typeof LOCALES)[number];
 

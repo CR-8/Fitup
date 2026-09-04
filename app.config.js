@@ -1,8 +1,14 @@
+// The EAS project id, which is not a secret — it is embedded in every build and
+// appears in the updates URL below. Kept as a literal because the EAS CLI, unlike
+// the Expo CLI, does not load `.env.local`, so an env-only value leaves
+// `eas build` unable to find the project at all.
+const easProjectId = process.env.APP_EAS_PROJECT_ID || '91cedf58-1db7-4972-813a-eca58acc014e';
+
 module.exports = {
-    name: process.env.APP_NAME || 'Fitup',
+    name: process.env.APP_NAME || 'FitSync',
     version: process.env.APP_VERSION || '1.0',
-    owner: 'fitup',
-    slug: 'fitup',
+    owner: 'fitup2026',
+    slug: 'fitup2026',
     orientation: 'portrait',
     scheme: 'fitup',
     userInterfaceStyle: 'automatic',
@@ -18,7 +24,7 @@ module.exports = {
         softwareKeyboardLayoutMode: 'pan',
         adaptiveIcon: {
             foregroundImage: './assets/images/adaptive-icon.png',
-            backgroundColor: '#22d3ee',
+            backgroundColor: '#0b0b0c',
         },
         permissions: [
             'android.permission.health.WRITE_EXERCISE',
@@ -151,12 +157,14 @@ module.exports = {
             ],
         },
     },
+    // The launcher label, per language. These override the `name` above on a
+    // device set to that language — which is why an app called FitSync sat in
+    // the drawer as "Fitup", and in Russian as "Скульпт", a name from two
+    // renames ago. Every entry must be updated with the app name, not just
+    // `name`.
     locales: {
         en: './src/locale/translations/meta/en.json',
-        es: './src/locale/translations/meta/es.json',
         hi: './src/locale/translations/meta/hi.json',
-        ru: './src/locale/translations/meta/ru.json',
-        zh: './src/locale/translations/meta/zh.json',
     },
     icon:
         process.env.APP_VARIANT === 'development'
@@ -178,8 +186,8 @@ module.exports = {
         [
             '@kingstinct/react-native-healthkit',
             {
-                NSHealthShareUsageDescription: 'Fitup reads your heart rate during workouts',
-                NSHealthUpdateUsageDescription: 'Fitup saves your completed workouts to Health',
+                NSHealthShareUsageDescription: 'FitSync reads your heart rate during workouts',
+                NSHealthUpdateUsageDescription: 'FitSync saves your completed workouts to Health',
             },
         ],
         'expo-health-connect',
@@ -236,11 +244,13 @@ module.exports = {
             'expo-font',
             {
                 fonts: [
-                    './assets/fonts/Inter-Black.ttf',
-                    './assets/fonts/Inter-Bold.ttf',
-                    './assets/fonts/Inter-Medium.ttf',
-                    './assets/fonts/Inter-Regular.ttf',
-                    './assets/fonts/Inter-SemiBold.ttf',
+                    './assets/fonts/DMSans-Regular.ttf',
+                    './assets/fonts/DMSans-Medium.ttf',
+                    './assets/fonts/DMSans-SemiBold.ttf',
+                    './assets/fonts/DMSans-Bold.ttf',
+                    './assets/fonts/SpaceGrotesk-Medium.ttf',
+                    './assets/fonts/SpaceGrotesk-SemiBold.ttf',
+                    './assets/fonts/SpaceGrotesk-Bold.ttf',
                 ],
             },
         ],
@@ -250,7 +260,7 @@ module.exports = {
                 image: './assets/images/splash-icon.png',
                 imageWidth: 125,
                 resizeMode: 'contain',
-                backgroundColor: '#22d3ee',
+                backgroundColor: '#0b0b0c',
             },
         ],
         [
@@ -272,11 +282,11 @@ module.exports = {
         appVariant: process.env.APP_VARIANT || process.env.EAS_BUILD_PROFILE || 'development',
         buildProfile: process.env.EAS_BUILD_PROFILE || process.env.APP_VARIANT || 'development',
         eas: {
-            projectId: process.env.APP_EAS_PROJECT_ID,
+            projectId: easProjectId,
         },
     },
     updates: {
-        url: `https://u.expo.dev/${process.env.APP_EAS_PROJECT_ID}`,
+        url: `https://u.expo.dev/${easProjectId}`,
         enableBsdiffPatchSupport: false,
     },
 };

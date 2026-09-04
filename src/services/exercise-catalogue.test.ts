@@ -277,9 +277,9 @@ describe('refresh throttling', () => {
         const fetchMock = respondWith(page([entry(id('a'))], null));
         const { ensureExerciseCatalogue } = loadModule();
 
-        await ensureExerciseCatalogue('es-MX');
+        await ensureExerciseCatalogue('hi-IN');
 
-        expect(new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('locale')).toBe('es');
+        expect(new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('locale')).toBe('hi');
     });
 });
 

@@ -17,10 +17,13 @@ import {
     groupExercises,
     useDeleteExercise,
 } from '@/hooks/use-exercises';
+import { collapseGroupedExercises } from '@/helpers/exercise-search';
+import { useCollapsedSections } from '../../hooks/use-collapsed-sections';
 import { getExerciseLibrarySnapshot, type ExerciseListSelect } from '@/crud/exercise';
 import { StickyHeaderState } from '../header';
 import { isFitupExerciseUserId } from '@/constants/fitup';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { exerciseDisplayName } from '@/helpers/exercise-name';
 import {
     getExerciseLibraryProperties,
     getSearchRankBucket,
@@ -92,19 +95,33 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
         return createExerciseSearchIndex(groupedData);
     }, [groupedData]);
 
+    const collapse = useCollapsedSections();
+
     const data = useMemo<ExerciseListItem[]>(() => {
         const trimmedQuery = query.trim();
+
         if (!trimmedQuery) {
-            return groupedData;
+            return collapseGroupedExercises(groupedData, collapse.state);
         }
 
+        // Searching overrides the arrangement on purpose: typing is a request to
+        // see matches, and a match hidden inside a shut group looks like no match
+        // at all. What was collapsed comes back when the query clears, because
+        // the state itself was never touched.
         return filterGroupedExercisesByName(
             groupedData,
             trimmedQuery,
             exerciseSearchIndex,
             i18n.resolvedLanguage || i18n.language,
         );
-    }, [exerciseSearchIndex, groupedData, i18n.language, i18n.resolvedLanguage, query]);
+    }, [
+        collapse.state,
+        exerciseSearchIndex,
+        groupedData,
+        i18n.language,
+        i18n.resolvedLanguage,
+        query,
+    ]);
 
     const exerciseResults = useMemo(
         () => data.filter((item): item is ExerciseCard => item.type === 'exercise'),
@@ -251,7 +268,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
         (exerciseItem: ExerciseCard) => {
             return (
                 <PreviewThumbnail
-                    name={exerciseItem.exercise.name}
+                    name={exerciseDisplayName(exerciseItem.exercise)}
                     gifFilename={exerciseItem.exercise.gifFilename}
                     onOpen={handleGifPreviewOpen}
                     analyticsSurface={mode === 'browse' ? 'exercise_library' : 'workout_select'}
@@ -266,7 +283,30 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     const renderItem = useCallback(
         ({ item, index }: { item: ExerciseListItem; index: number }) => {
             if (item.type !== 'exercise') {
-                return <ExerciseListItemComponent item={item} index={index} data={data} />;
+                // While a query is running the list is force-expanded, so the
+                // headers are labels rather than controls and get no handler.
+                const searching = !!query.trim();
+
+                const open =
+                    item.type === 'category'
+                        ? searching || collapse.isCategoryOpen(item.name)
+                        : searching || collapse.isMuscleGroupOpen(item.category, item.name);
+
+                const onToggleSection = searching
+                    ? undefined
+                    : item.type === 'category'
+                      ? () => collapse.toggleCategory(item.name)
+                      : () => collapse.toggleMuscleGroup(item.category, item.name);
+
+                return (
+                    <ExerciseListItemComponent
+                        item={item}
+                        index={index}
+                        data={data}
+                        sectionOpen={open}
+                        onToggleSection={onToggleSection}
+                    />
+                );
             }
 
             if (mode === 'select' && selectedList && onToggle) {
@@ -312,13 +352,15 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
             return <></>;
         },
         [
+            collapse,
             data,
-            mode,
-            selectedList,
-            onToggle,
-            onExercisePress,
             handleDelete,
+            mode,
+            onExercisePress,
+            onToggle,
+            query,
             renderGifAccessory,
+            selectedList,
             trackSearchSelection,
             trackWorkoutSelection,
         ],

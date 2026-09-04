@@ -4,6 +4,7 @@ import {
     claimOAuthNavigation,
     completeOAuthRedirect,
     isOAuthRedirectUrl,
+    redirectType,
     signInWithGoogle,
     signOut,
 } from '@/services/account';
@@ -119,6 +120,74 @@ describe('completeOAuthRedirect', () => {
         await expect(
             completeOAuthRedirect('fitup://auth/callback#access_token=abc'),
         ).rejects.toMatchObject({ code: 'UNKNOWN' });
+    });
+});
+
+/**
+ * Every link Supabase sends lands on one address carrying a full session, and
+ * `type` is the only thing that says which flow it belongs to. Reading it wrong
+ * is silent and serious: a password-reset link that is landed like a sign-in
+ * signs the person into the account they just said they were locked out of,
+ * leaves the forgotten password in place, and offers no screen to change it.
+ */
+describe('redirectType', () => {
+    test('recognises a password reset', () => {
+        expect(redirectType('fitup://auth/callback#access_token=abc&type=recovery')).toBe(
+            'recovery',
+        );
+    });
+
+    test('recognises a confirmed sign-up', () => {
+        expect(redirectType('fitup://auth/callback#access_token=abc&type=signup')).toBe('signup');
+    });
+
+    test('an OAuth redirect carries no type and is landed the ordinary way', () => {
+        expect(redirectType('fitup://auth/callback#access_token=abc&refresh_token=def')).toBeNull();
+    });
+
+    test('the development client launch URL is not a redirect at all', () => {
+        expect(
+            redirectType('exp+fitup://expo-development-client/?url=http://192.168.1.6:8081'),
+        ).toBeNull();
+    });
+
+    test('an unrecognised type is not guessed at', () => {
+        expect(redirectType('fitup://auth/callback#access_token=abc&type=magiclink')).toBeNull();
+    });
+
+    test('the query string is not the result fragment', () => {
+        expect(redirectType('fitup://auth/callback?type=recovery')).toBeNull();
+    });
+});
+
+/**
+ * Email links are single-use and time-limited, so expiry is an ordinary outcome
+ * — yesterday's message, or today's tapped twice. It arrives as `access_denied`,
+ * which is also how a cancelled provider sheet arrives, and the callback screen
+ * deliberately says nothing about a cancellation. Classifying the two together
+ * is what returned people to sign-in with no explanation at all.
+ */
+describe('an expired email link', () => {
+    test('is told apart from a cancelled sign-in by its error code', async () => {
+        await expect(
+            completeOAuthRedirect(
+                'fitup://auth/callback#error=access_denied&error_code=otp_expired',
+            ),
+        ).rejects.toMatchObject({ code: 'LINK_EXPIRED' });
+    });
+
+    test('is recognised from the description when no code is sent', async () => {
+        await expect(
+            completeOAuthRedirect(
+                'fitup://auth/callback#error=access_denied&error_description=Email+link+is+invalid+or+has+expired',
+            ),
+        ).rejects.toMatchObject({ code: 'LINK_EXPIRED' });
+    });
+
+    test('a genuine cancellation is still a cancellation', async () => {
+        await expect(
+            completeOAuthRedirect('fitup://auth/callback#error=access_denied'),
+        ).rejects.toMatchObject({ code: 'CANCELLED' });
     });
 });
 

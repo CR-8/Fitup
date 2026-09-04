@@ -6,7 +6,7 @@ const generate = async () => {
 
     const local = ['common', 'menu', 'screens'];
 
-    for (const lng of ['en', 'ru', 'zh', 'es', 'hi']) {
+    for (const lng of ['en', 'hi']) {
         for (const ns of local) {
             const data = await fs.readJSON(`./src/locale/resources/${lng}/${ns}.json`, 'utf8');
             merge(translations, {

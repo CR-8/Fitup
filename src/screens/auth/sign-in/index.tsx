@@ -29,6 +29,7 @@ import {
     setOAuthReturnTo,
 } from '@/services/account';
 import { resolveAuthDestination } from '@/services/auth-navigation';
+import { errorKey } from '@/screens/auth/errors';
 import { reportError } from '@/services/error-reporting';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -81,36 +82,12 @@ const schema = z.object({
 
 type SignInForm = z.infer<typeof schema>;
 
-const errorKey = (error: unknown): string => {
-    if (error instanceof AuthError) {
-        switch (error.code) {
-            case 'INVALID_CREDENTIALS':
-                return 'signIn.errors.invalidCredentials';
-            case 'EMAIL_IN_USE':
-                return 'signIn.errors.emailInUse';
-            case 'WEAK_PASSWORD':
-                return 'signIn.errors.weakPassword';
-            case 'EMAIL_NOT_CONFIRMED':
-                return 'signIn.errors.emailNotConfirmed';
-            case 'NETWORK':
-                return 'signIn.errors.network';
-            case 'DISABLED':
-            case 'UNSUPPORTED':
-                return 'signIn.errors.unavailable';
-            default:
-                return 'signIn.errors.unknown';
-        }
-    }
-
-    return 'signIn.errors.unknown';
-};
-
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
     const { theme, rt } = useUnistyles();
     // Set when the screen is opened deliberately (from Settings) rather than by
     // the first-launch gate.
-    const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+    const { returnTo, reason } = useLocalSearchParams<{ returnTo?: string; reason?: string }>();
     const [appleAvailable, setAppleAvailable] = useState(false);
     const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
@@ -126,6 +103,18 @@ const SignInScreen = () => {
             .then(setAppleAvailable)
             .catch(() => setAppleAvailable(false));
     }, []);
+
+    /**
+     * Said once, on arrival. The auth callback sends people here when a link has
+     * expired, and it cannot show the message itself — it is a bare background
+     * that exists only to redirect, and an alert raised there would be dismissed
+     * onto a screen that had already gone.
+     */
+    useEffect(() => {
+        if (reason === 'linkExpired') {
+            Alert.alert(t('signIn.errors.linkExpired', { ns: 'screens' }));
+        }
+    }, [reason, t]);
 
     /**
      * Published so the callback screen can honour the same destination: the OAuth
@@ -162,6 +151,10 @@ const SignInScreen = () => {
         [onAuthenticated, t],
     );
 
+    const goToCheckEmail = useCallback((email: string) => {
+        router.push(`/auth/check-email?email=${encodeURIComponent(email)}&reason=signup`);
+    }, []);
+
     const onSubmitEmail = handleSubmit(async (values) => {
         setPending('email');
 
@@ -172,16 +165,24 @@ const SignInScreen = () => {
                     values.password,
                 );
 
-                if (needsEmailConfirmation) {
-                    Alert.alert(t('signIn.confirmEmail', { ns: 'screens' }));
-                    return;
-                }
+                // A screen, not an alert. The alert had a single button, and
+                // dismissing it returned the person to a form whose account had
+                // already been created — nothing to submit, nothing to press,
+                // and no way to ask for the email again.
+                if (needsEmailConfirmation) return goToCheckEmail(values.email);
             } else {
                 await signInWithEmail(values.email, values.password);
             }
 
             await onAuthenticated();
         } catch (error) {
+            // Not a failed sign-in so much as an unfinished sign-up: the
+            // confirmation is sitting in an inbox. Send them where they can
+            // act on it rather than repeating the password back at them.
+            if (error instanceof AuthError && error.code === 'EMAIL_NOT_CONFIRMED') {
+                return goToCheckEmail(values.email);
+            }
+
             reportError(error, 'Email sign-in failed');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));
         } finally {
@@ -287,6 +288,21 @@ const SignInScreen = () => {
                             : t('signIn.needAccount', { ns: 'screens' })}
                     </Text>
                 </Pressable>
+
+                {/* Offered only when signing in. Someone creating an account has
+                    no password to have forgotten, and the link would just be one
+                    more thing to read. */}
+                {isRegistering ? null : (
+                    <Pressable
+                        style={styles.link}
+                        disabled={busy}
+                        onPress={() => router.push('/auth/forgot-password')}
+                    >
+                        <Text fontSize="xs" style={[styles.muted, { textAlign: 'center' }]}>
+                            {t('signIn.forgotPassword', { ns: 'screens' })}
+                        </Text>
+                    </Pressable>
+                )}
             </VStack>
         </ScrollView>
     );

@@ -10,7 +10,7 @@ import { createOrUpdateCurrentUser, getCurrentUser } from '@/crud/user';
 import { queryClient } from '@/queries';
 import { ensureValidToken } from '@/services/auth';
 import { isSyncEnabled } from '@/sync/config';
-import { supportedLanguages } from '@/locale/constants';
+import { normalizeLanguage, supportedLanguages } from '@/locale/constants';
 import type { UserSelect } from '@/db/schema/user';
 import { z } from 'zod';
 import { storage } from '@/storage';
@@ -128,7 +128,11 @@ const useUserProvider = () => {
             const locales = getLocales();
             const calendars = getCalendars();
 
-            const userLng = existingUser?.lng || i18n.language;
+            // Normalised, not taken as read. A device that has been here a
+            // while may still hold Spanish, Russian or Chinese — and `lng` is
+            // enum-validated on write, so leaving one in place would fail the
+            // save of any other setting on a field nobody touched.
+            const userLng = normalizeLanguage(existingUser?.lng || i18n.language);
             const userTheme = existingUser?.theme || 'dark';
             const userBodyWeightUnits =
                 existingUser?.bodyWeightUnits ??

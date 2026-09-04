@@ -1,5 +1,6 @@
 import 'react-native-reanimated';
 import { FC, useEffect } from 'react';
+import { useURL } from 'expo-linking';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
@@ -32,13 +33,12 @@ import { useExerciseCatalogue } from '@/hooks/use-exercise-catalogue';
 import { AccountProvider, useAccount } from '@/hooks/use-account';
 import { isAuthConfigured } from '@/constants/auth';
 import { useFirstLaunchGate } from '@/hooks/use-first-launch-gate';
+import { isOAuthRedirectUrl } from '@/services/account';
+import { noteAuthRedirect } from '@/services/auth-redirect';
 import { PendingStoreReviewCoordinator } from '@/hooks/use-pending-store-review';
 import { StoreReviewGateProvider } from '@/hooks/use-store-review-gate';
 
 import 'dayjs/locale/en';
-import 'dayjs/locale/ru';
-import 'dayjs/locale/zh';
-import 'dayjs/locale/es';
 import 'dayjs/locale/hi';
 import { AudioProvider } from '@/hooks/use-audio';
 
@@ -70,10 +70,27 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * Hears the redirect, so a screen that mounts because of it does not have to.
+ *
+ * Mounted for the life of the app, which is the only position from which both
+ * arrivals are visible: the launch URL of a cold start, and the event delivered
+ * to an app already running. `/auth/callback` can only ever see the first.
+ */
+const useAuthRedirectCapture = (): void => {
+    const url = useURL();
+
+    useEffect(() => {
+        if (url && isOAuthRedirectUrl(url)) noteAuthRedirect(url);
+    }, [url]);
+};
+
 const App: FC = () => {
     const { user } = useUser();
     const { options } = useScreen();
     const { isSignedIn, isReady } = useAccount();
+
+    useAuthRedirectCapture();
 
     // A build with no account backend cannot require an account; it would be
     // unusable. That is the only configuration that reaches the app signed out.
@@ -109,11 +126,21 @@ const App: FC = () => {
                                 headerShown: false,
                             }}
                         >
-                            {/* The only two screens reachable without a session:
-                                sign-in itself, and the OAuth redirect target, which
-                                by definition lands before a session exists. */}
+                            {/* Reachable without a session: sign-in itself, the
+                                redirect target — which by definition lands before
+                                one exists — and the three screens either side of an
+                                email link.
+
+                                `auth/new-password` is here rather than behind the
+                                guard on purpose. A reset link does open a session,
+                                so the guard would admit it, but the screen has to
+                                survive its own sign-out escape hatch, and it is
+                                pre-session in every sense that matters. */}
                             <Stack.Screen name="sign-in" />
                             <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+                            <Stack.Screen name="auth/forgot-password" />
+                            <Stack.Screen name="auth/check-email" />
+                            <Stack.Screen name="auth/new-password" />
 
                             {/* Removing these from the navigator — rather than
                                 redirecting away from them — is what makes signing out a
@@ -221,13 +248,17 @@ const RootLayout: FC = () => {
 
     useDrizzleStudio(process.env.NODE_ENV !== 'production' ? dbConnection : null);
 
+    // Keys are the strings `src/theme/fonts.ts` hands to `fontFamily`. The six
+    // Inter faces this replaces were loaded and never used — nothing in the app
+    // set a `fontFamily` at all, so every screen rendered in the system font.
     const [fontsLoaded, fontsError] = useFonts({
-        InterRegular: require('../../assets/fonts/Inter-Regular.ttf'),
-        InterMedium: require('../../assets/fonts/Inter-Medium.ttf'),
-        InterSemibold: require('../../assets/fonts/Inter-SemiBold.ttf'),
-        InterBold: require('../../assets/fonts/Inter-Bold.ttf'),
-        InterExtraBold: require('../../assets/fonts/Inter-ExtraBold.ttf'),
-        InterBlack: require('../../assets/fonts/Inter-Black.ttf'),
+        DMSans_400Regular: require('../../assets/fonts/DMSans-Regular.ttf'),
+        DMSans_500Medium: require('../../assets/fonts/DMSans-Medium.ttf'),
+        DMSans_600SemiBold: require('../../assets/fonts/DMSans-SemiBold.ttf'),
+        DMSans_700Bold: require('../../assets/fonts/DMSans-Bold.ttf'),
+        SpaceGrotesk_500Medium: require('../../assets/fonts/SpaceGrotesk-Medium.ttf'),
+        SpaceGrotesk_600SemiBold: require('../../assets/fonts/SpaceGrotesk-SemiBold.ttf'),
+        SpaceGrotesk_700Bold: require('../../assets/fonts/SpaceGrotesk-Bold.ttf'),
     });
 
     useEffect(() => {

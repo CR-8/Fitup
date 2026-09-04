@@ -5,7 +5,7 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { localeNames, supportedLanguages } from '@/locale/constants';
+import { localeNames, normalizeLanguage, supportedLanguages } from '@/locale/constants';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
 import { markFormValuesSyncing, submitAutoSaveForm } from '../shared';
@@ -35,7 +35,9 @@ const LanguageScreen = () => {
     } = useForm<EditUserFormData>({
         resolver: zodResolver(editUserSchema),
         defaultValues: {
-            lng: user?.lng || 'en',
+            // A language that is no longer offered would leave every row
+            // unselected, which reads as "no language" rather than English.
+            lng: normalizeLanguage(user?.lng),
         },
     });
 
@@ -43,7 +45,7 @@ const LanguageScreen = () => {
     const watchedLng = watch('lng');
     /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
-    const userLng = user?.lng ?? 'en';
+    const userLng = normalizeLanguage(user?.lng);
     const isSyncingFormRef = useRef(false);
     const isAutoSavingRef = useRef(false);
 

@@ -26,6 +26,9 @@ export type AuthFailureCode =
     | 'EMAIL_IN_USE'
     | 'WEAK_PASSWORD'
     | 'EMAIL_NOT_CONFIRMED'
+    | 'LINK_EXPIRED'
+    | 'RATE_LIMITED'
+    | 'SAME_PASSWORD'
     | 'NETWORK'
     | 'UNSUPPORTED'
     | 'UNKNOWN';
@@ -62,6 +65,23 @@ const classifyAuthError = (error: unknown): AuthError => {
     }
     if (message.includes('email not confirmed')) {
         return new AuthError('EMAIL_NOT_CONFIRMED');
+    }
+    // Email links are single-use and time-limited, so this is the ordinary
+    // outcome of tapping yesterday's message or tapping today's one twice.
+    if (
+        message.includes('otp_expired') ||
+        message.includes('invalid or has expired') ||
+        message.includes('token has expired')
+    ) {
+        return new AuthError('LINK_EXPIRED');
+    }
+    // Supabase answers a too-eager resend with "For security purposes, you can
+    // only request this after N seconds".
+    if (message.includes('only request this after') || message.includes('rate limit')) {
+        return new AuthError('RATE_LIMITED');
+    }
+    if (message.includes('should be different from the old password')) {
+        return new AuthError('SAME_PASSWORD');
     }
     if (message.includes('network') || message.includes('fetch')) {
         return new AuthError('NETWORK');
@@ -109,6 +129,69 @@ export const onAuthStateChange = (handler: (session: Session | null) => void): (
 };
 
 /* -------------------------------------------------------------------------- */
+/* Redirects                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The path half of every redirect the app hands to Supabase. Must stay in step
+ * with the route that receives it as a deep link, `src/routes/auth/callback.tsx`
+ * — the two are coupled by string, and nothing enforces that but this comment.
+ *
+ * One address serves all four cases: the OAuth hop, the sign-up confirmation
+ * email, a resent confirmation, and the password-reset email. They are told
+ * apart by the `type` the fragment carries, not by the path.
+ */
+const AUTH_REDIRECT_PATH = 'auth/callback';
+
+/**
+ * Exported because the email flows need the identical string and a second copy
+ * would drift. It must also be listed in the Supabase project under
+ * Authentication → URL Configuration → Redirect URLs; an address that is not on
+ * that list is silently replaced with the project's Site URL, which opens a
+ * browser instead of the app and looks exactly like a broken email.
+ */
+export const authRedirectUri = (): string =>
+    AuthSession.makeRedirectUri({ scheme: 'fitup', path: AUTH_REDIRECT_PATH });
+
+/** Supabase reports every outcome of a redirect in the callback fragment. */
+const authResultParams = (url: string): URLSearchParams =>
+    new URLSearchParams(url.split('#')[1] ?? '');
+
+/**
+ * Whether a URL carries an auth outcome at all.
+ *
+ * The app receives plenty of URLs that are not this one — the development client
+ * launches on its own deep link, for instance — so a screen waiting for the redirect
+ * has to be able to tell "not the callback" from "the callback, and it failed".
+ */
+export const isOAuthRedirectUrl = (url: string): boolean => {
+    const params = authResultParams(url);
+    return params.has('access_token') || params.has('error') || params.has('error_description');
+};
+
+/** What a redirect is for. Every landing carries tokens; only this tells them apart. */
+export type AuthRedirectType = 'recovery' | 'signup';
+
+/**
+ * Which flow this callback belongs to.
+ *
+ * Load-bearing, and the reason a password reset used to be a silent sign-in: a
+ * recovery link arrives carrying a full session, indistinguishable from a
+ * sign-in unless the `type` is read. Landing it like any other redirect signed
+ * the person straight into the account they had just told us they were locked
+ * out of, leaving the forgotten password in place and no screen on which to
+ * change it.
+ *
+ * Anything else — an OAuth hop, a magic link, an unrecognised type — is null and
+ * lands the ordinary way.
+ */
+export const redirectType = (url: string): AuthRedirectType | null => {
+    const type = authResultParams(url).get('type');
+
+    return type === 'recovery' || type === 'signup' ? type : null;
+};
+
+/* -------------------------------------------------------------------------- */
 /* Email and password                                                         */
 /* -------------------------------------------------------------------------- */
 
@@ -143,6 +226,10 @@ export const signUpWithEmail = async (email: string, password: string): Promise<
         const { data, error } = await requireSupabase().auth.signUp({
             email: email.trim(),
             password,
+            // Without this the confirmation link points at the project's Site
+            // URL — a web page — so tapping it opens a browser and the app never
+            // learns the address was confirmed. Sign-up was unfinishable.
+            options: { emailRedirectTo: authRedirectUri() },
         });
 
         if (error) throw error;
@@ -153,11 +240,63 @@ export const signUpWithEmail = async (email: string, password: string): Promise<
     }
 };
 
+/**
+ * Sends the confirmation email again.
+ *
+ * Needed because the first one is genuinely easy to lose — filed as spam, or
+ * sent to an address with a typo in it that the person has since noticed. The
+ * alternative is telling them to create a second account.
+ */
+export const resendConfirmation = async (email: string): Promise<void> => {
+    if (!isAuthConfigured()) throw new AuthError('DISABLED');
+
+    try {
+        const { error } = await requireSupabase().auth.resend({
+            type: 'signup',
+            email: email.trim(),
+            options: { emailRedirectTo: authRedirectUri() },
+        });
+
+        if (error) throw error;
+    } catch (error) {
+        throw classifyAuthError(error);
+    }
+};
+
+/**
+ * Starts a password reset.
+ *
+ * Resolves the same way whether or not the address has an account. Supabase
+ * answers identically by design, and reporting the difference here would turn
+ * this screen into a way to ask whether a given person uses the app.
+ */
 export const sendPasswordReset = async (email: string): Promise<void> => {
     if (!isAuthConfigured()) throw new AuthError('DISABLED');
 
     try {
-        const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim());
+        const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim(), {
+            // Same reason as sign-up: without it the link leaves the app.
+            redirectTo: authRedirectUri(),
+        });
+
+        if (error) throw error;
+    } catch (error) {
+        throw classifyAuthError(error);
+    }
+};
+
+/**
+ * Sets a new password on the session that is already open.
+ *
+ * Both callers reach it with a session in hand — the recovery link opens one of
+ * its own, and Settings is only offered to someone already signed in — so there
+ * is nothing to re-authenticate against here.
+ */
+export const updatePassword = async (password: string): Promise<void> => {
+    if (!isAuthConfigured()) throw new AuthError('DISABLED');
+
+    try {
+        const { error } = await requireSupabase().auth.updateUser({ password });
         if (error) throw error;
     } catch (error) {
         throw classifyAuthError(error);
@@ -169,16 +308,6 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 /* -------------------------------------------------------------------------- */
 
 export const isGoogleAvailable = (): boolean => isAuthConfigured() && AUTH_CONFIG.googleEnabled;
-
-/**
- * The path half of the OAuth redirect. Must stay in step with the route that receives
- * it as a deep link, `src/routes/auth/callback.tsx` — the two are coupled by string,
- * and nothing enforces that but this comment.
- */
-const OAUTH_REDIRECT_PATH = 'auth/callback';
-
-const oauthRedirectUri = (): string =>
-    AuthSession.makeRedirectUri({ scheme: 'fitup', path: OAUTH_REDIRECT_PATH });
 
 /**
  * Decides which side of the redirect race is allowed to navigate.
@@ -226,22 +355,6 @@ export const consumeOAuthReturnTo = (): string | null => {
     return value;
 };
 
-/** Supabase reports both outcomes of the OAuth hop in the callback fragment. */
-const oauthResultParams = (url: string): URLSearchParams =>
-    new URLSearchParams(url.split('#')[1] ?? '');
-
-/**
- * Whether a URL carries an OAuth outcome at all.
- *
- * The app receives plenty of URLs that are not this one — the development client
- * launches on its own deep link, for instance — so a screen waiting for the redirect
- * has to be able to tell "not the callback" from "the callback, and it failed".
- */
-export const isOAuthRedirectUrl = (url: string): boolean => {
-    const params = oauthResultParams(url);
-    return params.has('access_token') || params.has('error') || params.has('error_description');
-};
-
 /**
  * Turns a callback URL into a session.
  *
@@ -252,14 +365,26 @@ export const isOAuthRedirectUrl = (url: string): boolean => {
  */
 export const completeOAuthRedirect = async (url: string): Promise<Session> => {
     try {
-        const params = oauthResultParams(url);
+        const params = authResultParams(url);
 
         // Backing out of the provider sheet comes back as an error, not an absence.
         if (params.has('error') || params.has('error_description')) {
             const reason = params.get('error');
+            const description = params.get('error_description') ?? undefined;
+
+            // Checked before `access_denied`, which an expired email link also
+            // reports. Reading it as a cancellation is what made a stale link
+            // bounce to sign-in with nothing said — the screen stays quiet about
+            // CANCELLED on purpose, because that one is a choice.
+            const expired =
+                params.get('error_code') === 'otp_expired' ||
+                (description?.toLowerCase().includes('expired') ?? false);
+
+            if (expired) throw new AuthError('LINK_EXPIRED', description);
+
             throw new AuthError(
                 reason === 'access_denied' ? 'CANCELLED' : 'UNKNOWN',
-                params.get('error_description') ?? reason ?? undefined,
+                description ?? reason ?? undefined,
             );
         }
 
@@ -292,7 +417,7 @@ export const signInWithGoogle = async (): Promise<Session> => {
     beginOAuthAttempt();
 
     const client = requireSupabase();
-    const redirectTo = oauthRedirectUri();
+    const redirectTo = authRedirectUri();
 
     try {
         const { data, error } = await client.auth.signInWithOAuth({

@@ -429,5 +429,6 @@
             "turnOn": "Turn On",
             "delay": "Not now"
         }
-    }
+    },
+    "passwordMismatch": "Those passwords do not match."
 }

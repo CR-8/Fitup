@@ -26,7 +26,7 @@ import { createHash } from 'node:crypto';
 const DATASET_RAW_BASE = 'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main';
 
 /** Locales the app ships. The dataset carries ten; the rest are dead weight. */
-export const LOCALES = ['en', 'es', 'hi', 'ru', 'zh'] as const;
+export const LOCALES = ['en', 'hi'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export interface DatasetRecord {

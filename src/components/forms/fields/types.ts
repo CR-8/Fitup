@@ -10,10 +10,32 @@ export type InputValueType = string | number | null;
 
 export type OnChangeType = (value?: string | number | null) => void;
 
-export interface InputType extends Pick<
+/**
+ * Text-entry props forwarded to the underlying TextInput.
+ *
+ * An explicit list rather than all of TextInputProps, so a field cannot accept a
+ * prop the component chain never passes on. Named and shared because the public
+ * field type and the internal component props must stay identical — duplicating
+ * the list is how one of them silently stops forwarding something.
+ *
+ * The autofill trio — secureTextEntry, autoComplete, textContentType — is what
+ * lets a password manager fill and save. Without them a password renders in
+ * plain text and no manager can touch it.
+ */
+export type TextEntryProps = Pick<
     TextInputProps,
-    'onSubmitEditing' | 'placeholder' | 'onFocus' | 'onBlur'
-> {
+    | 'onSubmitEditing'
+    | 'placeholder'
+    | 'onFocus'
+    | 'onBlur'
+    | 'secureTextEntry'
+    | 'autoCapitalize'
+    | 'autoComplete'
+    | 'autoCorrect'
+    | 'textContentType'
+>;
+
+export interface InputType extends TextEntryProps {
     label?: string;
     value?: InputValueType;
     valueType?: FieldValueType;

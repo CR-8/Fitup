@@ -3,7 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { Trash2, Dot } from 'lucide-react-native';
+import { Trash2, Play } from 'lucide-react-native';
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import { isNumber } from 'lodash';
@@ -19,43 +19,90 @@ import { formatWorkoutDuration } from '@/helpers/times';
 
 dayjs.extend(localizedFormat);
 
-const styles = StyleSheet.create((theme, rt) => ({
+/**
+ * A workout, in a list of them.
+ *
+ * The muscle groups used to be a comma-joined sentence sharing a line with the
+ * duration, which made the two read as one run-on string. They are chips now:
+ * the same information, but scannable at the speed someone actually reads a
+ * list.
+ *
+ * Two things here are load-bearing and easy to lose in a restyle. The
+ * `Swipeable` wrapper is the only way to delete a workout from this screen — its
+ * radius lives on the container so the red action is revealed with the same
+ * corners. And `in_progress` inverts the whole card onto the accent colour,
+ * which is what makes a running workout findable at a glance.
+ */
+
+const styles = StyleSheet.create((theme) => ({
     container: (status: WorkoutSelect['status']) => ({
-        backgroundColor:
-            status === 'in_progress' ? theme.colors.brand[400] : theme.colors.foreground,
+        backgroundColor: status === 'in_progress' ? theme.colors.primary : theme.colors.foreground,
     }),
     card: {
-        paddingVertical: theme.space(3),
+        paddingVertical: theme.space(4),
         paddingHorizontal: theme.space(5),
-        gap: theme.space(3),
+        gap: theme.space(2),
     },
-    content: {
-        gap: theme.space(1),
+    topRow: {
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: theme.space(2),
     },
-    title: (status: WorkoutSelect['status']) => ({
-        fontSize: theme.fontSize.lg.fontSize,
+    eyebrow: (status: WorkoutSelect['status']) => ({
+        ...theme.fontSize['2xs'],
+        letterSpacing: 1.1,
+        textTransform: 'uppercase' as const,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: status === 'in_progress' ? theme.colors.neutral[950] : theme.colors.typography,
-    }),
-    status: (status: WorkoutSelect['status']) => ({
-        fontWeight:
+        color:
             status === 'in_progress'
-                ? theme.fontWeight.semibold.fontWeight
-                : theme.fontWeight.medium.fontWeight,
-        color: status === 'in_progress' ? theme.colors.neutral[950] : theme.colors.typography,
-        opacity: status === 'in_progress' ? 1 : 0.6,
+                ? theme.colors.primaryTypography
+                : theme.colors.mutedTypography,
+        opacity: status === 'in_progress' ? 0.9 : 1,
+        flexShrink: 1,
     }),
-    workoutColorContainer: {
-        width: theme.space(6),
-        justifyContent: 'center',
+    title: (status: WorkoutSelect['status']) => ({
+        ...theme.fontSize.lg,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: status === 'in_progress' ? theme.colors.primaryTypography : theme.colors.typography,
+    }),
+    trailing: (status: WorkoutSelect['status']) => ({
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color:
+            status === 'in_progress'
+                ? theme.colors.primaryTypography
+                : theme.colors.mutedTypography,
+        fontVariant: ['tabular-nums' as const],
+    }),
+    chipRow: {
+        flexWrap: 'wrap',
+        gap: theme.space(1.5),
+        alignItems: 'center',
     },
-    workoutColor: (status: WorkoutSelect['status']) => ({
-        width: theme.space(4),
-        height: theme.space(4),
-        backgroundColor:
-            status === 'in_progress' ? theme.colors.neutral[950] : theme.colors.brand[400],
+    chip: (status: WorkoutSelect['status']) => ({
+        paddingHorizontal: theme.space(2.5),
+        paddingVertical: theme.space(1),
         borderRadius: theme.radius.full,
+        backgroundColor:
+            status === 'in_progress' ? 'rgba(255,255,255,0.18)' : theme.colors.background,
     }),
+    chipText: (status: WorkoutSelect['status']) => ({
+        ...theme.fontSize.xs,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+        color: status === 'in_progress' ? theme.colors.primaryTypography : theme.colors.typography,
+    }),
+    // The affordance the plan called for: a planned workout should look startable.
+    startHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space(1),
+        marginLeft: 'auto',
+    },
+    startHintText: {
+        ...theme.fontSize.xs,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.primary,
+    },
     swipeable: {
         backgroundColor: theme.colors.red[500],
         borderRadius: theme.radius['4xl'],
@@ -69,23 +116,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         height: '100%',
         backgroundColor: theme.colors.red[500],
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    completedInfoContainer: {
-        alignItems: 'center',
-        gap: theme.space(1),
-    },
-    workoutInfoTextSize: {
-        fontSize: theme.fontSize.sm.fontSize,
-    },
-    workoutInfoTextColor: (status: WorkoutSelect['status']) => ({
-        color: status === 'in_progress' ? theme.colors.neutral[950] : theme.colors.typography,
-    }),
-    timer: {
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.neutral[950],
-    },
-    workoutInfoContainer: {
         alignItems: 'center',
     },
 }));
@@ -127,12 +157,17 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
     activeElapsedFormatted,
     overviewMeta,
 }) => {
-    const { t, i18n } = useTranslation(['common']);
+    const { t, i18n } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
 
     const deleteWorkout = useDeleteWorkout();
-    const sortedWorkoutTypes = overviewMeta?.sortedWorkoutTypes ?? [];
-    const sortedPrimaryMuscleGroups = overviewMeta?.sortedPrimaryMuscleGroups ?? [];
+
+    // Capped: past three, chips wrap to a second line and the card stops being
+    // a glance.
+    const muscleGroups = useMemo(
+        () => (overviewMeta?.sortedPrimaryMuscleGroups ?? []).slice(0, 3),
+        [overviewMeta],
+    );
 
     const handlePress = useCallback(() => {
         onPress(workout.id);
@@ -156,6 +191,24 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
             ? formatWorkoutDuration(workout.duration)
             : null;
 
+    /** The status line: when it happened, and what kind of session it was. */
+    const eyebrow = useMemo(() => {
+        const when =
+            workout.status === 'in_progress'
+                ? t('now', { ns: 'common' })
+                : workout.status === 'planned'
+                  ? (formattedDate ?? t('workoutStatus.planned', { ns: 'common' }))
+                  : formattedDate;
+
+        const kinds = (overviewMeta?.sortedWorkoutTypes ?? []).map((type) =>
+            t(`exerciseCategory.${type}`, { ns: 'common' }),
+        );
+
+        return [when, ...kinds].filter(Boolean).join(' · ');
+    }, [formattedDate, overviewMeta, t, workout.status]);
+
+    const trailing = workout.status === 'in_progress' ? activeElapsedFormatted : formattedDuration;
+
     const handleDelete = useCallback(() => {
         deleteWorkout.mutate(workout.id);
     }, [workout, deleteWorkout]);
@@ -173,102 +226,49 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
         >
             <Box style={styles.container(workout.status)}>
                 <Pressable onPress={handlePress}>
-                    <HStack style={styles.card}>
-                        <VStack style={styles.content}>
-                            <HStack style={styles.workoutInfoContainer}>
-                                <Text
-                                    style={[
-                                        styles.status(workout.status),
-                                        styles.workoutInfoTextSize,
-                                    ]}
-                                >
-                                    {workout.status === 'in_progress' && t(`now`, { ns: 'common' })}
-                                    {workout.status === 'planned' &&
-                                        (workout.startAt
-                                            ? formattedDate
-                                            : t(`workoutStatus.${workout.status}`, {
-                                                  ns: 'common',
-                                              }))}
-                                    {workout.status === 'completed' && formattedDate}
-                                </Text>
-                                {sortedWorkoutTypes.length > 0 && (
-                                    <>
-                                        <Dot
-                                            color={
-                                                workout.status === 'in_progress'
-                                                    ? theme.colors.neutral[950]
-                                                    : theme.colors.typography
-                                            }
-                                            opacity={workout.status === 'in_progress' ? 1 : 0.8}
-                                            size={theme.space(4)}
+                    <VStack style={styles.card}>
+                        <HStack style={styles.topRow}>
+                            <Text style={styles.eyebrow(workout.status)} numberOfLines={1}>
+                                {eyebrow}
+                            </Text>
+                            {trailing ? (
+                                <Text style={styles.trailing(workout.status)}>{trailing}</Text>
+                            ) : null}
+                        </HStack>
+
+                        <Text style={styles.title(workout.status)} numberOfLines={2}>
+                            {workout.name}
+                        </Text>
+
+                        {muscleGroups.length > 0 || workout.status === 'planned' ? (
+                            <HStack style={styles.chipRow}>
+                                {muscleGroups.map((muscle) => (
+                                    <Box key={muscle} style={styles.chip(workout.status)}>
+                                        <Text style={styles.chipText(workout.status)}>
+                                            {t(`muscleGroup.${muscle}`, {
+                                                ns: 'common',
+                                                defaultValue: muscle,
+                                            })}
+                                        </Text>
+                                    </Box>
+                                ))}
+
+                                {workout.status === 'planned' ? (
+                                    <Box style={styles.startHint}>
+                                        <Play
+                                            size={theme.space(3.5)}
+                                            strokeWidth={2.5}
+                                            fill={theme.colors.primary}
+                                            color={theme.colors.primary}
                                         />
-                                        <Text
-                                            style={[
-                                                styles.status(workout.status),
-                                                styles.workoutInfoTextSize,
-                                            ]}
-                                        >
-                                            {sortedWorkoutTypes
-                                                .map((type) =>
-                                                    t(`exerciseCategory.${type}`, { ns: 'common' }),
-                                                )
-                                                .join(', ')}
+                                        <Text style={styles.startHintText}>
+                                            {t('home.upNext.action.start', { ns: 'screens' })}
                                         </Text>
-                                    </>
-                                )}
+                                    </Box>
+                                ) : null}
                             </HStack>
-                            <HStack>
-                                <Box style={styles.workoutColorContainer}>
-                                    <Box style={styles.workoutColor(workout.status)} />
-                                </Box>
-                                <Text style={styles.title(workout.status)}>{workout.name}</Text>
-                            </HStack>
-                            <HStack style={styles.workoutInfoContainer}>
-                                {workout.status === 'in_progress' && (
-                                    <HStack style={styles.completedInfoContainer}>
-                                        <Text style={[styles.timer, styles.workoutInfoTextSize]}>
-                                            {activeElapsedFormatted ?? ''}
-                                        </Text>
-                                    </HStack>
-                                )}
-                                {workout.status === 'completed' && (
-                                    <HStack style={styles.completedInfoContainer}>
-                                        {formattedDuration && (
-                                            <Text style={styles.workoutInfoTextSize}>
-                                                {formattedDuration}
-                                            </Text>
-                                        )}
-                                    </HStack>
-                                )}
-                                {sortedPrimaryMuscleGroups.length > 0 && (
-                                    <>
-                                        {['in_progress', 'completed'].includes(workout.status) && (
-                                            <Dot
-                                                color={
-                                                    workout.status === 'in_progress'
-                                                        ? theme.colors.neutral[950]
-                                                        : theme.colors.typography
-                                                }
-                                                size={theme.space(4)}
-                                            />
-                                        )}
-                                        <Text
-                                            style={[
-                                                styles.workoutInfoTextSize,
-                                                styles.workoutInfoTextColor(workout.status),
-                                            ]}
-                                        >
-                                            {sortedPrimaryMuscleGroups
-                                                .map((muscle) =>
-                                                    t(`muscleGroup.${muscle}`, { ns: 'common' }),
-                                                )
-                                                .join(', ')}
-                                        </Text>
-                                    </>
-                                )}
-                            </HStack>
-                        </VStack>
-                    </HStack>
+                        ) : null}
+                    </VStack>
                 </Pressable>
             </Box>
         </Swipeable>

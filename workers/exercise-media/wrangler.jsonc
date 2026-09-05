@@ -1,0 +1,39 @@
+{
+    "name": "fitup-exercise-media",
+    "main": "src/index.ts",
+    "compatibility_date": "2026-08-28",
+
+    // D1 is SQLite running on Cloudflare's own network, reached through a
+    // binding rather than a socket — so there is no connection to pool, no
+    // driver reaching for Node built-ins, and no nodejs_compat flag.
+    //
+    // Create with:
+    //   npx wrangler d1 create fitup-exercises
+    // then paste the printed database_id below.
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "fitup-exercises",
+            "database_id": "323e0259-8858-48fe-9738-225814bddd7c"
+        }
+    ],
+
+    // 60 requests per 60 seconds, per client IP. `period` only accepts 10 or 60,
+    // so this is the literal encoding of "60 a minute, i.e. one a second".
+    // `namespace_id` is an arbitrary label scoping the counter; it only has to
+    // stay stable, and differ from any other limiter in the same account.
+    "ratelimits": [
+        {
+            "name": "API_RATE_LIMITER",
+            "namespace_id": "1001",
+            "simple": {
+                "limit": 60,
+                "period": 60
+            }
+        }
+    ],
+
+    "observability": {
+        "enabled": true
+    }
+}

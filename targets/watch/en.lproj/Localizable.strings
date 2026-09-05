@@ -1,4 +1,4 @@
-"app.name" = "Fitup";
+"app.name" = "FitSync";
 "idle.start_on_phone" = "Start a workout on your iPhone";
 "workout.header.exercise_format" = "E%d/%d";
 "workout.header.set_format" = "S%d/%d";

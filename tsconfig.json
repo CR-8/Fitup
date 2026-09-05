@@ -9,4 +9,9 @@
         },
     },
     "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+    // The Worker targets the Cloudflare runtime, not React Native. It has its
+    // own tsconfig and its own types; compiling it here would demand
+    // @cloudflare/workers-types as an app dependency to typecheck code that
+    // never ships in the app.
+    "exclude": ["workers"],
 }

@@ -26,6 +26,15 @@ export type ExerciseListItem = ExerciseCategory | ExerciseMuscleGroup | Exercise
 type ExerciseSearchDocument = {
     id: string;
     name: string;
+    /**
+     * The catalogue's English name, when the localised one differs.
+     *
+     * Gym vocabulary in India is English spoken in Hindi, so the catalogue's
+     * Hindi names are transliterations — `बेंच प्रेस`. Indexing only those would
+     * mean a Hindi-speaking user typing "bench" on a Latin keyboard, which is
+     * most of them, matches nothing at all.
+     */
+    nameEn?: string;
 };
 
 type SearchRank = {
@@ -39,7 +48,7 @@ export type ExerciseSearchIndex = {
 };
 
 const exerciseSearchOptions: IFuseOptions<ExerciseSearchDocument> = {
-    keys: ['name'],
+    keys: ['name', 'nameEn'],
     useTokenSearch: true,
     tokenMatch: 'all',
     threshold: 0.35,
@@ -145,16 +154,16 @@ const getBestTokenMatch = (queryToken: string, nameTokens: string[]) => {
     return bestScore === null ? null : { score: bestScore, index: bestIndex };
 };
 
-const getSearchRank = (
+const rankAgainstName = (
     query: string,
-    document: ExerciseSearchDocument,
+    candidate: string,
     fallbackOrder: number,
 ): SearchRank | null => {
     const queryTokens = tokenizeSearchText(query);
     if (queryTokens.length === 0) return null;
 
-    const name = normalizeSearchText(document.name);
-    const nameTokens = tokenizeSearchText(document.name);
+    const name = normalizeSearchText(candidate);
+    const nameTokens = tokenizeSearchText(candidate);
     if (nameTokens.length === 0) return null;
 
     let tokenScoreSum = 0;
@@ -193,6 +202,25 @@ const getSearchRank = (
         score: Math.max(0, averageTokenScore + orderPenalty + phraseBonus),
         order: fallbackOrder,
     };
+};
+
+/**
+ * The better of the two names, so a query in either script finds the exercise
+ * and is scored as if that were the only name it had.
+ */
+const getSearchRank = (
+    query: string,
+    document: ExerciseSearchDocument,
+    fallbackOrder: number,
+): SearchRank | null => {
+    const localised = rankAgainstName(query, document.name, fallbackOrder);
+
+    if (!document.nameEn || document.nameEn === document.name) return localised;
+
+    const english = rankAgainstName(query, document.nameEn, fallbackOrder);
+    if (!english) return localised;
+
+    return localised ? getBestSearchRank(localised, english) : english;
 };
 
 const createSearchRanks = (
@@ -314,6 +342,70 @@ export const groupExercises = (exercises: ExerciseListSelect[]): ExerciseListIte
     return grouped;
 };
 
+/**
+ * Which sections are shut.
+ *
+ * The two sets carry opposite polarity on purpose, because that is what encodes
+ * the defaults with no special-casing anywhere: a category is open unless it is
+ * named here, a muscle group is shut unless it is. Opening the library on a
+ * short index of muscle groups is the point — one category holds 1,295 of the
+ * 1,324 exercises, so an expanded list is a scroll nobody finishes.
+ */
+export interface ExerciseCollapseState {
+    collapsedCategories: ReadonlySet<string>;
+    expandedMuscleGroups: ReadonlySet<string>;
+}
+
+/** The same muscle appears under more than one category, so the key needs both. */
+export const muscleGroupKey = (category: string, name: string): string => `${category}:${name}`;
+
+/**
+ * Filters the grouped list down to what is currently visible.
+ *
+ * A single pass, which works because `groupExercises` emits each category
+ * followed by its own muscle groups and their exercises — so "which section am I
+ * inside" is just the last header seen.
+ */
+export const collapseGroupedExercises = (
+    items: ExerciseListItem[],
+    state: ExerciseCollapseState,
+): ExerciseListItem[] => {
+    const visible: ExerciseListItem[] = [];
+
+    let insideCollapsedCategory = false;
+    let insideCollapsedMuscleGroup = false;
+
+    for (const item of items) {
+        if (item.type === 'category') {
+            insideCollapsedCategory = state.collapsedCategories.has(item.name);
+            insideCollapsedMuscleGroup = false;
+            visible.push(item);
+            continue;
+        }
+
+        if (item.type === 'muscle-group') {
+            // A shut category takes its muscle groups with it, not just their
+            // exercises — otherwise collapsing Strength still leaves fifteen rows.
+            if (insideCollapsedCategory) {
+                insideCollapsedMuscleGroup = true;
+                continue;
+            }
+
+            insideCollapsedMuscleGroup = !state.expandedMuscleGroups.has(
+                muscleGroupKey(item.category, item.name),
+            );
+            visible.push(item);
+            continue;
+        }
+
+        if (insideCollapsedCategory || insideCollapsedMuscleGroup) continue;
+
+        visible.push(item);
+    }
+
+    return visible;
+};
+
 export const createExerciseSearchIndex = (
     items: ExerciseListItem[],
 ): ExerciseSearchIndex | null => {
@@ -322,6 +414,7 @@ export const createExerciseSearchIndex = (
             acc.push({
                 id: item.exercise.id,
                 name: item.exercise.name,
+                nameEn: item.exercise.nameEn ?? undefined,
             });
         }
         return acc;

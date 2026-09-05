@@ -1,8 +1,0 @@
-{
-    "ios": {
-        "CFBundleDisplayName": "Fitup"
-    },
-    "android": {
-        "app_name": "Fitup"
-    }
-}

@@ -36,6 +36,7 @@ export type ExerciseListSelect = Pick<
     ExerciseSelect,
     | 'id'
     | 'name'
+    | 'nameEn'
     | 'category'
     | 'tracking'
     | 'primaryMuscleGroups'
@@ -298,6 +299,9 @@ export const getFilteredExercises = async (
         .select({
             id: exercise.id,
             name: exercise.name,
+            // Carried so the search index can match a Latin query against a
+            // catalogue pulled in Hindi.
+            nameEn: exercise.nameEn,
             category: exercise.category,
             tracking: exercise.tracking,
             primaryMuscleGroups: exercise.primaryMuscleGroups,

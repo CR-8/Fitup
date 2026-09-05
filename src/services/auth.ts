@@ -113,6 +113,19 @@ export const clearToken = (): void => {
     removeAuthValue(STORAGE_KEYS.expiresAt);
 };
 
+/**
+ * Removes every stored credential, including the user id `clearToken` keeps.
+ *
+ * `clearToken` deliberately leaves `userId` behind so a 401 can re-bootstrap the
+ * same user without a round trip through the UI. Signing out is the opposite
+ * intent: nothing about the previous session may survive, or the interceptor in
+ * `src/api` would silently mint a fresh token for the user who just left.
+ */
+export const clearAuthSession = (): void => {
+    clearToken();
+    removeAuthValue(STORAGE_KEYS.userId);
+};
+
 export const getStoredAuthUserId = (): string | null => {
     return getAuthString(STORAGE_KEYS.userId);
 };

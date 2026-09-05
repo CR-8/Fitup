@@ -520,7 +520,7 @@ describe('dataset sync flow', () => {
 
         mockGetCurrentUser.mockResolvedValue({
             id: 'user_1',
-            lng: 'ru',
+            lng: 'hi',
         });
         mockGetLastSyncTimestamp.mockResolvedValue(new Date(500));
         mockGetFitupLastSyncTimestamp.mockResolvedValue(new Date(700));

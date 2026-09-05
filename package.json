@@ -19,7 +19,9 @@
         "release:android": "eas build --platform android --profile production --clear-cache --auto-submit",
         "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
         "locale": "tsx ./scripts/translations.ts",
-        "exercises": "tsx ./scripts/exercises.ts"
+        "db:push": "tsx ./scripts/db-push.ts",
+        "d1:add-instruction-name": "tsx ./scripts/d1-add-instruction-name.ts",
+        "seed": "tsx ./scripts/seed-catalogue.ts"
     },
     "jest": {
         "preset": "jest-expo",
@@ -148,6 +150,7 @@
         "@types/react": "^19.2.17",
         "babel-plugin-inline-import": "^3.0.0",
         "babel-plugin-react-compiler": "^1.0.0",
+        "cloudinary": "^2.11.0",
         "drizzle-kit": "^0.31.10",
         "eslint-config-expo": "^57.0.0",
         "eslint-config-prettier": "^10.1.8",

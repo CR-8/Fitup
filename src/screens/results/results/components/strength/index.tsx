@@ -206,10 +206,7 @@ const formatNumber = (value: number): string => {
 
 const resolveNumberLocale = (language: string | undefined): string => {
     const normalized = (language || 'en').toLowerCase();
-    if (normalized.startsWith('ru')) return 'ru-RU';
-    if (normalized.startsWith('es')) return 'es-ES';
     if (normalized.startsWith('hi')) return 'hi-IN';
-    if (normalized.startsWith('zh')) return 'zh-CN';
     return 'en-US';
 };
 

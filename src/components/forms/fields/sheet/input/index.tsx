@@ -69,6 +69,11 @@ const SheetInput: FC<SheetInputProps> = ({
     prefix,
     suffix,
     placeholder,
+    secureTextEntry,
+    autoCapitalize,
+    autoComplete,
+    autoCorrect,
+    textContentType,
 }) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [value, setValue] = useState<string | number | null | undefined>(defaultValue);
@@ -194,6 +199,11 @@ const SheetInput: FC<SheetInputProps> = ({
                             onChange={handleOnChange}
                             onSubmitEditing={handleSheet}
                             placeholder={placeholder}
+                            secureTextEntry={secureTextEntry}
+                            autoCapitalize={autoCapitalize}
+                            autoComplete={autoComplete}
+                            autoCorrect={autoCorrect}
+                            textContentType={textContentType}
                         />
                     </Box>
                     <HStack style={styles.actionsContainer}>

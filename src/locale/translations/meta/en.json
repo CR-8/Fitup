@@ -1,8 +1,8 @@
 {
     "ios": {
-        "CFBundleDisplayName": "Fitup"
+        "CFBundleDisplayName": "FitSync"
     },
     "android": {
-        "app_name": "Fitup"
+        "app_name": "FitSync"
     }
 }

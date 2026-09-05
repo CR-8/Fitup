@@ -78,7 +78,9 @@ const ExerciseScreen: FC = () => {
                 <Tabs tabs={tabs} activeIndex={activeTab} onTabChange={handleTabChange} />
                 {activeTab === 0 && <History history={history || []} exercise={exercise} />}
                 {activeTab === 1 && <Statistics history={history || []} exercise={exercise} />}
-                {activeTab === 2 && <Guide exercise={exercise} />}
+                {/* The header above already plays this exercise's animation, so the
+                    guide does not repeat it here. */}
+                {activeTab === 2 && <Guide exercise={exercise} showHero={false} />}
             </ScrollView>
         </Box>
     );

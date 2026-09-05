@@ -1,5 +1,5 @@
-import { updateUser } from '@/crud/user';
-import { createMeasurements } from '@/crud/measurement';
+import { getCurrentUser, updateUser } from '@/crud/user';
+import { createMeasurements, getLatestMeasurementsByMetric } from '@/crud/measurement';
 import { getProfile, upsertProfile } from '@/crud/ai';
 import type { AiProfileSelect, UserSelect } from '@/db/schema';
 
@@ -80,6 +80,98 @@ export const saveOnboardingAnswers = async (
         measurements.push({
             metric: 'height',
             value: answers.heightCm,
+            unit: 'cm',
+            recordedAt,
+        });
+    }
+
+    if (measurements.length > 0) {
+        await createMeasurements(measurements, userId);
+    }
+};
+
+/**
+ * The same answers, read back and written from Settings.
+ *
+ * Deliberately not `saveOnboardingAnswers`. That one stamps `completedAt` on
+ * every call, which is right once — it is what marks onboarding as answered —
+ * and wrong on an edit, where it would keep moving the date the user finished
+ * onboarding forward to today.
+ */
+export interface ProfileDetails {
+    displayName: string | null;
+    birthday: Date | null;
+    biologicalSex: BiologicalSex | null;
+    bodyWeightKg: number | null;
+    heightCm: number | null;
+    targetWeightKg: number | null;
+    goal: Goal | null;
+    somatotype: Somatotype | null;
+    activityLevel: ActivityLevel | null;
+    sessionsPerWeek: number | null;
+}
+
+export const readProfileDetails = async (userId: string): Promise<ProfileDetails> => {
+    const [user, profile, latest] = await Promise.all([
+        getCurrentUser(),
+        getProfile(userId),
+        getLatestMeasurementsByMetric(['body_weight', 'height'], userId),
+    ]);
+
+    return {
+        displayName: user?.displayName ?? null,
+        birthday: user?.birthday ?? null,
+        biologicalSex: user?.biologicalSex ?? null,
+        bodyWeightKg: latest.body_weight?.value ?? null,
+        heightCm: latest.height?.value ?? null,
+        targetWeightKg: profile?.targetWeightKg ?? null,
+        goal: profile?.goal ?? null,
+        somatotype: profile?.somatotype ?? null,
+        activityLevel: profile?.activityLevel ?? null,
+        sessionsPerWeek: profile?.sessionsPerWeek ?? null,
+    };
+};
+
+export const saveProfileDetails = async (
+    userId: string,
+    details: ProfileDetails,
+): Promise<void> => {
+    const trimmedName = details.displayName?.trim();
+
+    await updateUser(userId, {
+        displayName: trimmedName?.length ? trimmedName : null,
+        birthday: details.birthday ?? null,
+        biologicalSex: details.biologicalSex ?? null,
+    });
+
+    await upsertProfile(userId, {
+        goal: details.goal ?? null,
+        somatotype: details.somatotype ?? null,
+        activityLevel: details.activityLevel ?? null,
+        sessionsPerWeek: details.sessionsPerWeek ?? null,
+        targetWeightKg: details.targetWeightKg ?? null,
+    });
+
+    // Weight and height are a time series, so an edit appends a point rather
+    // than replacing one — and an unchanged value appends nothing, or opening
+    // this screen and pressing Save would flatten the chart with duplicates.
+    const latest = await getLatestMeasurementsByMetric(['body_weight', 'height'], userId);
+    const recordedAt = new Date();
+    const measurements = [];
+
+    if (isPositive(details.bodyWeightKg) && latest.body_weight?.value !== details.bodyWeightKg) {
+        measurements.push({
+            metric: 'body_weight',
+            value: details.bodyWeightKg,
+            unit: 'kg',
+            recordedAt,
+        });
+    }
+
+    if (isPositive(details.heightCm) && latest.height?.value !== details.heightCm) {
+        measurements.push({
+            metric: 'height',
+            value: details.heightCm,
             unit: 'cm',
             recordedAt,
         });

@@ -73,7 +73,7 @@ export type AnalyticsEventMap = {
         storeReviewHasAction: boolean;
     };
     'workout:create_requested': {
-        surface: 'home_empty_state' | 'home_header';
+        surface: 'home_empty_state' | 'home_header' | 'home_up_next';
     };
     'workout:editor_opened': WorkoutEditorProperties;
     'workout:editor_submitted': WorkoutEditorProperties & {
@@ -313,6 +313,8 @@ export type AnalyticsScreenName =
     | 'active_exercise'
     | 'exercise_detail'
     | 'measurement_editor'
+    | 'settings_account'
+    | 'settings_profile'
     | 'settings_autolock'
     | 'settings_datetime'
     | 'settings_heart_rate'
@@ -323,6 +325,10 @@ export type AnalyticsScreenName =
     | 'settings_units'
     | 'tony'
     | 'sign_in'
+    | 'auth_callback'
+    | 'forgot_password'
+    | 'check_email'
+    | 'new_password'
     | 'onboarding'
     | 'exercise_timer'
     | 'diet'

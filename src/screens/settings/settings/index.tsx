@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import * as MailComposer from 'expo-mail-composer';
 import {
-    Globe,
     ChevronRight,
     Bell,
     Lock,
@@ -14,12 +13,15 @@ import {
     Volume2,
     Clock,
     Languages,
+    Ruler,
     Heart,
     Megaphone,
     Mail,
     MessageCircle,
     Star,
     Undo2,
+    UserRound,
+    KeyRound,
 } from 'lucide-react-native';
 
 import { Title } from '@/components/typography/title';
@@ -30,6 +32,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/forms/label';
+import { isAuthConfigured } from '@/constants/auth';
 import { useUser } from '@/hooks/use-user';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
@@ -187,6 +190,22 @@ const SettingsScreen = () => {
 
     const settings = [
         {
+            icon: UserRound,
+            title: t('settings.items.profile.title', { ns: 'screens' }),
+            onPress: () => router.navigate('/settings/profile'),
+        },
+        // Hidden entirely in a build shipped without accounts, where the row
+        // would lead to a screen that can only say "unavailable".
+        ...(isAuthConfigured()
+            ? [
+                  {
+                      icon: KeyRound,
+                      title: t('settings.items.account.title', { ns: 'screens' }),
+                      onPress: () => router.navigate('/settings/account'),
+                  },
+              ]
+            : []),
+        {
             icon: Bell,
             title: t('settings.items.notifications.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/notifications'),
@@ -212,12 +231,12 @@ const SettingsScreen = () => {
             onPress: () => router.navigate('/settings/datetime'),
         },
         {
-            icon: Languages,
+            icon: Ruler,
             title: t('settings.items.units.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/units'),
         },
         {
-            icon: Globe,
+            icon: Languages,
             title: t('settings.items.language.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/language'),
         },

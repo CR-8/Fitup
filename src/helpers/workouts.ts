@@ -10,7 +10,7 @@ export interface WorkoutGroup {
 
 export const groupWorkoutsByWeek = (
     workouts: WorkoutSelect[],
-    locale: string = 'ru',
+    locale: string = 'en',
     firstWeekday: number = 2,
 ): WorkoutGroup[] => {
     const groups: WorkoutGroup[] = [];
@@ -120,7 +120,20 @@ export const getFlattenedOrderedSetsFromDetails = (
     return flattened;
 };
 
-const getWeekStart = (date: Date, firstWeekday: number = 2): Date => {
+/**
+ * The first day of the week `date` falls in.
+ *
+ * Exported because the home screen's week strip had its own dayjs copy of this
+ * arithmetic, and two implementations of "when does the week start" drift into
+ * a strip that highlights different days than the list groups by.
+ *
+ * The time of day is deliberately carried over rather than zeroed.
+ * `groupWorkoutsByWeek` keys on `toISOString().split('T')[0]`, which converts to
+ * UTC first — so normalising to local midnight would move the key back a day for
+ * every timezone ahead of UTC. Use `startOfWeekMs` where a real boundary is
+ * wanted.
+ */
+export const getWeekStart = (date: Date, firstWeekday: number = 2): Date => {
     const d = new Date(date);
     const day = d.getDay();
     // firstWeekday: 1 = Sunday, 2 = Monday
@@ -128,6 +141,57 @@ const getWeekStart = (date: Date, firstWeekday: number = 2): Date => {
     const adjustedDay = firstWeekday === 1 ? day : day === 0 ? 6 : day - 1;
     const diff = d.getDate() - adjustedDay;
     return new Date(d.setDate(diff));
+};
+
+/**
+ * The instant the current week began, as a local-midnight timestamp.
+ *
+ * The boundary form of `getWeekStart`, for asking "since when" — a SQL range, or
+ * a filter over completed workouts. Kept separate rather than folded into the
+ * function above, whose callers depend on the time of day surviving.
+ */
+export const startOfWeekMs = (firstWeekday: number = 2, now: Date = new Date()): number => {
+    const start = getWeekStart(now, firstWeekday);
+    start.setHours(0, 0, 0, 0);
+
+    return start.getTime();
+};
+
+export interface WeekSummary {
+    /** Workouts completed since the week began. */
+    sessions: number;
+    /** Their total logged duration. Workouts with no duration count as zero. */
+    durationSeconds: number;
+}
+
+/**
+ * What has been done so far this week, from rows the home screen already holds.
+ *
+ * Deliberately not a query. `status`, `completedAt` and `duration` are all
+ * columns on the workout row, and `useWorkouts` has loaded every one of them —
+ * so counting them here costs nothing and cannot fall out of step with the list
+ * rendered from the same array. Volume is the exception and needs SQL, because
+ * it lives on the sets.
+ */
+export const summariseWeek = (
+    workouts: WorkoutSelect[],
+    firstWeekday: number = 2,
+    now: Date = new Date(),
+): WeekSummary => {
+    const since = startOfWeekMs(firstWeekday, now);
+
+    return workouts.reduce<WeekSummary>(
+        (summary, workout) => {
+            if (workout.status !== 'completed' || !workout.completedAt) return summary;
+            if (new Date(workout.completedAt).getTime() < since) return summary;
+
+            return {
+                sessions: summary.sessions + 1,
+                durationSeconds: summary.durationSeconds + (workout.duration ?? 0),
+            };
+        },
+        { sessions: 0, durationSeconds: 0 },
+    );
 };
 
 const formatWeekRange = (start: Date, end: Date, locale: string): string => {

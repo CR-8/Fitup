@@ -259,7 +259,48 @@
         "gastrocnemius_lateral_head": "Gastrocnemius lateral head",
         "soleus": "Soleus",
         "shins": "Shins",
-        "tibialis_anterior": "Tibialis anterior"
+        "tibialis_anterior": "Tibialis anterior",
+        "upper_back": "Upper back",
+        "upper_legs": "Upper legs",
+        "lower_legs": "Lower legs",
+        "ankles": "Ankles",
+        "feet": "Feet",
+        "hands": "Hands",
+        "wrists": "Wrists",
+        "levator_scapulae": "Levator scapulae",
+        "ankle_stabilizers": "Ankle stabilisers",
+        "cardiovascular_system": "Cardiovascular system",
+        "cardio": "Cardiovascular system"
+    },
+    "equipment": {
+        "assisted": "Assisted",
+        "band": "Band",
+        "barbell": "Barbell",
+        "body_weight": "Body weight",
+        "bosu_ball": "Bosu ball",
+        "cable": "Cable",
+        "dumbbell": "Dumbbell",
+        "elliptical_machine": "Elliptical",
+        "ez_barbell": "EZ bar",
+        "hammer": "Hammer",
+        "kettlebell": "Kettlebell",
+        "leverage_machine": "Leverage machine",
+        "medicine_ball": "Medicine ball",
+        "olympic_barbell": "Olympic barbell",
+        "resistance_band": "Resistance band",
+        "roller": "Roller",
+        "rope": "Rope",
+        "skierg_machine": "SkiErg",
+        "sled_machine": "Sled",
+        "smith_machine": "Smith machine",
+        "stability_ball": "Stability ball",
+        "stationary_bike": "Stationary bike",
+        "stepmill_machine": "Stepmill",
+        "tire": "Tyre",
+        "trap_bar": "Trap bar",
+        "upper_body_ergometer": "Upper-body ergometer",
+        "weighted": "Weighted",
+        "wheel_roller": "Ab wheel"
     },
     "weightUnit": {
         "kg": "kg",
@@ -388,5 +429,6 @@
             "turnOn": "Turn On",
             "delay": "Not now"
         }
-    }
+    },
+    "passwordMismatch": "Those passwords do not match."
 }

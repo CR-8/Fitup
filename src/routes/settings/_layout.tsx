@@ -30,6 +30,18 @@ export default function SettingsLayout() {
             }}
         >
             <Stack.Screen
+                name="account"
+                options={{
+                    headerTitle: t('settings.items.account.title', { ns: 'screens' }),
+                }}
+            />
+            <Stack.Screen
+                name="profile"
+                options={{
+                    headerTitle: t('settings.items.profile.title', { ns: 'screens' }),
+                }}
+            />
+            <Stack.Screen
                 name="autolock"
                 options={{
                     headerTitle: t('settings.items.autolock.title', { ns: 'screens' }),

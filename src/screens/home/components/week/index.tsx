@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useRouter } from 'expo-router';
 
 import { WorkoutSelect } from '@/db/schema';
+import { getWeekStart } from '@/helpers/workouts';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
@@ -14,13 +15,11 @@ import { Pressable } from '@/components/primitives/pressable';
 interface WeekStatsProps {
     workouts: WorkoutSelect[];
     firstWeekday: number;
+    /** Completed this week, so the strip can say what it is showing. */
+    sessions: number;
+    /** The target from onboarding, or null when it was never answered. */
+    sessionsGoal: number | null;
 }
-
-const getWeekStart = (date: dayjs.Dayjs, firstWeekday: number): dayjs.Dayjs => {
-    const day = date.day();
-    const offset = firstWeekday === 1 ? day : day === 0 ? 6 : day - 1;
-    return date.subtract(offset, 'day').startOf('day');
-};
 
 const styles = StyleSheet.create((theme) => ({
     wrapper: {
@@ -28,6 +27,22 @@ const styles = StyleSheet.create((theme) => ({
     },
     container: {
         gap: theme.space(2),
+    },
+    captionRow: {
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        marginBottom: theme.space(1),
+    },
+    caption: {
+        ...theme.fontSize['2xs'],
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.mutedTypography,
+    },
+    captionValue: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
     },
     weekdaysRow: {
         justifyContent: 'space-between',
@@ -87,8 +102,13 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-export const WeekStats: FC<WeekStatsProps> = ({ workouts, firstWeekday }) => {
-    const { i18n } = useTranslation(['screens']);
+export const WeekStats: FC<WeekStatsProps> = ({
+    workouts,
+    firstWeekday,
+    sessions,
+    sessionsGoal,
+}) => {
+    const { t, i18n } = useTranslation(['screens']);
     const router = useRouter();
 
     const workoutDayKeys = useMemo(() => {
@@ -106,7 +126,10 @@ export const WeekStats: FC<WeekStatsProps> = ({ workouts, firstWeekday }) => {
 
     const weekDays = useMemo(() => {
         const today = dayjs();
-        const weekStart = getWeekStart(today, firstWeekday);
+        // Shared with `groupWorkoutsByWeek`, which decides how the completed
+        // sections below are bucketed. A second copy of this arithmetic meant
+        // the strip and the list could disagree about when the week starts.
+        const weekStart = dayjs(getWeekStart(today.toDate(), firstWeekday)).startOf('day');
         const weekdayFormatter = new Intl.DateTimeFormat(i18n.language, { weekday: 'short' });
         const todayKey = today.format('YYYY-MM-DD');
 
@@ -138,6 +161,18 @@ export const WeekStats: FC<WeekStatsProps> = ({ workouts, firstWeekday }) => {
     return (
         <Box style={styles.wrapper}>
             <VStack style={styles.container}>
+                <HStack style={styles.captionRow}>
+                    <Text style={styles.caption}>{t('home.thisWeek', { ns: 'screens' })}</Text>
+                    <Text style={styles.captionValue}>
+                        {typeof sessionsGoal === 'number' && sessionsGoal > 0
+                            ? t('home.sessionsOfGoal', {
+                                  ns: 'screens',
+                                  count: sessions,
+                                  goal: sessionsGoal,
+                              })
+                            : t('home.sessionsDone', { ns: 'screens', count: sessions })}
+                    </Text>
+                </HStack>
                 <HStack style={styles.weekdaysRow}>
                     {weekDays.map((item) => (
                         <Box key={`weekday-${item.dateKey}`} style={styles.weekdayCell}>

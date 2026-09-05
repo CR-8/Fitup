@@ -201,6 +201,31 @@ export const legacyMuscleAliasMap: Record<string, string> = {
     middle_chest: 'sternal_head',
     lower_chest: 'abdominal_head',
     abductors: 'hip_abductors',
+
+    // The exercise catalogue comes from an open dataset with its own vocabulary,
+    // which overlaps ours without matching it: it says `quadriceps` where we say
+    // `quads`, `delts` where we say `shoulders`. Untranslated, these reached the
+    // screen as raw keys — the user saw the literal word "delts" where a muscle
+    // name belonged.
+    //
+    // Only synonyms belong here. A dataset value naming a region we have no key
+    // for is given its own translation instead, because folding it into a
+    // near-enough parent would quietly relabel it.
+    abdominals: 'abs',
+    deltoids: 'shoulders',
+    delts: 'shoulders',
+    pectorals: 'chest',
+    quadriceps: 'quads',
+    rear_deltoids: 'rear_deltoid',
+    trapezius: 'traps',
+    upper_arms: 'arms',
+    lower_arms: 'forearms',
+    // Grip strength is the forearm flexors doing the work.
+    grip_muscles: 'forearms',
+    inner_thighs: 'adductors',
+    groin: 'adductors',
+    waist: 'core',
+    spine: 'erector_spinae',
 };
 
 export const normalizeMuscleValue = (value: string | null | undefined): string | null => {

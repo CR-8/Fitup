@@ -11,24 +11,37 @@ import {
 import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
 import { isSyncEnabled } from '@/sync/config';
+import { isBackupEnabled } from '@/services/backup/config';
+import { notifyPendingChange } from '@/services/backup/pending';
 
 const SYNC_QUEUE_CLEANUP_BATCH_SIZE = 1000;
 const SYNC_QUEUE_INSERT_BATCH_SIZE = 250;
 
+/**
+ * The change log every write in the app appends to.
+ *
+ * Two independent consumers drain it: the older device-to-server sync in
+ * `src/sync`, which needs a REST host, and the account backup in
+ * `src/services/backup`, which needs only an account. Either one being on is
+ * reason enough to record the change; neither being on means nobody would ever
+ * read the row, so it is not written.
+ */
 export const queueSyncOperation = async (operation: Omit<SyncQueueInsert, 'id' | 'synced'>) => {
-    if (!isSyncEnabled()) return;
+    if (!isSyncEnabled() && !isBackupEnabled()) return;
 
     const syncOperation: SyncQueueInsert = { id: nanoid(), ...operation };
     await db.insert(syncQueue).values(syncOperation).onConflictDoUpdate({
         target: syncQueue.id,
         set: syncOperation,
     });
+
+    notifyPendingChange();
 };
 
 export const queueSyncOperations = async (
     operations: Omit<SyncQueueInsert, 'id' | 'synced'>[],
 ): Promise<void> => {
-    if (!isSyncEnabled()) return;
+    if (!isSyncEnabled() && !isBackupEnabled()) return;
     if (operations.length === 0) return;
 
     for (let offset = 0; offset < operations.length; offset += SYNC_QUEUE_INSERT_BATCH_SIZE) {
@@ -36,6 +49,8 @@ export const queueSyncOperations = async (
         const rows = chunk.map((operation) => ({ id: nanoid(), ...operation }));
         await db.insert(syncQueue).values(rows);
     }
+
+    notifyPendingChange();
 };
 
 export const getPendingSyncOperations = async (): Promise<SyncQueueSelect[]> => {
@@ -54,6 +69,14 @@ export const getPendingSyncOperationsCount = async (): Promise<number> => {
 
 export const markSyncOperationAsDone = async (operationId: string) => {
     await db.update(syncQueue).set({ synced: 1 }).where(eq(syncQueue.id, operationId));
+};
+
+/** Batched form, for a consumer that settles a whole table at a time. */
+export const markSyncOperationsAsDone = async (operationIds: string[]): Promise<void> => {
+    for (let offset = 0; offset < operationIds.length; offset += SYNC_QUEUE_INSERT_BATCH_SIZE) {
+        const chunk = operationIds.slice(offset, offset + SYNC_QUEUE_INSERT_BATCH_SIZE);
+        await db.update(syncQueue).set({ synced: 1 }).where(inArray(syncQueue.id, chunk));
+    }
 };
 
 export const getLastSyncTimestamp = async (): Promise<Date> => {

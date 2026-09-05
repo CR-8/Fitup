@@ -5,12 +5,58 @@
         "workoutsCount_one": "{{count}} workout",
         "workoutsCount_other": "{{count}} workouts",
         "empty": {
-            "title": "This is Fitup",
+            "title": "This is FitSync",
             "description": "App for easy and efficient workout tracking.",
             "button": {
                 "title": "Plan",
                 "description": "Your first workout"
+            },
+            "headline": {
+                "first": "Plan your training",
+                "second": "Track every set",
+                "third": "See it add up"
+            },
+            "stats": {
+                "exercisesValue": "1,300+",
+                "exercisesLabel": "exercises",
+                "planValue": "2 min",
+                "planLabel": "to plan one",
+                "syncValue": "Synced",
+                "syncLabel": "across devices"
             }
+        },
+        "greeting": {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+            "fallback": "Ready to train?"
+        },
+        "thisWeek": "This week",
+        "sessionsOfGoal": "{{count}} of {{goal}} sessions",
+        "sessionsDone_one": "{{count}} session",
+        "sessionsDone_other": "{{count}} sessions",
+        "stats": {
+            "sessions": "sessions",
+            "time": "time",
+            "volume_kg": "kg lifted",
+            "volume_lb": "lb lifted"
+        },
+        "upNext": {
+            "eyebrow": {
+                "resume": "In progress",
+                "start": "Up next",
+                "create": "Get started"
+            },
+            "action": {
+                "resume": "Resume",
+                "start": "Start",
+                "create": "Plan a workout"
+            },
+            "createTitle": "Nothing planned yet",
+            "createHint": "Build a workout and it will show up here.",
+            "exerciseCount_one": "{{count}} exercise",
+            "exerciseCount_other": "{{count}} exercises",
+            "startFailed": "Could not start that workout. Try again."
         }
     },
     "results": {
@@ -92,7 +138,15 @@
         "title": "Exercises",
         "empty": {
             "title": "No exercises",
-            "description": "Tap \"+\" and create your first exercise."
+            "description": "Tap \"+\" and create your first exercise.",
+            "notDownloaded": {
+                "title": "Exercises not downloaded",
+                "description": "Connect to the internet once to download the exercise library. Your workouts and history are unaffected."
+            },
+            "unavailable": {
+                "title": "Exercise library unavailable",
+                "description": "This build has no exercise source configured. You can still create your own exercises."
+            }
         }
     },
     "filter": {
@@ -114,7 +168,7 @@
         }
     },
     "appReview": {
-        "title": "Do you like Fitup?",
+        "title": "Do you like FitSync?",
         "options": {
             "bad": "Terrible",
             "notBad": "It's okay",
@@ -145,7 +199,9 @@
             "empty": {
                 "title": "No guide",
                 "description": "There is no guide available for this exercise yet."
-            }
+            },
+            "muscles": "Muscles worked",
+            "steps": "Steps"
         },
         "stats": {
             "empty": {
@@ -366,6 +422,12 @@
                 "confirmDescription": "This clears cached watch sync state on iPhone. Workouts data will not be deleted.",
                 "successTitle": "Watch Sync Reset",
                 "successDescription": "Sync state was reset. Reopen the Watch app if it does not reconnect automatically."
+            },
+            "profile": {
+                "title": "Profile"
+            },
+            "account": {
+                "title": "Account"
             }
         },
         "watch": {
@@ -383,7 +445,7 @@
             }
         },
         "supportFitup": {
-            "title": "Support Fitup",
+            "title": "Support FitSync",
             "items": {
                 "tellFriend": {
                     "title": "Tell a Friend"
@@ -392,6 +454,34 @@
                     "title": "Review in the App Store",
                     "message": "Here's my favorite workout logging app: {{url}}"
                 }
+            }
+        },
+        "profile": {
+            "email": "Email",
+            "emailNote": "Your email comes from the account you signed in with and cannot be changed here yet.",
+            "save": "Save changes",
+            "saveFailed": "Could not save your profile. Try again."
+        },
+        "account": {
+            "signedOut": {
+                "title": "Not signed in",
+                "description": "Your training is saved on this device. Sign in to back it up to your account and get it back on a new phone.",
+                "action": "Sign in"
+            },
+            "signedIn": {
+                "label": "Signed in as",
+                "noEmail": "No email address",
+                "provider": {
+                    "google": "Google",
+                    "apple": "Apple",
+                    "email": "Email"
+                },
+                "note": "Your profile and workouts are backed up to this account. Signing out keeps them on this device too.",
+                "action": "Sign out",
+                "confirmTitle": "Sign out?",
+                "confirmBody": "Your workouts and history stay on this device, and stay backed up to your account.",
+                "cancel": "Cancel",
+                "changePassword": "Change password"
             }
         }
     },
@@ -531,8 +621,8 @@
         }
     },
     "signIn": {
-        "title": "Welcome to Fitup",
-        "subtitle": "Sign in to sync across devices and use Tony. You can also start straight away without an account.",
+        "title": "Welcome to FitSync",
+        "subtitle": "Sign in to start training. Your account keeps your workouts if you change phones.",
         "google": "Continue with Google",
         "apple": "Continue with Apple",
         "email": "Email",
@@ -541,9 +631,6 @@
         "createAccount": "Create account",
         "needAccount": "New here? Create an account",
         "haveAccount": "Already have an account? Sign in",
-        "confirmEmail": "Check your inbox to confirm your email address.",
-        "skip": "Continue without an account",
-        "skipHint": "Your workouts stay on this device. You can sign in later from Settings.",
         "errors": {
             "invalidCredentials": "That email and password do not match.",
             "emailInUse": "That email is already registered. Try signing in.",
@@ -551,8 +638,13 @@
             "emailNotConfirmed": "Confirm your email address first.",
             "network": "No connection. Try again when you are back online.",
             "unavailable": "Sign-in is not available in this build.",
-            "unknown": "Could not sign you in. Try again."
-        }
+            "unknown": "Could not sign you in. Try again.",
+            "linkExpired": "That link has expired. Links can only be used once — ask for a new one.",
+            "rateLimited": "Too many requests. Wait a minute and try again.",
+            "samePassword": "Pick a password you have not used here before."
+        },
+        "titleReturning": "Sign in",
+        "forgotPassword": "Forgot your password?"
     },
     "onboarding": {
         "title": "About you",
@@ -646,5 +738,29 @@
             "title": "Nothing logged yet",
             "message": "Ask Tony for a food chart and add it here, or log what you ate."
         }
+    },
+    "forgotPassword": {
+        "title": "Reset your password",
+        "subtitle": "Enter your email address and we will send you a link to set a new password.",
+        "action": "Send the link"
+    },
+    "checkEmail": {
+        "title": "Check your email",
+        "subtitleSignUp": "We sent you a link to confirm your address. Open it on this phone to finish setting up.",
+        "subtitleReset": "We sent you a link to set a new password. Open it on this phone.",
+        "spamHint": "It can take a minute to arrive. If it does not, check your spam folder.",
+        "resend": "Send it again",
+        "resendIn": "Send it again in {{seconds}}s",
+        "resent": "Sent. Check your inbox again.",
+        "back": "Use a different address"
+    },
+    "newPassword": {
+        "title": "Set a new password",
+        "titleChange": "Change your password",
+        "subtitle": "At least {{min}} characters.",
+        "password": "New password",
+        "confirm": "Confirm password",
+        "action": "Save password",
+        "abandon": "Not you? Sign out"
     }
 }

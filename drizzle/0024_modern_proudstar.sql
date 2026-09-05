@@ -1,0 +1,1 @@
+ALTER TABLE `exercise` ADD `name_en` text;

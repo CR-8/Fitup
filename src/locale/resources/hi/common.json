@@ -259,7 +259,48 @@
         "gastrocnemius_lateral_head": "गैस्ट्रोक्नीमियस लैटरल हेड",
         "soleus": "सोलियस",
         "shins": "पिंडली का अगला भाग",
-        "tibialis_anterior": "टिबियलिस एंटीरियर"
+        "tibialis_anterior": "टिबियलिस एंटीरियर",
+        "upper_back": "ऊपरी पीठ",
+        "upper_legs": "जांघें",
+        "lower_legs": "निचले पैर",
+        "ankles": "टखने",
+        "feet": "पैर",
+        "hands": "हाथ",
+        "wrists": "कलाइयाँ",
+        "levator_scapulae": "लेवेटर स्कैपुली",
+        "ankle_stabilizers": "टखना स्थिरक",
+        "cardiovascular_system": "हृदय-संवहनी तंत्र",
+        "cardio": "हृदय-संवहनी तंत्र"
+    },
+    "equipment": {
+        "assisted": "सहायता सहित",
+        "band": "बैंड",
+        "barbell": "बारबेल",
+        "body_weight": "शरीर का भार",
+        "bosu_ball": "बोसु बॉल",
+        "cable": "केबल",
+        "dumbbell": "डम्बल",
+        "elliptical_machine": "एलिप्टिकल",
+        "ez_barbell": "ईज़ी बार",
+        "hammer": "हैमर",
+        "kettlebell": "केटलबेल",
+        "leverage_machine": "लीवरेज मशीन",
+        "medicine_ball": "मेडिसिन बॉल",
+        "olympic_barbell": "ओलंपिक बारबेल",
+        "resistance_band": "रेज़िस्टेंस बैंड",
+        "roller": "रोलर",
+        "rope": "रस्सी",
+        "skierg_machine": "स्कीअर्ग",
+        "sled_machine": "स्लेड",
+        "smith_machine": "स्मिथ मशीन",
+        "stability_ball": "स्टेबिलिटी बॉल",
+        "stationary_bike": "स्थिर साइकिल",
+        "stepmill_machine": "स्टेपमिल",
+        "tire": "टायर",
+        "trap_bar": "ट्रैप बार",
+        "upper_body_ergometer": "अपर बॉडी एर्गोमीटर",
+        "weighted": "भार सहित",
+        "wheel_roller": "ऐब व्हील"
     },
     "weightUnit": {
         "kg": "किग्रा",
@@ -388,5 +429,6 @@
             "turnOn": "चालू करें",
             "delay": "अभी नहीं"
         }
-    }
+    },
+    "passwordMismatch": "दोनों पासवर्ड मेल नहीं खाते।"
 }

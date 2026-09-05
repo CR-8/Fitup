@@ -222,6 +222,16 @@ jest.mock('@/helpers/nanoid', () => ({
     nanoid: mockNanoid,
 }));
 
+// Reached through `@/crud/user`, which reads the active local user id from
+// MMKV. Stubbed because the real module loads a native TurboModule.
+jest.mock('@/storage', () => ({
+    storage: {
+        getString: () => undefined,
+        set: () => undefined,
+        remove: () => undefined,
+    },
+}));
+
 jest.mock('@/services/error-reporting', () => ({
     reportError: mockReportError,
 }));

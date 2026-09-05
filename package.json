@@ -21,6 +21,7 @@
         "locale": "tsx ./scripts/translations.ts",
         "db:push": "tsx ./scripts/db-push.ts",
         "d1:add-instruction-name": "tsx ./scripts/d1-add-instruction-name.ts",
+        "d1:add-is-active": "tsx ./scripts/d1-add-is-active.ts",
         "seed": "tsx ./scripts/seed-catalogue.ts"
     },
     "jest": {

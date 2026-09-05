@@ -251,6 +251,10 @@ export const normalizeOutgoingExerciseSetSyncRecord = (
     if (typeof normalized.reps === 'number') {
         normalized.reps = clampExerciseSetReps(normalized.reps);
     }
+    // Device-local: whether this phone has the current phase paused says
+    // nothing to the server, and the remote table has no column for it.
+    delete normalized.pausedAt;
+    delete normalized.pausedMs;
     return normalized;
 };
 

@@ -44,3 +44,21 @@ export const toInt = (v: unknown): number => {
     }
     return 0;
 };
+
+/**
+ * Coerce a stored timestamp to epoch milliseconds.
+ *
+ * Lives here rather than beside the date formatters because those pull in i18n,
+ * and every timing helper in the app needs this one function without wanting a
+ * translation bundle behind it.
+ */
+export const toMs = (value: Date | number | string | null | undefined): number | null => {
+    if (value == null) return null;
+    if (value instanceof Date) {
+        const ms = value.getTime();
+        return Number.isNaN(ms) ? null : ms;
+    }
+    if (typeof value === 'number') return Number.isNaN(value) ? null : value;
+    const ms = new Date(value).getTime();
+    return Number.isNaN(ms) ? null : ms;
+};

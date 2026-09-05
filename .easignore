@@ -1,0 +1,69 @@
+# What EAS does not upload when building the app.
+#
+# IMPORTANT: EAS uses this file *instead of* `.gitignore`, not in addition to
+# it. Everything `.gitignore` excludes is therefore repeated below — dropping a
+# line here does not fall back to the git rule, it starts uploading the files.
+# Keep the two in step.
+
+# --- server-side code, never part of the app bundle -------------------------
+#
+# `workers/` is Cloudflare: `exercise-media` serves the catalogue and `cms` is
+# the admin dashboard. Both target the Workers runtime, both have their own
+# package.json, lockfile and tsconfig, and neither is imported from `src/`. The
+# root tsconfig already excludes `workers` from typecheck for the same reason;
+# this keeps them out of the build upload too, so the CMS and its dependencies
+# can never be compiled into the app.
+workers/
+
+# Postgres migrations, applied by hand in the Supabase SQL editor.
+supabase/
+
+# --- everything from .gitignore ---------------------------------------------
+.vscode/
+.cursor/
+.zed/
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+/ios
+/android
+eas.json
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# Seed ledger — records which GIFs are already uploaded
+.cache/
+
+# Local build guide — generated, not tracked
+FitSync-Build-Guide.pdf

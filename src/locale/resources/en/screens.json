@@ -712,7 +712,40 @@
     "timer": {
         "inProgress": "In progress",
         "elapsed": "Elapsed",
-        "done": "Done"
+        "done": "Done",
+        "phase": {
+            "work": "Work",
+            "rest": "Rest",
+            "paused": "Paused",
+            "complete": "Complete"
+        },
+        "exerciseProgress": "Exercise {{current}} of {{total}}",
+        "setProgress": "Set {{current}} of {{total}}",
+        "remaining": "Remaining",
+        "setElapsed": "Set time",
+        "open": "Open timer",
+        "restRemaining": "Rest remaining",
+        "stop": "Stop",
+        "continue": "Continue",
+        "completeSet": "Complete set",
+        "skipRest": "Skip rest",
+        "endWorkout": "End workout",
+        "nextUp": "Next up",
+        "noNextSet": "Last set of the workout",
+        "minimize": "Back to workout",
+        "completedTitle": "Workout complete",
+        "completedHint": "Finish up to save it to your history.",
+        "emptyTitle": "No workout running",
+        "emptyHint": "Start a workout to use the timer.",
+        "emptyAction": "Close",
+        "a11y": {
+            "stop": "Pause the current timer",
+            "continue": "Resume the current timer",
+            "completeSet": "Mark this set complete",
+            "skipRest": "End rest early and start the next set",
+            "endWorkout": "End the workout and save it",
+            "minimize": "Go back to the workout"
+        }
     },
     "diet": {
         "title": "Diet",

@@ -148,9 +148,12 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
             return;
         }
 
-        // Already running: nothing to start, just go back into it.
+        // Already running: nothing to start, just go back into it — on the
+        // timer, which is the screen for a workout that is under way. The
+        // timer's own minimize control goes to `/workout/<id>`, so the logging
+        // UI stays one tap away in the other direction.
         if (state.kind === 'resume') {
-            router.navigate(`/workout/${state.workout.id}`);
+            router.navigate('/timer');
 
             return;
         }
@@ -160,7 +163,11 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
             // records what kind of start this is, and this is still a planned
             // workout being started. Where the tap happened is a different axis.
             await startWorkout({ workoutId: state.workout.id, source: 'planned' });
-            router.navigate(`/workout/${state.workout.id}`);
+            // A fresh start goes to the timer: `startWorkout` has already
+            // started the first set, so there is something running to look at.
+            // Resume above still lands on the detail screen, where whoever is
+            // already mid-session left off.
+            router.navigate('/timer');
         } catch (error) {
             reportError(error, 'Failed to start a workout from the home card');
             Alert.alert(t('home.upNext.startFailed', { ns: 'screens' }));

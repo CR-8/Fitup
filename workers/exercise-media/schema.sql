@@ -30,6 +30,16 @@ CREATE TABLE IF NOT EXISTS exercise (
   width                   INTEGER NOT NULL,
   height                  INTEGER NOT NULL,
   bytes                   INTEGER NOT NULL,
+  -- Whether the CMS considers this exercise publishable. Written by
+  -- workers/cms and read only there: the catalogue endpoint in src/db.ts
+  -- deliberately still serves every row, because 1,324 of them are already
+  -- seeded into every install's SQLite and silently withdrawing one would
+  -- orphan any workout referencing it. Filtering the app's view is a
+  -- coordinated Worker + app + sync change, not a column default.
+  --
+  -- Defaults to 1 so every existing row, and every row the seeder writes
+  -- without knowing about this column, reads as active.
+  is_active               INTEGER NOT NULL DEFAULT 1,
   updated_at              INTEGER NOT NULL
 );
 

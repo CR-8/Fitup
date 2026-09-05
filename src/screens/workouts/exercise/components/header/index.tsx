@@ -8,12 +8,13 @@ import { Text } from '@/components/primitives/text';
 import { ExerciseSelect, WorkoutExerciseSelect } from '@/db/schema';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
-import { ChevronRight, ChevronsUp } from 'lucide-react-native';
+import { ChevronRight, ChevronsUp, Timer } from 'lucide-react-native';
 import { Pressable } from '@/components/primitives/pressable';
 import { router } from 'expo-router';
 import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
 import { PreviewThumbnail } from '@/components/layout/preview';
 import { exerciseDisplayName } from '@/helpers/exercise-name';
+import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 
 interface HeaderProps {
     exerciseInfo: {
@@ -82,6 +83,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         flex: 1,
         alignItems: 'flex-end',
     },
+    rightActions: {
+        alignItems: 'center',
+        gap: theme.space(2),
+    },
     guideButton: {
         height: theme.space(11),
         width: theme.space(11),
@@ -113,8 +118,9 @@ const styles = StyleSheet.create((theme, rt) => ({
 }));
 
 export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
-    const { t } = useTranslation(['common']);
+    const { t } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
+    const { runningWorkout } = useRunningWorkoutStatic();
 
     const muscleGroup = useMemo(() => {
         const mg = getPrimaryAnchorMuscleValue(exerciseInfo?.exercise?.primaryMuscleGroups);
@@ -152,6 +158,26 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
         });
     }, []);
 
+    /**
+     * The way into the timer, from anywhere in a running workout.
+     *
+     * Without this there is effectively none. The only other push is the
+     * `'ready'` branch of the action button, and `'ready'` means "a set exists
+     * that has not been started" — which the app makes sure is almost never
+     * true: `startWorkout` auto-starts the first set, and every rest transition
+     * auto-starts the next one. So the timer was unreachable for the whole
+     * session.
+     *
+     * Shown only while this workout is the one running, so the button never
+     * opens a screen with nothing to show.
+     */
+    const isRunningWorkout =
+        !!runningWorkout && exerciseInfo?.workoutExercise.workoutId === runningWorkout.id;
+
+    const handleTimerOpen = useCallback(() => {
+        router.push('/timer');
+    }, []);
+
     return (
         <VStack style={styles.container}>
             <Box style={styles.muscleGroupContainer}>
@@ -185,16 +211,32 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
                     </Pressable>
                 </Box>
                 <Box style={styles.rightActionsContainer}>
-                    {hasGuide && (
-                        <Pressable onPress={handleGuideOpen}>
-                            <Box style={styles.guideButton}>
-                                <ChevronsUp
-                                    size={theme.space(6)}
-                                    color={theme.colors.neutral[950]}
-                                />
-                            </Box>
-                        </Pressable>
-                    )}
+                    <HStack style={styles.rightActions}>
+                        {isRunningWorkout && (
+                            <Pressable
+                                onPress={handleTimerOpen}
+                                accessibilityRole="button"
+                                accessibilityLabel={t('timer.open', { ns: 'screens' })}
+                            >
+                                <Box style={styles.guideButton}>
+                                    <Timer
+                                        size={theme.space(6)}
+                                        color={theme.colors.neutral[950]}
+                                    />
+                                </Box>
+                            </Pressable>
+                        )}
+                        {hasGuide && (
+                            <Pressable onPress={handleGuideOpen}>
+                                <Box style={styles.guideButton}>
+                                    <ChevronsUp
+                                        size={theme.space(6)}
+                                        color={theme.colors.neutral[950]}
+                                    />
+                                </Box>
+                            </Pressable>
+                        )}
+                    </HStack>
                 </Box>
             </HStack>
         </VStack>

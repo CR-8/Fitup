@@ -176,6 +176,13 @@
       "when": 1788603701123,
       "tag": "0024_modern_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1788616284466,
+      "tag": "0025_faulty_scream",
+      "breakpoints": true
     }
   ]
 }

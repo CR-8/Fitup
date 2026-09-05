@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { ExerciseSetSelect } from '@/db/schema';
+import { getPauseOffsetMs } from './pause';
 
 dayjs.extend(duration);
 
@@ -11,6 +12,11 @@ const toMs = (value: unknown) => {
     const parsed = new Date(value as any).getTime();
     return Number.isNaN(parsed) ? null : parsed;
 };
+
+export type RestSet = Pick<
+    ExerciseSetSelect,
+    'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime' | 'pausedAt' | 'pausedMs'
+>;
 
 export const getCompletedAtMs = (set: Pick<ExerciseSetSelect, 'completedAt'>) => {
     return toMs(set.completedAt);
@@ -24,9 +30,14 @@ export const isRestFinalized = (
 ) =>
     Boolean(set.restCompletedAt) || (set.finalRestTime !== null && set.finalRestTime !== undefined);
 
-export const getRestEndMs = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
-) => {
+/**
+ * When rest is due to end.
+ *
+ * `nowMs` is needed only to price an in-progress pause: while the set is
+ * paused the offset grows with the clock, so this end moves with it and the
+ * remaining time below holds still.
+ */
+export const getRestEndMs = (set: RestSet, nowMs: number = Date.now()) => {
     const planned = getRestSecondsPlanned(set);
     const completedAtMs = getCompletedAtMs(set);
     if (planned <= 0 || completedAtMs == null) return null;
@@ -35,15 +46,12 @@ export const getRestEndMs = (
     if (set.finalRestTime !== null && set.finalRestTime !== undefined) {
         return completedAtMs + Math.max(0, set.finalRestTime) * 1000;
     }
-    return completedAtMs + planned * 1000;
+    return completedAtMs + planned * 1000 + getPauseOffsetMs(set, nowMs);
 };
 
-export const getRemainingRestSeconds = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
-    nowMs: number,
-) => {
+export const getRemainingRestSeconds = (set: RestSet, nowMs: number) => {
     if (isRestFinalized(set)) return null;
-    const endMs = getRestEndMs(set);
+    const endMs = getRestEndMs(set, nowMs);
     if (endMs == null) return null;
 
     // Calculate remaining milliseconds
@@ -57,10 +65,7 @@ export const getRemainingRestSeconds = (
     return remainingSeconds;
 };
 
-export const isRestActive = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
-    nowMs: number,
-) => {
+export const isRestActive = (set: RestSet, nowMs: number) => {
     if (isRestFinalized(set)) return false;
     const completedAtMs = getCompletedAtMs(set);
     if (completedAtMs == null) return false;
@@ -68,16 +73,13 @@ export const isRestActive = (
     const planned = getRestSecondsPlanned(set);
     if (planned <= 0) return false;
 
-    const elapsedMs = nowMs - completedAtMs;
+    const elapsedMs = nowMs - completedAtMs - getPauseOffsetMs(set, nowMs);
     const elapsedSeconds = Math.floor(elapsedMs / 1000);
 
     return elapsedSeconds < planned;
 };
 
-export const needsAutoFinalize = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
-    nowMs: number,
-) => {
+export const needsAutoFinalize = (set: RestSet, nowMs: number) => {
     if (isRestFinalized(set)) return false;
     const completedAtMs = getCompletedAtMs(set);
     if (completedAtMs == null) return false;
@@ -85,30 +87,35 @@ export const needsAutoFinalize = (
     const planned = getRestSecondsPlanned(set);
     if (planned <= 0) return false;
 
-    const elapsedMs = nowMs - completedAtMs;
+    const elapsedMs = nowMs - completedAtMs - getPauseOffsetMs(set, nowMs);
     const elapsedSeconds = Math.floor(elapsedMs / 1000);
 
     return elapsedSeconds >= planned;
 };
 
+/** Rest actually taken, which is wall time less anything spent paused. */
 export const computeFinalRestSeconds = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'pausedAt' | 'pausedMs'>,
     restEndMs: number,
 ) => {
     const planned = getRestSecondsPlanned(set);
     const completedAtMs = getCompletedAtMs(set) ?? restEndMs;
-    const diffSec = Math.floor((restEndMs - completedAtMs) / 1000);
+    const pausedMs = getPauseOffsetMs(set, restEndMs);
+    const diffSec = Math.floor((restEndMs - completedAtMs - pausedMs) / 1000);
     return Math.max(0, Math.min(planned, diffSec));
 };
 
 export const buildFinalizeRestUpdate = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'pausedAt' | 'pausedMs'>,
     restEndMs: number,
 ) => {
     const finalRestTime = computeFinalRestSeconds(set, restEndMs);
     return {
         restCompletedAt: new Date(restEndMs),
         finalRestTime,
+        // The phase is over; leave no offset behind for whatever reads this row next.
+        pausedAt: null,
+        pausedMs: 0,
     } as const;
 };
 

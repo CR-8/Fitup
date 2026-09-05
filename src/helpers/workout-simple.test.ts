@@ -25,6 +25,8 @@ const buildSet = (id: string, overrides: Partial<ExerciseSetSelect> = {}): Exerc
         startedAt: null,
         completedAt: null,
         restCompletedAt: null,
+        pausedAt: null,
+        pausedMs: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
         ...overrides,
@@ -100,5 +102,128 @@ describe('getWorkoutState', () => {
 
         expect(info.state).toBe('resting');
         expect(info.nextSet?.id).toBe('b1');
+    });
+});
+
+/**
+ * The phases a set moves through, read straight off its own columns.
+ *
+ * There is no stored "phase" anywhere — these five states are re-derived on
+ * every render from `startedAt`, `completedAt`, `restTime` and the clock. That
+ * is what keeps the four copies of this machine in agreement, and what makes a
+ * pause that is not visible on the row a source of disagreement.
+ */
+describe('moving through a set', () => {
+    const T0 = 1_700_000_000_000;
+    const at = (offsetMs: number) => new Date(T0 + offsetMs);
+
+    test('completing a set with rest moves from performing into resting', () => {
+        const performing: ExecutionOrderSet[] = [
+            { set: buildSet('a1', { startedAt: at(0), restTime: 60 }), exerciseId: 'A' },
+            { set: buildSet('a2', { restTime: 60 }), exerciseId: 'A' },
+        ];
+        expect(getWorkoutState([], performing).state).toBe('performing');
+
+        const resting: ExecutionOrderSet[] = [
+            {
+                set: buildSet('a1', {
+                    startedAt: at(0),
+                    completedAt: new Date(Date.now()),
+                    restTime: 60,
+                }),
+                exerciseId: 'A',
+            },
+            { set: buildSet('a2', { restTime: 60 }), exerciseId: 'A' },
+        ];
+        const info = getWorkoutState([], resting);
+
+        expect(info.state).toBe('resting');
+        expect(info.activeRestSet?.id).toBe('a1');
+        expect(info.nextSet?.id).toBe('a2');
+    });
+
+    test('once rest has run out, the next set is the one to start', () => {
+        // Rest that expired 30 seconds ago and was finalized: nothing is
+        // resting any more, so the pointer is on the next pending set.
+        const order: ExecutionOrderSet[] = [
+            {
+                set: buildSet('a1', {
+                    startedAt: at(0),
+                    completedAt: new Date(Date.now() - 90_000),
+                    restTime: 60,
+                    restCompletedAt: new Date(Date.now() - 30_000),
+                    finalRestTime: 60,
+                }),
+                exerciseId: 'A',
+            },
+            { set: buildSet('a2'), exerciseId: 'A' },
+        ];
+        const info = getWorkoutState([], order);
+
+        expect(info.state).toBe('ready');
+        expect(info.nextSet?.id).toBe('a2');
+    });
+
+    test('a paused rest keeps resting instead of falling through to the next set', () => {
+        // Without the pause offset this rest expired long ago and the workout
+        // would have started the next set while the user was stopped.
+        const order: ExecutionOrderSet[] = [
+            {
+                set: buildSet('a1', {
+                    startedAt: at(0),
+                    completedAt: new Date(Date.now() - 600_000),
+                    restTime: 60,
+                    pausedAt: new Date(Date.now() - 580_000),
+                }),
+                exerciseId: 'A',
+            },
+            { set: buildSet('a2'), exerciseId: 'A' },
+        ];
+        const info = getWorkoutState([], order);
+
+        expect(info.state).toBe('resting');
+        expect(info.activeRestSet?.id).toBe('a1');
+    });
+
+    test('the final set completing ends the workout, with nothing left to rest for', () => {
+        const restingLast: ExecutionOrderSet[] = [
+            {
+                set: buildSet('a1', {
+                    startedAt: at(0),
+                    completedAt: new Date(Date.now()),
+                    restTime: 60,
+                }),
+                exerciseId: 'A',
+            },
+        ];
+        expect(getWorkoutState([], restingLast).state).toBe('resting_no_next');
+
+        const done: ExecutionOrderSet[] = [
+            {
+                set: buildSet('a1', {
+                    startedAt: at(0),
+                    completedAt: new Date(Date.now()),
+                    restTime: 60,
+                    restCompletedAt: new Date(Date.now()),
+                    finalRestTime: 60,
+                }),
+                exerciseId: 'A',
+            },
+        ];
+        expect(getWorkoutState([], done).state).toBe('completed');
+    });
+
+    test('an already-started next set is not stepped over into the one after it', () => {
+        // Two concurrently active sets is the failure mode the transitions
+        // guard against; the pointer must stop at the first one.
+        const order: ExecutionOrderSet[] = [
+            { set: buildSet('a1', { completedAt: new Date(Date.now()) }), exerciseId: 'A' },
+            { set: buildSet('a2', { startedAt: at(0) }), exerciseId: 'A' },
+            { set: buildSet('a3'), exerciseId: 'A' },
+        ];
+        const info = getWorkoutState([], order);
+
+        expect(info.state).toBe('performing');
+        expect(info.currentSet?.id).toBe('a2');
     });
 });

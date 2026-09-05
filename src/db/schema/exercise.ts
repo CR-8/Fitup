@@ -92,6 +92,29 @@ export const exerciseSet = sqliteTable(
         finalRestTime: integer('final_rest_time'),
         startedAt: integer('started_at', { mode: 'timestamp_ms' }),
         completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
+        /**
+         * Durable pause for the set's current phase.
+         *
+         * Every timer in the app is derived from an absolute anchor
+         * (`startedAt` for work, `completedAt` for rest) against the wall clock,
+         * so a pause that only clears an interval or lives in React state comes
+         * back to life the moment the app is backgrounded or the row is re-read.
+         *
+         * `pausedAt` is the instant the current pause began (null while
+         * running); `pausedMs` is the time already banked. Elapsed becomes
+         * `now - anchor - offset` and rest end `anchor + planned + offset`,
+         * which freezes on its own while `pausedAt` is set because the offset
+         * then grows at exactly the rate of the clock.
+         *
+         * A set has one work phase (ending at `completedAt`) and one rest phase
+         * (starting there), never both at once, so `pausedMs` is scoped to
+         * whichever is current and reset when the set completes.
+         *
+         * Device-local: excluded from backup and stripped before sync. A paused
+         * session belongs to the phone running it.
+         */
+        pausedAt: integer('paused_at', { mode: 'timestamp_ms' }),
+        pausedMs: integer('paused_ms').notNull().default(0),
         createdAt: integer('created_at', { mode: 'timestamp_ms' })
             .notNull()
             .default(sql`(strftime('%s','now') * 1000)`),

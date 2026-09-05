@@ -1,0 +1,37 @@
+{
+    "name": "fitup-cms",
+    "main": "src/index.ts",
+    "compatibility_date": "2026-08-28",
+
+    // The admin dashboard is server-rendered from the Worker, so there are no
+    // static assets to upload and no build step — `wrangler deploy` is the
+    // whole pipeline.
+
+    // The same catalogue database the exercise-media Worker reads. The CMS is
+    // the write side of it: that Worker only ever SELECTs, this one is where
+    // rows are edited, deactivated and removed.
+    //
+    // Deliberately the same `database_id` as workers/exercise-media, not a
+    // copy. Two databases would drift the moment either side wrote.
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "fitup-exercises",
+            "database_id": "323e0259-8858-48fe-9738-225814bddd7c"
+        }
+    ],
+
+    // Secrets, set with `wrangler secret put <NAME>` — never in this file, which
+    // is committed:
+    //
+    //   ADMIN_USER            dashboard login
+    //   ADMIN_PASSWORD        dashboard login
+    //   SUPABASE_URL          https://<project>.supabase.co
+    //   SUPABASE_SERVICE_KEY  service_role key — bypasses RLS, so it must never
+    //                         reach a browser. It is read here and used only in
+    //                         server-to-server fetches to PostgREST.
+
+    "observability": {
+        "enabled": true
+    }
+}

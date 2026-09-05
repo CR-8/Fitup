@@ -1,5 +1,11 @@
 import { ExerciseSetSelect } from '@/db/schema';
-import { buildFinalizeRestUpdate, isRestFinalized, needsAutoFinalize } from '@/helpers/rest';
+import {
+    RestSet,
+    buildFinalizeRestUpdate,
+    getRestEndMs,
+    isRestFinalized,
+    needsAutoFinalize,
+} from '@/helpers/rest';
 import { getOrderedExercisesFromDetails } from '@/helpers/workouts';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 import { useWorkoutWithDetails } from '@/hooks/use-workouts';
@@ -91,7 +97,9 @@ export const checkAndStartAfterRest = async (
                 if (completedAtMs > latestCompletedAtMs) {
                     if (latestExpiredSet) staleExpiredSets.push(latestExpiredSet);
                     latestCompletedAtMs = completedAtMs;
-                    latestRestEndMs = completedAtMs + set.restTime * 1000;
+                    // Via the helper so a rest that was paused ends where it
+                    // really ended, not where the unpaused plan said it would.
+                    latestRestEndMs = getRestEndMs(set, now) ?? completedAtMs + set.restTime * 1000;
                     latestExpiredSet = set;
                 } else {
                     staleExpiredSets.push(set);
@@ -105,7 +113,12 @@ export const checkAndStartAfterRest = async (
     for (const set of staleExpiredSets) {
         await updateSet({
             id: set.id,
-            updates: { restTime: 0, restCompletedAt: new Date(set.completedAt!) },
+            updates: {
+                restTime: 0,
+                restCompletedAt: new Date(set.completedAt!),
+                pausedAt: null,
+                pausedMs: 0,
+            },
         });
     }
 
@@ -131,26 +144,20 @@ export const checkAndStartAfterRest = async (
 };
 
 export const finalizeRestIfDue = async (
-    set: Pick<
-        ExerciseSetSelect,
-        'id' | 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'
-    >,
+    set: RestSet & Pick<ExerciseSetSelect, 'id'>,
     updateSet: UpdateSetFn,
     atMs: number,
 ) => {
     if (!set.completedAt || !set.restTime || set.restTime <= 0 || isRestFinalized(set)) return;
     if (needsAutoFinalize(set, atMs)) {
         const completedAtMs = new Date(set.completedAt).getTime();
-        const restEndMs = completedAtMs + set.restTime * 1000;
+        const restEndMs = getRestEndMs(set, atMs) ?? completedAtMs + set.restTime * 1000;
         await updateSet({ id: set.id, updates: buildFinalizeRestUpdate(set, restEndMs) });
     }
 };
 
 export const finalizeRestNow = async (
-    set: Pick<
-        ExerciseSetSelect,
-        'id' | 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'
-    >,
+    set: RestSet & Pick<ExerciseSetSelect, 'id'>,
     updateSet: UpdateSetFn,
     atMs: number = Date.now(),
 ) => {

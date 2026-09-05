@@ -29,6 +29,8 @@ import { getWorkoutState, getButtonIcon } from '@/helpers/workout-simple';
 import { getOrderedExercisesFromDetails } from '@/helpers/workouts';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 import { startNextSetOrExercise } from '@/services/set-transitions';
+import { buildFinalizeRestUpdate } from '@/helpers/rest';
+import { getStopwatchElapsedSeconds, getWorkTimerRemainingSeconds } from '@/helpers/workout-timer';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { addWorkoutExerciseSet } from '../../helpers/add-set';
 
@@ -215,44 +217,25 @@ export const Actions: FC<ActionsProps> = ({
                     if (workoutInfo.currentSet) {
                         let completionUpdates: Partial<ExerciseSetSelect> = {};
 
-                        if (currentExercise?.timeOptions === 'stopwatch') {
-                            const startedAtMs =
-                                workoutInfo.currentSet.startedAt instanceof Date
-                                    ? workoutInfo.currentSet.startedAt.getTime()
-                                    : typeof workoutInfo.currentSet.startedAt === 'number'
-                                      ? workoutInfo.currentSet.startedAt
-                                      : workoutInfo.currentSet.startedAt
-                                        ? new Date(
-                                              workoutInfo.currentSet.startedAt as unknown as string,
-                                          ).getTime()
-                                        : null;
+                        // Time spent paused is not time spent training, so both
+                        // readouts come from the shared helpers rather than the
+                        // raw gap since `startedAt`.
+                        const nowMs = Date.now();
 
+                        if (currentExercise?.timeOptions === 'stopwatch') {
                             const elapsedSec =
-                                startedAtMs != null && !Number.isNaN(startedAtMs)
-                                    ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
-                                    : Math.max(0, workoutInfo.currentSet.time ?? 0);
+                                getStopwatchElapsedSeconds(workoutInfo.currentSet, nowMs) ??
+                                Math.max(0, workoutInfo.currentSet.time ?? 0);
 
                             completionUpdates = { time: elapsedSec };
                         } else if (currentExercise?.timeOptions === 'timer') {
                             const plannedSec = Math.max(0, workoutInfo.currentSet.time ?? 0);
-                            const startedAtMs =
-                                workoutInfo.currentSet.startedAt instanceof Date
-                                    ? workoutInfo.currentSet.startedAt.getTime()
-                                    : typeof workoutInfo.currentSet.startedAt === 'number'
-                                      ? workoutInfo.currentSet.startedAt
-                                      : workoutInfo.currentSet.startedAt
-                                        ? new Date(
-                                              workoutInfo.currentSet.startedAt as unknown as string,
-                                          ).getTime()
-                                        : null;
-
-                            const elapsedSec =
-                                startedAtMs != null && !Number.isNaN(startedAtMs)
-                                    ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
-                                    : 0;
-
                             const remainingSec =
-                                plannedSec > 0 ? Math.max(0, plannedSec - elapsedSec) : plannedSec;
+                                getWorkTimerRemainingSeconds(
+                                    workoutInfo.currentSet,
+                                    plannedSec,
+                                    nowMs,
+                                ) ?? plannedSec;
 
                             completionUpdates = { time: remainingSec };
                         }
@@ -286,23 +269,11 @@ export const Actions: FC<ActionsProps> = ({
                 case 'resting':
                     // Stop rest early and start next set
                     if (workoutInfo.activeRestSet) {
-                        const nowMs = Date.now();
-                        const completedAtMs = new Date(
-                            workoutInfo.activeRestSet.completedAt!,
-                        ).getTime();
-                        const elapsedMs = nowMs - completedAtMs;
-                        const elapsedSeconds = Math.floor(elapsedMs / 1000);
-                        const plannedRestTime = workoutInfo.activeRestSet.restTime!;
-
-                        // Calculate actual rest time, but cap it at planned rest time
-                        const actualRestTime = Math.min(elapsedSeconds, plannedRestTime);
-
+                        // Rest actually taken, capped at what was planned and
+                        // excluding anything spent paused.
                         await updateSet({
                             id: workoutInfo.activeRestSet.id,
-                            updates: {
-                                restCompletedAt: new Date(),
-                                finalRestTime: Math.max(0, actualRestTime),
-                            },
+                            updates: buildFinalizeRestUpdate(workoutInfo.activeRestSet, Date.now()),
                         });
                     }
 
@@ -325,23 +296,11 @@ export const Actions: FC<ActionsProps> = ({
                 case 'resting_no_next':
                     // Stop rest early, but don't start next set (none available)
                     if (workoutInfo.activeRestSet) {
-                        const nowMs = Date.now();
-                        const completedAtMs = new Date(
-                            workoutInfo.activeRestSet.completedAt!,
-                        ).getTime();
-                        const elapsedMs = nowMs - completedAtMs;
-                        const elapsedSeconds = Math.floor(elapsedMs / 1000);
-                        const plannedRestTime = workoutInfo.activeRestSet.restTime!;
-
-                        // Calculate actual rest time, but cap it at planned rest time
-                        const actualRestTime = Math.min(elapsedSeconds, plannedRestTime);
-
+                        // Rest actually taken, capped at what was planned and
+                        // excluding anything spent paused.
                         await updateSet({
                             id: workoutInfo.activeRestSet.id,
-                            updates: {
-                                restCompletedAt: new Date(),
-                                finalRestTime: Math.max(0, actualRestTime),
-                            },
+                            updates: buildFinalizeRestUpdate(workoutInfo.activeRestSet, Date.now()),
                         });
                     }
                     break;
@@ -364,17 +323,13 @@ export const Actions: FC<ActionsProps> = ({
                             router.setParams({ workoutExerciseId: nextSetExercise.id });
                         }
 
-                        // Show the movement and its instructions for the set that
-                        // just began. Opened only on an explicit start, so it never
-                        // interrupts someone already mid-session.
+                        // Open the timer on the set that just began. It reads
+                        // the running-workout context rather than parameters,
+                        // so there is nothing to hand it. Opened only on an
+                        // explicit start, so it never interrupts someone
+                        // already mid-session.
                         if (currentExercise?.id) {
-                            router.push({
-                                pathname: '/timer',
-                                params: {
-                                    exerciseId: currentExercise.id,
-                                    startedAt: String(startedAt.getTime()),
-                                },
-                            });
+                            router.push('/timer');
                         }
                     }
                     break;

@@ -1,8 +1,9 @@
 import { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { WorkoutExerciseSelect, WorkoutGroupSelect } from '@/db/schema/workout';
 import { OrderedExercise } from '@/helpers/workouts';
-import { isRestActive, isRestFinalized } from '@/helpers/rest';
-import { toMs } from '@/helpers/times';
+import { getRestEndMs, isRestActive, isRestFinalized } from '@/helpers/rest';
+import { getPauseOffsetMs, isSetPaused } from '@/helpers/pause';
+import { toMs } from '@/helpers/values';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 
 export const TIMER_WARNING_SECONDS = 4;
@@ -141,6 +142,12 @@ export const buildTimerChainEvents = ({
     const activeRestSet = findActiveRest(orderedExercises, nowMs);
     const activeSet = activeRestSet ? null : findActiveSet(orderedExercises);
 
+    // A paused phase has no end date to alert on, and every set after it is
+    // pushed out by an amount nobody can know yet. Returning nothing here is
+    // what makes the scheduler cancel the chain: the caller compares the event
+    // list and cancels whatever it scheduled last.
+    if (isSetPaused(activeRestSet ?? activeSet)) return [];
+
     // If we're on a non-timer active set, we don't schedule anything.
     if (activeSet) {
         const weId = setToWorkoutExerciseId.get(activeSet.id);
@@ -158,7 +165,8 @@ export const buildTimerChainEvents = ({
     if (activeRestSet) {
         const completedAtMs = toMs(activeRestSet.completedAt);
         if (completedAtMs == null) return [];
-        const restEndMs = completedAtMs + activeRestSet.restTime! * 1000;
+        const restEndMs =
+            getRestEndMs(activeRestSet, nowMs) ?? completedAtMs + activeRestSet.restTime! * 1000;
         const restWarningAtMs = getTimerWarningAtMs(completedAtMs, restEndMs);
         cursorIdx = idxOf(activeRestSet.id) + 1; // next set after the resting one
         cursorStartAtMs = restEndMs;
@@ -179,7 +187,8 @@ export const buildTimerChainEvents = ({
         const plannedSec = Math.max(0, activeSet.time ?? 0);
         if (startedAtMs == null || plannedSec <= 0) return [];
 
-        const workEndMs = startedAtMs + plannedSec * 1000;
+        // Time already banked paused pushes this set's end out by the same amount.
+        const workEndMs = startedAtMs + plannedSec * 1000 + getPauseOffsetMs(activeSet, nowMs);
         const workWarningAtMs = getTimerWarningAtMs(startedAtMs, workEndMs);
         cursorIdx = idxOf(activeSet.id) + 1;
         cursorStartAtMs = workEndMs + Math.max(0, activeSet.restTime ?? 0) * 1000;

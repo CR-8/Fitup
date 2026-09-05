@@ -20,6 +20,11 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { db } from '@/db';
 import { workout, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { getRemainingRestSeconds, isRestActive, isRestFinalized } from '@/helpers/rest';
+import {
+    getStopwatchElapsedSeconds,
+    getWorkEndMs,
+    getWorkTimerRemainingSeconds,
+} from '@/helpers/workout-timer';
 import { resolveMhrFromProfile } from '@/helpers/heart-rate-zones';
 import { normalizeSetType } from '@/helpers/set-type';
 import { WorkoutItem } from '@/screens/workouts/workout/types';
@@ -492,23 +497,14 @@ const useRunningWorkoutProvider = () => {
         const plannedSec = Math.max(0, activeSet.time ?? 0);
         if (plannedSec <= 0) return;
 
-        const startedAtMs =
-            activeSet.startedAt instanceof Date
-                ? activeSet.startedAt.getTime()
-                : typeof activeSet.startedAt === 'number'
-                  ? activeSet.startedAt
-                  : activeSet.startedAt
-                    ? new Date(activeSet.startedAt as unknown as string).getTime()
-                    : null;
+        const remainingSec = getWorkTimerRemainingSeconds(activeSet, plannedSec, nowMs);
+        const workEndMs = getWorkEndMs(activeSet, plannedSec);
 
-        if (startedAtMs == null || Number.isNaN(startedAtMs)) return;
-
-        const elapsedSec = Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
-        const remainingSec = Math.max(0, plannedSec - elapsedSec);
+        if (remainingSec === null || workEndMs == null) return;
 
         if (remainingSec === 0) {
             autoCompletedTimerSetIdsRef.current.add(activeSet.id);
-            const completedAt = new Date(startedAtMs + plannedSec * 1000);
+            const completedAt = new Date(workEndMs);
             // For timer: if user stops early we store remaining in time (handled elsewhere).
             // If timer finishes naturally, keep planned time as-is (do not overwrite with 0).
             runInBackground(
@@ -543,22 +539,7 @@ const useRunningWorkoutProvider = () => {
         );
         if (container?.exercise?.timeOptions !== 'timer') return null;
 
-        const plannedSec = Math.max(0, activeSet.time ?? 0);
-        if (plannedSec <= 0) return null;
-
-        const startedAtMs =
-            activeSet.startedAt instanceof Date
-                ? activeSet.startedAt.getTime()
-                : typeof activeSet.startedAt === 'number'
-                  ? activeSet.startedAt
-                  : activeSet.startedAt
-                    ? new Date(activeSet.startedAt as unknown as string).getTime()
-                    : null;
-
-        if (startedAtMs == null || Number.isNaN(startedAtMs)) return null;
-
-        const elapsedSec = Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
-        return Math.max(0, plannedSec - elapsedSec);
+        return getWorkTimerRemainingSeconds(activeSet, activeSet.time, nowMs);
     }, [nowMs, runningWorkoutActiveSet, workoutDetails]);
 
     const activeStopwatchElapsedSeconds = useMemo(() => {
@@ -572,18 +553,7 @@ const useRunningWorkoutProvider = () => {
         );
         if (container?.exercise?.timeOptions !== 'stopwatch') return null;
 
-        const startedAtMs =
-            activeSet.startedAt instanceof Date
-                ? activeSet.startedAt.getTime()
-                : typeof activeSet.startedAt === 'number'
-                  ? activeSet.startedAt
-                  : activeSet.startedAt
-                    ? new Date(activeSet.startedAt as unknown as string).getTime()
-                    : null;
-
-        if (startedAtMs == null || Number.isNaN(startedAtMs)) return null;
-
-        return Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
+        return getStopwatchElapsedSeconds(activeSet, nowMs);
     }, [nowMs, runningWorkoutActiveSet, workoutDetails]);
 
     useEffect(() => {

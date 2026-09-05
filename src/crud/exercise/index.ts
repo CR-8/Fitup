@@ -16,6 +16,7 @@ import {
 } from '@/db/schema';
 import { nanoid } from '@/helpers/nanoid';
 import { isRestActive } from '@/helpers/rest';
+import { getPauseOffsetMs } from '@/helpers/pause';
 import { normalizeSetType } from '@/helpers/set-type';
 import { reportError } from '@/services/error-reporting';
 import { FITUP_EXERCISES_USER_ID, isFitupExerciseUserId } from '@/constants/fitup';
@@ -941,6 +942,15 @@ export const updateExerciseSetWithRestCalculation = async (
         }
     }
 
+    // Completing a set closes its work phase and opens its rest phase, and the
+    // pause accumulator is scoped to whichever is current. Clearing it here —
+    // the one write every completion path routes through — is what stops time
+    // banked during the work interval from being refunded against the rest.
+    if (!existingSet?.completedAt && updatedData.completedAt) {
+        updatedData.pausedAt = null;
+        updatedData.pausedMs = 0;
+    }
+
     // Auto-calculate rest time if needed
     if (
         !normalizedCompletedWorkoutRestUpdate &&
@@ -954,7 +964,10 @@ export const updateExerciseSetWithRestCalculation = async (
             const restCompletedAtMs = getTimeInMs(updatedData.restCompletedAt);
 
             if (completedAtMs && restCompletedAtMs) {
-                const diffSec = Math.floor((restCompletedAtMs - completedAtMs) / 1000);
+                // Rest actually taken, not wall time: a rest the user paused
+                // was shorter than the clock between the two stamps says.
+                const pausedMs = getPauseOffsetMs(baseSet, restCompletedAtMs);
+                const diffSec = Math.floor((restCompletedAtMs - completedAtMs - pausedMs) / 1000);
                 const cap = Math.max(0, Math.min(baseSet.restTime ?? 0, diffSec));
                 updatedData.finalRestTime = cap;
             }

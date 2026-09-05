@@ -1,6 +1,8 @@
 import { ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { ExecutionOrderSet } from '@/helpers/execution-order';
 import { normalizeSetType } from '@/helpers/set-type';
+import { getPauseOffsetMs, isSetPaused } from '@/helpers/pause';
+import { getRestEndMs } from '@/helpers/rest';
 import { WorkoutItem } from '@/screens/workouts/workout/types';
 import {
     LiveActivityState,
@@ -82,6 +84,14 @@ export const buildLiveActivityState = ({
     const setType = normalizeSetType(currentSet?.type);
 
     // Timer anchors
+    //
+    // A paused phase is priced at the instant the pause began rather than now,
+    // so the end date stops moving instead of advancing a second per second —
+    // which would otherwise cost a native activity update on every tick.
+    const pausedSet = restingSet ?? activeSet;
+    const paused = isSetPaused(pausedSet);
+    const anchorNowMs = paused ? toMs(pausedSet!.pausedAt) : Date.now();
+
     let timerStartMs = workoutStartMs;
     let timerEndMs = workoutStartMs + EIGHT_HOURS_MS;
 
@@ -90,14 +100,14 @@ export const buildLiveActivityState = ({
         const completedAtMs = toMs(restingSet!.completedAt);
         const restTimeSec = restingSet!.restTime ?? 0;
         timerStartMs = completedAtMs;
-        timerEndMs = completedAtMs + restTimeSec * 1000;
+        timerEndMs = getRestEndMs(restingSet!, anchorNowMs) ?? completedAtMs + restTimeSec * 1000;
     } else if (state === 'performing' && activeSet) {
         const startedAtMs = toMs(activeSet.startedAt);
         if (timeOptions === 'timer') {
             // Work timer countdown
             const plannedSec = Math.max(0, activeSet.time ?? 0);
             timerStartMs = startedAtMs;
-            timerEndMs = startedAtMs + plannedSec * 1000;
+            timerEndMs = startedAtMs + plannedSec * 1000 + getPauseOffsetMs(activeSet, anchorNowMs);
         } else if (timeOptions === 'stopwatch') {
             // Stopwatch count-up
             timerStartMs = startedAtMs;
@@ -149,6 +159,7 @@ export const buildLiveActivityState = ({
         timeOptions: timeOptions ?? undefined,
         timerStartDate: timerStartMs,
         timerEndDate: timerEndMs,
+        paused,
         workoutStartDate: workoutStartMs,
         nextExerciseName,
         nextSetNumber,
@@ -171,7 +182,7 @@ export const buildLiveActivityState = ({
  * Includes timer anchor dates so that starting a new rest/work period triggers an update.
  */
 const stateKey = (s: LiveActivityState): string =>
-    `${s.state}:${s.exerciseName}:${s.setNumber}:${s.totalSets}:${s.weight}:${s.reps}:${s.nextExerciseName}:${s.nextSetNumber}:${s.nextTotalSets}:${s.nextSetType}:${s.nextWeight}:${s.nextReps}:${s.completedExercises}:${s.timerStartDate}:${s.timerEndDate}:${s.currentSetId}:${s.restSetId}:${s.nextSetId}`;
+    `${s.state}:${s.exerciseName}:${s.setNumber}:${s.totalSets}:${s.weight}:${s.reps}:${s.nextExerciseName}:${s.nextSetNumber}:${s.nextTotalSets}:${s.nextSetType}:${s.nextWeight}:${s.nextReps}:${s.completedExercises}:${s.timerStartDate}:${s.timerEndDate}:${s.paused}:${s.currentSetId}:${s.restSetId}:${s.nextSetId}`;
 
 /**
  * Live Activity Manager — tracks the activity ID and deduplicates updates.

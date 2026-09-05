@@ -23,7 +23,10 @@ module.exports = {
         playStoreUrl: process.env.PLAY_STORE_URL,
         softwareKeyboardLayoutMode: 'pan',
         adaptiveIcon: {
-            foregroundImage: './assets/images/adaptive-icon.png',
+            foregroundImage:
+                process.env.APP_VARIANT === 'development'
+                    ? './assets/images/adaptive-icon-dev.png'
+                    : './assets/images/adaptive-icon.png',
             backgroundColor: '#0b0b0c',
         },
         permissions: [

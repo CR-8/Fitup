@@ -4,6 +4,8 @@ import localizedFormat from 'dayjs/plugin/localizedFormat';
 import i18n from '@/locale/i18n';
 import { toInt } from './values';
 
+export { toMs } from './values';
+
 dayjs.extend(duration);
 dayjs.extend(localizedFormat);
 
@@ -112,15 +114,4 @@ export const formatWeekday = (date: Date | string, firstWeekday: number = 2): st
     const d = dayjs(date);
     const weekday = d.format('dddd');
     return weekday.charAt(0).toUpperCase() + weekday.slice(1);
-};
-
-export const toMs = (value: Date | number | string | null | undefined): number | null => {
-    if (value == null) return null;
-    if (value instanceof Date) {
-        const ms = value.getTime();
-        return Number.isNaN(ms) ? null : ms;
-    }
-    if (typeof value === 'number') return Number.isNaN(value) ? null : value;
-    const ms = new Date(value).getTime();
-    return Number.isNaN(ms) ? null : ms;
 };

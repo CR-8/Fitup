@@ -13,6 +13,14 @@ export interface LiveActivityState {
     timeOptions?: string;
     timerStartDate: number; // Unix ms
     timerEndDate: number; // Unix ms
+    /**
+     * Whether the current work or rest phase is paused on the phone.
+     *
+     * `timerEndDate` is frozen at the value it held when the pause began, so a
+     * widget that ignores this flag shows a countdown that keeps running rather
+     * than a wrong end time. The phone stays the source of truth either way.
+     */
+    paused?: boolean;
     workoutStartDate: number; // Unix ms
     nextExerciseName?: string;
     nextSetNumber?: number;

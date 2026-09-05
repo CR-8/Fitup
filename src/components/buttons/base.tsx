@@ -1,11 +1,27 @@
 import { FC, ReactNode } from 'react';
 import { StyleSheet, UnistylesVariants } from 'react-native-unistyles';
 
-import { Pressable } from '../primitives/pressable';
+import { Pressable, PressableProps } from '../primitives/pressable';
 import { Text, TextProps } from '../primitives/text';
 import { Box, BoxProps } from '../primitives/box';
 import { HStack } from '../primitives/hstack';
 import Spinner from '../feedback/spinner';
+
+/**
+ * Accessibility props are forwarded to the underlying Pressable rather than
+ * re-declared here: a button whose title is an icon, or whose label needs to say
+ * more than the title does, has no other way to describe itself, and screen
+ * readers were previously announcing these as unlabelled.
+ */
+type ButtonAccessibilityProps = Pick<
+    PressableProps,
+    | 'accessibilityRole'
+    | 'accessibilityLabel'
+    | 'accessibilityHint'
+    | 'accessibilityState'
+    | 'accessibilityValue'
+    | 'testID'
+>;
 
 export type ButtonProps = {
     title?: ReactNode;
@@ -17,7 +33,8 @@ export type ButtonProps = {
     onPress?: () => void;
     prefix?: ReactNode;
     suffix?: ReactNode;
-} & UnistylesVariants<typeof styles>;
+} & ButtonAccessibilityProps &
+    UnistylesVariants<typeof styles>;
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -125,11 +142,17 @@ const Button: FC<ButtonProps> = ({
     suffix,
     type,
     size,
+    ...accessibility
 }) => {
     styles.useVariants({ type, size });
 
     return (
-        <Pressable disabled={disabled} onPress={onPress}>
+        <Pressable
+            disabled={disabled}
+            onPress={onPress}
+            accessibilityRole="button"
+            {...accessibility}
+        >
             <HStack style={[styles.container, containerStyle]}>
                 {loading ? (
                     <Spinner color={spinnerColor} />

@@ -712,7 +712,40 @@
     "timer": {
         "inProgress": "जारी है",
         "elapsed": "बीता समय",
-        "done": "पूर्ण"
+        "done": "पूर्ण",
+        "phase": {
+            "work": "व्यायाम",
+            "rest": "विश्राम",
+            "paused": "रुका हुआ",
+            "complete": "पूर्ण"
+        },
+        "exerciseProgress": "व्यायाम {{total}} में से {{current}}",
+        "setProgress": "सेट {{total}} में से {{current}}",
+        "remaining": "शेष",
+        "setElapsed": "सेट का समय",
+        "open": "टाइमर खोलें",
+        "restRemaining": "शेष विश्राम",
+        "stop": "रोकें",
+        "continue": "जारी रखें",
+        "completeSet": "सेट पूरा करें",
+        "skipRest": "विश्राम छोड़ें",
+        "endWorkout": "वर्कआउट समाप्त करें",
+        "nextUp": "अगला",
+        "noNextSet": "वर्कआउट का आखिरी सेट",
+        "minimize": "वर्कआउट पर वापस",
+        "completedTitle": "वर्कआउट पूरा हुआ",
+        "completedHint": "इसे अपने इतिहास में सहेजने के लिए समाप्त करें।",
+        "emptyTitle": "कोई वर्कआउट नहीं चल रहा",
+        "emptyHint": "टाइमर उपयोग करने के लिए वर्कआउट शुरू करें।",
+        "emptyAction": "बंद करें",
+        "a11y": {
+            "stop": "मौजूदा टाइमर रोकें",
+            "continue": "मौजूदा टाइमर फिर से चालू करें",
+            "completeSet": "इस सेट को पूर्ण चिह्नित करें",
+            "skipRest": "विश्राम जल्दी समाप्त करें और अगला सेट शुरू करें",
+            "endWorkout": "वर्कआउट समाप्त करें और सहेजें",
+            "minimize": "वर्कआउट पर वापस जाएँ"
+        }
     },
     "diet": {
         "title": "आहार",

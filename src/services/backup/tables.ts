@@ -341,7 +341,11 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             updatedAt: 'updated_at',
         },
         dates: ['restCompletedAt', 'startedAt', 'completedAt', ...TIMESTAMPS],
-        deviceOnly: [],
+        // Pause is the state of a session running on this phone right now, not
+        // a property of the set. A restore lands on a device that is not in the
+        // middle of that rest, so carrying it would only resume someone else's
+        // stopwatch. Both read as "not paused" when absent.
+        deviceOnly: ['pausedAt', 'pausedMs'],
     },
 ];
 

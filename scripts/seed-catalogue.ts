@@ -5,11 +5,13 @@ import {
     LOCALES,
     fetchDataset,
     toCatalogueEntry,
+    transliterateName,
     validateEntries,
     type CatalogueEntry,
     type DatasetRecord,
     type Locale,
 } from './lib/dataset';
+import hindiNameTokens from './data/exercise-name-tokens.hi.json';
 import {
     configureCloudinary,
     deliveryBaseUrl,
@@ -25,6 +27,7 @@ import {
     upsertExercises,
     upsertInstructions,
     type InstructionsByLocale,
+    type LocaleText,
     type SeededExercise,
 } from './lib/db';
 
@@ -110,6 +113,15 @@ const writeLedger = async (ledger: Ledger): Promise<void> => {
     await writeFile(LEDGER_PATH, JSON.stringify(ledger, null, 0), 'utf8');
 };
 
+/**
+ * The dataset ships one English name per exercise and instructions per locale,
+ * so a Hindi name has to be composed rather than read. `transliterateName`
+ * throws on a word the map does not cover, which fails the seed run instead of
+ * writing `डंबल frobnicate` to D1.
+ */
+const localeName = (locale: Locale, record: DatasetRecord): string | undefined =>
+    locale === 'hi' ? transliterateName(record.name, hindiNameTokens) : undefined;
+
 const collectInstructions = (
     records: DatasetRecord[],
     entries: CatalogueEntry[],
@@ -117,13 +129,18 @@ const collectInstructions = (
     const byLocale: InstructionsByLocale = new Map();
 
     for (const locale of LOCALES) {
-        const perExercise = new Map<string, string[]>();
+        const perExercise = new Map<string, LocaleText>();
 
         for (const [index, record] of records.entries()) {
             // English is the fallback the Worker's LEFT JOIN relies on, so a
-            // locale missing steps contributes no row rather than an empty one.
-            const steps = record.instruction_steps[locale as Locale];
-            if (steps?.length) perExercise.set(entries[index].id, steps);
+            // locale missing steps contributes an empty list rather than
+            // pretending to have translated them.
+            const steps = record.instruction_steps[locale as Locale] ?? [];
+            const name = localeName(locale, record);
+
+            if (steps.length > 0 || name) {
+                perExercise.set(entries[index].id, { steps, name });
+            }
         }
 
         byLocale.set(locale, perExercise);

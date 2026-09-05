@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import * as MailComposer from 'expo-mail-composer';
 import {
-    Globe,
     ChevronRight,
     Bell,
     Lock,
@@ -14,6 +13,7 @@ import {
     Volume2,
     Clock,
     Languages,
+    Ruler,
     Heart,
     Megaphone,
     Mail,
@@ -231,12 +231,12 @@ const SettingsScreen = () => {
             onPress: () => router.navigate('/settings/datetime'),
         },
         {
-            icon: Languages,
+            icon: Ruler,
             title: t('settings.items.units.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/units'),
         },
         {
-            icon: Globe,
+            icon: Languages,
             title: t('settings.items.language.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/language'),
         },

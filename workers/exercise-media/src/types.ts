@@ -22,7 +22,10 @@ export const isLocale = (value: string): value is Locale =>
 
 export interface ExerciseItem {
     id: string;
+    /** Localised where a translation exists, English otherwise. */
     name: string;
+    /** Always English, so a client can keep searching in both scripts. */
+    nameEn: string;
     category: string;
     equipment: string[];
     primaryMuscleGroups: string[];

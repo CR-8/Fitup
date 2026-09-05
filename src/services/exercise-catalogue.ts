@@ -25,7 +25,14 @@ import { reportError } from '@/services/error-reporting';
 
 interface RemoteExercise {
     id: string;
+    /** Localised where the API has a translation, English otherwise. */
     name: string;
+    /**
+     * Always English, whatever locale was asked for. Optional: a Worker that
+     * has not been redeployed yet does not send it, and a page missing it is
+     * still a perfectly usable page.
+     */
+    nameEn?: string;
     category: 'strength' | 'cardio' | 'flexibility' | 'yoga' | 'pilates' | 'other';
     equipment: string[];
     primaryMuscleGroups: string[];
@@ -45,8 +52,11 @@ interface RemotePage {
  * `isCatalogueSeeded()` false exactly once per install, forcing one refresh.
  *
  * 2: catalogue moved from bundled JSON to the exercise API.
+ * 3: rows carry `nameEn`, and `name` became localised. Existing rows have a
+ *    null `nameEn` and an English `name`, so one forced refresh is what makes
+ *    Hindi names appear and keeps search working in both scripts.
  */
-const CATALOGUE_VERSION = 2;
+const CATALOGUE_VERSION = 3;
 
 const VERSION_KEY = 'catalogue.version';
 const LOCALE_KEY = 'catalogue.locale';
@@ -105,6 +115,11 @@ const isValidExercise = (value: unknown): value is RemoteExercise => {
         candidate.id.length === 21 &&
         typeof candidate.name === 'string' &&
         candidate.name.trim().length > 0 &&
+        // Deliberately not required. Rejecting a page for a missing `nameEn`
+        // would mean an app update could only refresh its catalogue after the
+        // Worker was redeployed — an ordering trap whose failure mode is a
+        // library that silently stops updating.
+        (candidate.nameEn === undefined || typeof candidate.nameEn === 'string') &&
         typeof candidate.category === 'string' &&
         CATEGORIES.has(candidate.category) &&
         Array.isArray(candidate.equipment) &&
@@ -159,6 +174,9 @@ const fetchPage = async (locale: string, cursor: string | null): Promise<RemoteP
 const toRow = (item: RemoteExercise): ExerciseInsert => ({
     id: item.id,
     name: item.name,
+    // Falls back to the name we did get, so search has something in the second
+    // slot either way and never has to special-case a half-migrated row.
+    nameEn: item.nameEn?.trim() || item.name,
     category: item.category,
     tracking: item.category === 'cardio' ? CARDIO_TRACKING : STRENGTH_TRACKING,
     source: 'system' as const,
@@ -188,6 +206,7 @@ const writeRows = async (rows: ExerciseInsert[]): Promise<void> => {
                 // never overwritten by a re-seed.
                 set: {
                     name: excluded('name'),
+                    nameEn: excluded('name_en'),
                     category: excluded('category'),
                     equipment: excluded('equipment'),
                     primaryMuscleGroups: excluded('primary_muscle_groups'),

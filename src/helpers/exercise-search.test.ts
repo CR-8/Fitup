@@ -15,9 +15,11 @@ const makeExercise = (
     id: string,
     name: string,
     primaryMuscleGroups: string[],
+    nameEn: string | null = null,
 ): ExerciseListSelect => ({
     id,
     name,
+    nameEn,
     category: 'strength',
     tracking: ['weight', 'reps'],
     primaryMuscleGroups,
@@ -251,5 +253,53 @@ describe('collapsing the library', () => {
 
     test('an empty library collapses to nothing rather than throwing', () => {
         expect(collapseGroupedExercises([], shut)).toEqual([]);
+    });
+});
+
+/**
+ * The catalogue's Hindi names are transliterations — `बेंच प्रेस`, not a
+ * translated compound — because that is how gym vocabulary is actually spoken.
+ * Which means the person reading a Hindi library is very likely to search it
+ * from a Latin keyboard. Indexing the localised name alone would answer that
+ * with an empty list, and look for all the world like the library failed to
+ * load.
+ */
+describe('a catalogue pulled in Hindi', () => {
+    const library = () =>
+        groupExercises([
+            makeExercise(
+                'bench-press',
+                'बारबेल बेंच प्रेस',
+                ['pectoralis_major'],
+                'barbell bench press',
+            ),
+            makeExercise('squat', 'बारबेल स्क्वाट', ['quadriceps'], 'barbell squat'),
+            makeExercise('my-own', 'Morning Warmup', ['quadriceps']),
+        ]);
+
+    const search = (query: string) => {
+        const grouped = library();
+
+        return getExerciseNames(
+            filterGroupedExercisesByName(grouped, query, createExerciseSearchIndex(grouped)),
+        );
+    };
+
+    test('answers a Latin query', () => {
+        expect(search('bench press')).toEqual(['बारबेल बेंच प्रेस']);
+    });
+
+    test('answers a Devanagari query', () => {
+        expect(search('बेंच')).toEqual(['बारबेल बेंच प्रेस']);
+    });
+
+    test('still tells the two barbell exercises apart', () => {
+        expect(search('squat')).toEqual(['बारबेल स्क्वाट']);
+    });
+
+    test('a user-authored exercise has one name and is found by it', () => {
+        // `nameEn` is null for anything the user wrote, so the ranker must not
+        // require two names to work.
+        expect(search('warmup')).toEqual(['Morning Warmup']);
     });
 });

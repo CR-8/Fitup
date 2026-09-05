@@ -130,3 +130,43 @@ describe('the palette', () => {
         }
     });
 });
+
+/**
+ * WCAG contrast, which is not what `luminance` above computes — that one is a
+ * perceived-brightness ordering for the ramps, on 0-255. This linearises sRGB
+ * first, so the numbers can be compared against the 4.5:1 threshold.
+ */
+const contrastRatio = (a: string, b: string): number => {
+    const relative = (hex: string): number => {
+        const value = hex.replace('#', '');
+        const channels = [0, 2, 4]
+            .map((at) => parseInt(value.slice(at, at + 2), 16) / 255)
+            .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+
+    const [lighter, darker] = [relative(a), relative(b)].sort((x, y) => y - x);
+
+    return (lighter + 0.05) / (darker + 0.05);
+};
+
+/**
+ * Home's up-next pill is the app's most prominent call to action, and it was
+ * shipped as white on `brand[500]` — 3.41:1, which is neither AA for body text
+ * nor large enough to claim the 3:1 allowance. These two pairs are what it uses
+ * instead, so a future edit to the brand ramp cannot quietly wash it out again.
+ */
+describe('the up-next pill stays readable', () => {
+    test('white on the filled pill clears AA', () => {
+        expect(contrastRatio(colors.white, colors.brand[600])).toBeGreaterThanOrEqual(4.4);
+    });
+
+    test('the coral label on the inverted pill clears AA', () => {
+        expect(contrastRatio(colors.brand[700], colors.white)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test('the shade it replaced would not have', () => {
+        expect(contrastRatio(colors.white, colors.brand[500])).toBeLessThan(4.5);
+    });
+});

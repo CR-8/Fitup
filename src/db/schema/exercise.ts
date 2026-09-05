@@ -12,6 +12,13 @@ export type ExerciseMuscleLoadProfile = Record<string, unknown>[];
 export const exercise = sqliteTable('exercise', {
     id: text('id', { length: 21 }).primaryKey(),
     name: text('name').notNull(),
+    /**
+     * The catalogue's English name, kept beside the localised one so search
+     * still answers a Latin query after the library has been pulled in Hindi.
+     * Null for user-authored exercises, which have only the name they were
+     * given.
+     */
+    nameEn: text('name_en'),
     category: text('category', {
         enum: ['strength', 'cardio', 'flexibility', 'yoga', 'pilates', 'other'],
     }).notNull(),

@@ -20,6 +20,7 @@
         "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
         "locale": "tsx ./scripts/translations.ts",
         "db:push": "tsx ./scripts/db-push.ts",
+        "d1:add-instruction-name": "tsx ./scripts/d1-add-instruction-name.ts",
         "seed": "tsx ./scripts/seed-catalogue.ts"
     },
     "jest": {

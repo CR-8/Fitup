@@ -169,3 +169,64 @@ export const validateEntries = (entries: CatalogueEntry[]): string[] => {
 
     return problems;
 };
+
+/**
+ * The upstream names carry `в°` where a degree sign belongs — UTF-8 `°` decoded
+ * once as cp1251 somewhere before it reached the dataset. Four names are
+ * affected. Repairing it here keeps `в` out of the token map, where it would
+ * otherwise sit as a token that means nothing in any language.
+ */
+const repairName = (name: string): string => name.replace(/в°/g, '°');
+
+/** Runs of letters, which are the only thing transliterated. */
+const NAME_TOKEN = /[^\W\d_]+/gu;
+
+/**
+ * An exercise name in Devanagari.
+ *
+ * Transliteration, not translation: Indian gym vocabulary is English spoken in
+ * Hindi, so "bench press" is `बेंच प्रेस` rather than an invented Hindi
+ * compound. It also composes — `dumbbell` is `डंबल` in all 285 names that
+ * contain it — which is why the map is 525 tokens rather than 1,324 strings.
+ *
+ * Everything that is not a letter survives untouched: 322 names carry hyphens,
+ * parentheses, `v. 2`, digits or a degree sign, and those are what tell two
+ * variations of the same movement apart.
+ *
+ * Throws on an unmapped token rather than emitting a half-Latin name. A dataset
+ * that grows a new word should fail the seed run, not ship `डंबल frobnicate`.
+ */
+export const transliterateName = (name: string, tokens: Record<string, string>): string => {
+    const repaired = repairName(name);
+    const unmapped: string[] = [];
+
+    const result = repaired.replace(NAME_TOKEN, (token) => {
+        const mapped = tokens[token.toLowerCase()];
+        if (mapped === undefined) {
+            unmapped.push(token);
+
+            return token;
+        }
+
+        return mapped;
+    });
+
+    if (unmapped.length > 0) {
+        throw new Error(`No Hindi transliteration for: ${unmapped.join(', ')} (in "${name}")`);
+    }
+
+    return result;
+};
+
+/** Every distinct word across a set of names, lowercased. Used to audit the map. */
+export const nameTokens = (names: string[]): string[] => {
+    const seen = new Set<string>();
+
+    for (const name of names) {
+        for (const token of repairName(name).match(NAME_TOKEN) ?? []) {
+            seen.add(token.toLowerCase());
+        }
+    }
+
+    return [...seen].sort();
+};

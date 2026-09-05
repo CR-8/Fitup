@@ -10,7 +10,53 @@
             "button": {
                 "title": "प्लान करें",
                 "description": "अपना पहला वर्कआउट"
+            },
+            "headline": {
+                "first": "ट्रेनिंग प्लान करें",
+                "second": "हर सेट ट्रैक करें",
+                "third": "नतीजा देखें"
+            },
+            "stats": {
+                "exercisesValue": "1,300+",
+                "exercisesLabel": "व्यायाम",
+                "planValue": "2 मिनट",
+                "planLabel": "प्लान करने में",
+                "syncValue": "सिंक",
+                "syncLabel": "हर डिवाइस पर"
             }
+        },
+        "greeting": {
+            "morning": "सुप्रभात",
+            "afternoon": "नमस्कार",
+            "evening": "शुभ संध्या",
+            "fallback": "ट्रेनिंग के लिए तैयार?"
+        },
+        "thisWeek": "इस हफ़्ते",
+        "sessionsOfGoal": "{{goal}} में से {{count}} सेशन",
+        "sessionsDone_one": "{{count}} सेशन",
+        "sessionsDone_other": "{{count}} सेशन",
+        "stats": {
+            "sessions": "सेशन",
+            "time": "समय",
+            "volume_kg": "किग्रा उठाया",
+            "volume_lb": "पाउंड उठाया"
+        },
+        "upNext": {
+            "eyebrow": {
+                "resume": "चल रहा है",
+                "start": "अगला",
+                "create": "शुरू करें"
+            },
+            "action": {
+                "resume": "जारी रखें",
+                "start": "शुरू करें",
+                "create": "वर्कआउट बनाएँ"
+            },
+            "createTitle": "अभी कुछ प्लान नहीं है",
+            "createHint": "वर्कआउट बनाएँ, वह यहाँ दिखेगा।",
+            "exerciseCount_one": "{{count}} व्यायाम",
+            "exerciseCount_other": "{{count}} व्यायाम",
+            "startFailed": "वर्कआउट शुरू नहीं हो सका। दोबारा कोशिश करें।"
         }
     },
     "results": {

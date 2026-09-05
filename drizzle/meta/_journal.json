@@ -169,6 +169,13 @@
       "when": 1786263068200,
       "tag": "0023_hard_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788603701123,
+      "tag": "0024_modern_proudstar",
+      "breakpoints": true
     }
   ]
 }

@@ -69,9 +69,10 @@ const loadModule = (apiUrl: string | undefined = API) => {
     return require('./exercise-catalogue') as typeof import('./exercise-catalogue');
 };
 
-const entry = (id: string, name = `Exercise ${id}`) => ({
+const entry = (id: string, name = `Exercise ${id}`, nameEn = `Exercise ${id}`) => ({
     id,
     name,
+    nameEn,
     category: 'strength',
     equipment: ['barbell'],
     primaryMuscleGroups: ['pectorals'],
@@ -203,6 +204,22 @@ describe('rejecting bad data', () => {
         expect(written).toHaveLength(0);
         expect(isCatalogueSeeded()).toBe(false);
         expect(mockReportError).toHaveBeenCalled();
+    });
+
+    test('accepts a page from a Worker that does not send nameEn yet', async () => {
+        // The two deploy independently. If a missing `nameEn` were fatal, an app
+        // update would refuse every page until the Worker caught up — and the
+        // symptom would be a library that quietly stopped updating, which is
+        // exactly the failure this whole module exists to prevent.
+        const { nameEn: _dropped, ...withoutNameEn } = entry(id('a'));
+        respondWith(page([withoutNameEn], null));
+        const { ensureExerciseCatalogue, isCatalogueSeeded } = loadModule();
+
+        await ensureExerciseCatalogue('en');
+
+        expect(written.flat()).toHaveLength(1);
+        expect(isCatalogueSeeded()).toBe(true);
+        expect(mockReportError).not.toHaveBeenCalled();
     });
 
     test('rejects an unknown category rather than storing it', async () => {

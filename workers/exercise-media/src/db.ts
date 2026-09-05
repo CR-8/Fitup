@@ -37,6 +37,7 @@ const asStringArray = (value: unknown): string[] => {
 interface Row {
     id: string;
     name: string;
+    name_en: string;
     category: string;
     equipment: unknown;
     primary_muscle_groups: unknown;
@@ -55,6 +56,11 @@ const toItem = (row: Row): ExerciseItem => {
     return {
         id: row.id,
         name: row.name,
+        // Always the English name, whatever the requested locale. The catalogue
+        // is searched on the device, and a Hindi-only index would stop matching
+        // the moment someone typed a Latin word — which, for gym vocabulary, is
+        // most of the time.
+        nameEn: row.name_en,
         category: row.category,
         equipment: asStringArray(row.equipment),
         primaryMuscleGroups: asStringArray(row.primary_muscle_groups),
@@ -83,8 +89,14 @@ export const fetchPage = async (
     env: Env,
     { cursor, limit, locale }: { cursor: string | null; limit: number; locale: Locale },
 ): Promise<Page> => {
+    // `i.name` is NULL for every locale that has not translated the names —
+    // English included, which carries only `e.name`. COALESCE is what turns
+    // that into "reads as English" rather than "reads as nothing".
     const sql = `SELECT
-            e.id, e.name, e.category, e.equipment,
+            e.id,
+            COALESCE(i.name, e.name) AS name,
+            e.name AS name_en,
+            e.category, e.equipment,
             e.primary_muscle_groups, e.secondary_muscle_groups,
             e.gif_filename, e.secure_url, e.width, e.height,
             i.steps AS steps,

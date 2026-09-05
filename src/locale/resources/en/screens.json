@@ -10,7 +10,53 @@
             "button": {
                 "title": "Plan",
                 "description": "Your first workout"
+            },
+            "headline": {
+                "first": "Plan your training",
+                "second": "Track every set",
+                "third": "See it add up"
+            },
+            "stats": {
+                "exercisesValue": "1,300+",
+                "exercisesLabel": "exercises",
+                "planValue": "2 min",
+                "planLabel": "to plan one",
+                "syncValue": "Synced",
+                "syncLabel": "across devices"
             }
+        },
+        "greeting": {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+            "fallback": "Ready to train?"
+        },
+        "thisWeek": "This week",
+        "sessionsOfGoal": "{{count}} of {{goal}} sessions",
+        "sessionsDone_one": "{{count}} session",
+        "sessionsDone_other": "{{count}} sessions",
+        "stats": {
+            "sessions": "sessions",
+            "time": "time",
+            "volume_kg": "kg lifted",
+            "volume_lb": "lb lifted"
+        },
+        "upNext": {
+            "eyebrow": {
+                "resume": "In progress",
+                "start": "Up next",
+                "create": "Get started"
+            },
+            "action": {
+                "resume": "Resume",
+                "start": "Start",
+                "create": "Plan a workout"
+            },
+            "createTitle": "Nothing planned yet",
+            "createHint": "Build a workout and it will show up here.",
+            "exerciseCount_one": "{{count}} exercise",
+            "exerciseCount_other": "{{count}} exercises",
+            "startFailed": "Could not start that workout. Try again."
         }
     },
     "results": {

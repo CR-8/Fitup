@@ -31,15 +31,18 @@ import {
     updateWorkoutGroup,
     deleteWorkoutGroup,
     fetchWorkoutStats,
+    fetchWorkoutRangeStats,
     fetchWorkoutDaySummary,
     fetchWorkoutDayHealthStats,
     fetchStrengthRadarStats,
     WorkoutStats,
+    WorkoutRangeStats,
     WorkoutDaySummary,
     StrengthRadarStats,
     WorkoutProgressSnapshot,
     getWorkoutProgressSnapshot,
 } from '@/crud/workout';
+import { startOfWeekMs } from '@/helpers/workouts';
 import { useUser } from './use-user';
 import { useAnalytics } from './use-analytics';
 import {
@@ -121,6 +124,8 @@ export const useWorkouts = () => {
 export interface WorkoutOverviewMeta {
     sortedWorkoutTypes: string[];
     sortedPrimaryMuscleGroups: string[];
+    /** How many exercises the workout holds. Free: the rows are already counted. */
+    exercisesCount: number;
 }
 
 export type WorkoutOverviewMetaMap = Record<string, WorkoutOverviewMeta>;
@@ -145,13 +150,22 @@ export const useWorkoutsOverviewMeta = (workoutIds: string[]) => {
 
             const categoryCountsByWorkoutId = new Map<string, Map<string, number>>();
             const primaryMuscleCountsByWorkoutId = new Map<string, Map<string, number>>();
+            const exerciseCountsByWorkoutId = new Map<string, number>();
 
             for (const workoutId of uniqueWorkoutIds) {
                 categoryCountsByWorkoutId.set(workoutId, new Map());
                 primaryMuscleCountsByWorkoutId.set(workoutId, new Map());
+                exerciseCountsByWorkoutId.set(workoutId, 0);
             }
 
             for (const row of rows) {
+                // One row per workout-exercise, so the count comes out of the
+                // loop that was already running.
+                exerciseCountsByWorkoutId.set(
+                    row.workoutId,
+                    (exerciseCountsByWorkoutId.get(row.workoutId) ?? 0) + 1,
+                );
+
                 const categoryCounts = categoryCountsByWorkoutId.get(row.workoutId);
                 if (categoryCounts) {
                     categoryCounts.set(row.category, (categoryCounts.get(row.category) || 0) + 1);
@@ -177,6 +191,7 @@ export const useWorkoutsOverviewMeta = (workoutIds: string[]) => {
                     sortedPrimaryMuscleGroups: getSortedKeysByCount(
                         primaryMuscleCountsByWorkoutId.get(workoutId) || new Map(),
                     ),
+                    exercisesCount: exerciseCountsByWorkoutId.get(workoutId) ?? 0,
                 };
                 return acc;
             }, {});
@@ -812,6 +827,31 @@ export const useWorkoutStats = (): WorkoutStats => {
         enabled: !!user?.id,
         placeholderData: defaultStats,
         staleTime: 60000 * 10, // Cache for 10 minutes to avoid refetching on every navigation
+    });
+
+    return stats;
+};
+
+/**
+ * Volume completed this week.
+ *
+ * Separate from `useWorkoutStats` because it is windowed, and separate from the
+ * session and time figures because those need no query at all — the home screen
+ * derives them with `summariseWeek` from rows it already has.
+ */
+export const useWeeklyWorkoutStats = (firstWeekday: number): WorkoutRangeStats => {
+    const { user } = useUser();
+
+    // Recomputed when the week rolls over rather than on a timer: the key
+    // changes on its own the moment `startOfWeekMs` returns a new boundary.
+    const since = startOfWeekMs(firstWeekday);
+
+    const { data: stats = { volume: 0 } } = useQuery({
+        queryKey: ['workout-stats', 'range', user?.id, user?.weightUnits, since],
+        queryFn: () => fetchWorkoutRangeStats(user!.weightUnits || 'kg', since),
+        enabled: !!user?.id,
+        placeholderData: { volume: 0 },
+        staleTime: 60000 * 10,
     });
 
     return stats;

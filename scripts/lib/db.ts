@@ -18,12 +18,12 @@ import { runPool } from './limiter';
 const D1_MAX_BOUND_PARAMS = 100;
 
 const EXERCISE_COLUMNS = 14;
-const INSTRUCTION_COLUMNS = 3;
+const INSTRUCTION_COLUMNS = 4;
 
 /** 7 rows x 14 columns = 98 parameters. */
 const EXERCISE_BATCH_SIZE = Math.floor(D1_MAX_BOUND_PARAMS / EXERCISE_COLUMNS);
 
-/** 33 rows x 3 columns = 99 parameters. */
+/** 25 rows x 4 columns = 100 parameters. */
 const INSTRUCTION_BATCH_SIZE = Math.floor(D1_MAX_BOUND_PARAMS / INSTRUCTION_COLUMNS);
 
 /**
@@ -228,27 +228,41 @@ export const upsertExercises = async (
     return rows.length;
 };
 
-export type InstructionsByLocale = Map<Locale, Map<string, string[]>>;
+/** Everything a locale can override for one exercise. */
+export interface LocaleText {
+    steps: string[];
+    /**
+     * The exercise's name in this locale. English leaves it null so the Worker
+     * falls through to `exercise.name`, which is the only name the dataset
+     * ships.
+     */
+    name?: string;
+}
+
+export type InstructionsByLocale = Map<Locale, Map<string, LocaleText>>;
 
 /**
- * Upserts instruction text, one row per (exercise, locale).
+ * Upserts per-locale text, one row per (exercise, locale).
  *
- * A locale with no steps for an exercise writes no row at all rather than an
- * empty array, so the Worker's LEFT JOIN can tell "not translated" from
- * "translated to nothing" and fall back to English.
+ * A locale with neither steps nor a name writes no row at all. One with a name
+ * but no steps writes `[]`, which the Worker's `toItem` degrades to the English
+ * steps exactly as a missing row would — so "not translated" and "translated to
+ * nothing" still behave the same, and a name can arrive without one.
  */
 export const upsertInstructions = async (
     client: D1Client,
     instructions: InstructionsByLocale,
 ): Promise<number> => {
-    const rows: [string, string, string][] = [];
+    const rows: [string, string, string, string | null][] = [];
 
     for (const locale of LOCALES) {
         const perExercise = instructions.get(locale);
         if (!perExercise) continue;
 
-        for (const [exerciseId, steps] of perExercise) {
-            if (steps.length > 0) rows.push([exerciseId, locale, JSON.stringify(steps)]);
+        for (const [exerciseId, text] of perExercise) {
+            if (text.steps.length === 0 && !text.name) continue;
+
+            rows.push([exerciseId, locale, JSON.stringify(text.steps), text.name ?? null]);
         }
     }
 
@@ -256,9 +270,11 @@ export const upsertInstructions = async (
 
     await runPool(batches, REQUEST_CONCURRENCY, async (batch) => {
         await client.query(
-            `INSERT INTO exercise_instruction (exercise_id, locale, steps)
+            `INSERT INTO exercise_instruction (exercise_id, locale, steps, name)
              VALUES ${placeholders(batch.length, INSTRUCTION_COLUMNS)}
-             ON CONFLICT(exercise_id, locale) DO UPDATE SET steps = excluded.steps`,
+             ON CONFLICT(exercise_id, locale) DO UPDATE SET
+                steps = excluded.steps,
+                name = excluded.name`,
             batch.flat(),
         );
     });

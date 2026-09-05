@@ -33,9 +33,17 @@ CREATE TABLE IF NOT EXISTS exercise (
   updated_at              INTEGER NOT NULL
 );
 
+-- Everything about an exercise that changes with the language. `name` is NULL
+-- for English, which is the one name the `exercise` table above already holds;
+-- the Worker COALESCEs onto it, so an untranslated locale reads as English
+-- rather than as nothing.
+--
+-- Adding `name` to an existing database is scripts/d1-add-instruction-name.ts,
+-- not this file: db-push.ts only runs statements that are safe to repeat.
 CREATE TABLE IF NOT EXISTS exercise_instruction (
   exercise_id TEXT NOT NULL,
   locale      TEXT NOT NULL,
   steps       TEXT NOT NULL,
+  name        TEXT,
   PRIMARY KEY (exercise_id, locale)
 );

@@ -73,7 +73,7 @@ export type AnalyticsEventMap = {
         storeReviewHasAction: boolean;
     };
     'workout:create_requested': {
-        surface: 'home_empty_state' | 'home_header';
+        surface: 'home_empty_state' | 'home_header' | 'home_up_next';
     };
     'workout:editor_opened': WorkoutEditorProperties;
     'workout:editor_submitted': WorkoutEditorProperties & {

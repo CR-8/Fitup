@@ -242,7 +242,10 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             updatedAt: 'updated_at',
         },
         dates: [...TIMESTAMPS],
-        deviceOnly: [],
+        // `nameEn` only ever holds a catalogue name, and catalogue rows do not
+        // leave the device at all (see `include` below). A user-authored
+        // exercise has it null, so there would be nothing to carry either way.
+        deviceOnly: ['nameEn'],
         // The catalogue is 1,324 rows that re-seed from Cloudflare D1 on any
         // install. Sending them would multiply every account's backup by a
         // thousand to restore data the app already fetches for itself.

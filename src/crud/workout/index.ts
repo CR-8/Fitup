@@ -1334,6 +1334,52 @@ const resolveZoneSeconds = (seconds: number | null, minutes: number | null): num
     return null;
 };
 
+/**
+ * Total lifted weight, in kilograms.
+ *
+ * Three things here are easy to get right once and wrong the second time:
+ * pounds are converted before summing, a lift flagged `weightDoubleInStats`
+ * counts both sides, and warmups are excluded by the filters below rather than
+ * here. It was written out twice before this — a copy that drifts on any of
+ * them produces two totals that contradict each other, with nothing to say
+ * which one is wrong.
+ */
+const volumeKgSum = sql<number>`
+                coalesce(
+                    sum(
+                        (
+                            case
+                                when ${exerciseSet.weightUnits} = 'lb'
+                                    then ${exerciseSet.weight} / 2.20462
+                                else ${exerciseSet.weight}
+                            end
+                        ) *
+                        (
+                            case
+                                when coalesce(${exercise.weightDoubleInStats}, 0) = 1
+                                    then 2
+                                else 1
+                            end
+                        ) *
+                        ${exerciseSet.reps}
+                    ),
+                    0
+                )
+            `;
+
+/**
+ * Which sets count toward volume. Scoping to a workout, a day or a date range is
+ * the caller's to add; everything else about "does this set count" lives here.
+ */
+const countableVolumeSetFilters = [
+    ne(exerciseSet.type, 'warmup'),
+    isNotNull(exerciseSet.completedAt),
+    isNotNull(exerciseSet.weight),
+    isNotNull(exerciseSet.reps),
+    sql`${exerciseSet.weight} != 0`,
+    sql`${exerciseSet.reps} != 0`,
+];
+
 export const fetchWorkoutDaySummary = async (
     dateKey: string,
     weightUnits: 'kg' | 'lb' | null,
@@ -1458,43 +1504,12 @@ export const fetchWorkoutDaySummary = async (
 
     const [volumeTotals] = await db
         .select({
-            totalVolumeKg: sql<number>`
-                coalesce(
-                    sum(
-                        (
-                            case
-                                when ${exerciseSet.weightUnits} = 'lb'
-                                    then ${exerciseSet.weight} / 2.20462
-                                else ${exerciseSet.weight}
-                            end
-                        ) *
-                        (
-                            case
-                                when coalesce(${exercise.weightDoubleInStats}, 0) = 1
-                                    then 2
-                                else 1
-                            end
-                        ) *
-                        ${exerciseSet.reps}
-                    ),
-                    0
-                )
-            `,
+            totalVolumeKg: volumeKgSum,
         })
         .from(exerciseSet)
         .innerJoin(workoutExercise, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
         .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
-        .where(
-            and(
-                inArray(workoutExercise.workoutId, workoutIds),
-                ne(exerciseSet.type, 'warmup'),
-                isNotNull(exerciseSet.completedAt),
-                isNotNull(exerciseSet.weight),
-                isNotNull(exerciseSet.reps),
-                sql`${exerciseSet.weight} != 0`,
-                sql`${exerciseSet.reps} != 0`,
-            ),
-        );
+        .where(and(inArray(workoutExercise.workoutId, workoutIds), ...countableVolumeSetFilters));
 
     const locomotionRows = await db
         .select({
@@ -1869,44 +1884,13 @@ export const fetchWorkoutStats = async (weightUnits: 'kg' | 'lb' | null): Promis
         .select({
             setsCount: sql<number>`count(*)`,
             repsCount: sql<number>`coalesce(sum(${exerciseSet.reps}), 0)`,
-            totalVolumeKg: sql<number>`
-                coalesce(
-                    sum(
-                        (
-                            case
-                                when ${exerciseSet.weightUnits} = 'lb'
-                                    then ${exerciseSet.weight} / 2.20462
-                                else ${exerciseSet.weight}
-                            end
-                        ) *
-                        (
-                            case
-                                when coalesce(${exercise.weightDoubleInStats}, 0) = 1
-                                    then 2
-                                else 1
-                            end
-                        ) *
-                        ${exerciseSet.reps}
-                    ),
-                    0
-                )
-            `,
+            totalVolumeKg: volumeKgSum,
         })
         .from(exerciseSet)
         .innerJoin(workoutExercise, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
         .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
         .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
-        .where(
-            and(
-                eq(workout.status, 'completed'),
-                ne(exerciseSet.type, 'warmup'),
-                isNotNull(exerciseSet.completedAt),
-                isNotNull(exerciseSet.weight),
-                isNotNull(exerciseSet.reps),
-                sql`${exerciseSet.weight} != 0`,
-                sql`${exerciseSet.reps} != 0`,
-            ),
-        );
+        .where(and(eq(workout.status, 'completed'), ...countableVolumeSetFilters));
 
     const trainingHours = roundToSingleDecimal(
         coerceNumber(completedTotals?.totalDurationSeconds) / 3600,
@@ -1925,6 +1909,49 @@ export const fetchWorkoutStats = async (weightUnits: 'kg' | 'lb' | null): Promis
         exercisesCount: coerceNumber(exerciseTotals?.exercisesCount),
         setsCount: coerceNumber(setTotals?.setsCount),
         repsCount: coerceNumber(setTotals?.repsCount),
+    };
+};
+
+export interface WorkoutRangeStats {
+    /** Volume in the user's own weight units, matching the lifetime figure. */
+    volume: number;
+}
+
+/**
+ * Volume completed since a point in time.
+ *
+ * Only volume. Sessions and duration are columns on the workout row, so the home
+ * screen counts those from rows it has already loaded rather than asking again —
+ * volume is the one figure that lives on the sets and cannot be derived without
+ * a join.
+ *
+ * Shares `volumeKgSum` and `countableVolumeSetFilters` with `fetchWorkoutStats`
+ * on purpose: "this week" and "all time" have to be the same measurement over a
+ * different window, or the smaller number can exceed the larger one.
+ */
+export const fetchWorkoutRangeStats = async (
+    weightUnits: 'kg' | 'lb' | null,
+    sinceMs: number,
+): Promise<WorkoutRangeStats> => {
+    const [totals] = await db
+        .select({ totalVolumeKg: volumeKgSum })
+        .from(exerciseSet)
+        .innerJoin(workoutExercise, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
+        .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
+        .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
+        .where(
+            and(
+                eq(workout.status, 'completed'),
+                isNotNull(workout.completedAt),
+                gte(workout.completedAt, new Date(sinceMs)),
+                ...countableVolumeSetFilters,
+            ),
+        );
+
+    const totalVolumeKg = coerceNumber(totals?.totalVolumeKg);
+
+    return {
+        volume: weightUnits === 'lb' ? convertWeight(totalVolumeKg, 'kg', 'lb') : totalVolumeKg,
     };
 };
 

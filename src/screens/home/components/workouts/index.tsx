@@ -15,8 +15,10 @@ import type { WorkoutOverviewMetaMap } from '@/hooks/use-workouts';
 import { Pushes } from '@/components/promo/pushes';
 
 import { WorkoutCard } from '../workout-card';
-import { Header } from '../header';
+import { Greeting } from '../greeting';
 import { WeekStats } from '../week';
+import { UpNext, type UpNextState } from '../up-next';
+import { WeekStatsBlocks, type WeekStatsBlock } from '../week-stats';
 
 type WorkoutSectionType = 'in_progress' | 'planned' | 'completed';
 
@@ -54,15 +56,22 @@ interface WorkoutsProps {
     plannedWorkouts: WorkoutSelect[];
     completedGroups: WorkoutGroup[];
     workoutsOverviewMeta: WorkoutOverviewMetaMap;
+    upNext: UpNextState;
+    statBlocks: WeekStatsBlock[];
+    weekSessions: number;
+    sessionsGoal: number | null;
 }
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     listContainer: {
         flex: 1,
     },
     listContent: {
+        // No `paddingBottom` override here. `screenContentPadding('root')`
+        // already reserves `insets.bottom + space(20)`, which is what clears the
+        // tab bar — replacing it with `space(4)` left the last card sitting
+        // underneath it, unreachable however far you scrolled.
         ...theme.screenContentPadding('root'),
-        paddingBottom: rt.insets.bottom + theme.space(4),
     },
     headerContent: {
         gap: theme.space(5),
@@ -112,6 +121,10 @@ export const Workouts: FC<WorkoutsProps> = ({
     plannedWorkouts,
     completedGroups,
     workoutsOverviewMeta,
+    upNext,
+    statBlocks,
+    weekSessions,
+    sessionsGoal,
 }) => {
     const { t } = useTranslation(['screens']);
     const router = useRouter();
@@ -162,8 +175,18 @@ export const Workouts: FC<WorkoutsProps> = ({
     const listItems = useMemo<WorkoutsListItem[]>(() => {
         const items: WorkoutsListItem[] = [];
 
-        if (inProgressWorkouts.length > 0) {
-            inProgressWorkouts.forEach((workout, index) => {
+        // Whatever the card above is offering is not repeated here. Without
+        // this the running workout renders twice — once as the hero and once as
+        // the first row beneath it.
+        const promotedId = upNext.kind === 'create' ? null : upNext.workout.id;
+
+        const remainingInProgress = inProgressWorkouts.filter(
+            (workout) => workout.id !== promotedId,
+        );
+        const remainingPlanned = plannedWorkouts.filter((workout) => workout.id !== promotedId);
+
+        if (remainingInProgress.length > 0) {
+            remainingInProgress.forEach((workout, index) => {
                 items.push({
                     type: 'card',
                     key: `in-progress-card-${workout.id}`,
@@ -174,7 +197,7 @@ export const Workouts: FC<WorkoutsProps> = ({
             });
         }
 
-        if (plannedWorkouts.length > 0) {
+        if (remainingPlanned.length > 0) {
             items.push({
                 type: 'planned_header',
                 key: 'planned-header',
@@ -182,7 +205,7 @@ export const Workouts: FC<WorkoutsProps> = ({
                 hasTopSpacing: items.length > 0,
             });
 
-            plannedWorkouts.forEach((workout, index) => {
+            remainingPlanned.forEach((workout, index) => {
                 items.push({
                     type: 'card',
                     key: `planned-card-${workout.id}`,
@@ -214,17 +237,46 @@ export const Workouts: FC<WorkoutsProps> = ({
         });
 
         return items;
-    }, [inProgressWorkouts, plannedWorkouts, visibleCompletedGroups, t]);
+    }, [inProgressWorkouts, plannedWorkouts, upNext, visibleCompletedGroups, t]);
 
     const renderHeader = useCallback(
         () => (
             <VStack style={styles.headerContent}>
-                <Header />
-                <WeekStats workouts={workouts} firstWeekday={firstWeekday} />
+                <Greeting />
+                <UpNext
+                    state={upNext}
+                    overviewMeta={
+                        upNext.kind === 'create'
+                            ? undefined
+                            : workoutsOverviewMeta[upNext.workout.id]
+                    }
+                    elapsedFormatted={
+                        upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
+                            ? elapsedFormated
+                            : null
+                    }
+                />
+                <WeekStatsBlocks blocks={statBlocks} />
+                <WeekStats
+                    workouts={workouts}
+                    firstWeekday={firstWeekday}
+                    sessions={weekSessions}
+                    sessionsGoal={sessionsGoal}
+                />
                 <Pushes />
             </VStack>
         ),
-        [firstWeekday, workouts],
+        [
+            elapsedFormated,
+            firstWeekday,
+            runningWorkout?.id,
+            sessionsGoal,
+            statBlocks,
+            upNext,
+            weekSessions,
+            workouts,
+            workoutsOverviewMeta,
+        ],
     );
 
     const renderItem = useCallback(

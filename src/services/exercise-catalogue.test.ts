@@ -316,3 +316,65 @@ describe('resetExerciseCatalogue', () => {
         expect(isCatalogueSeeded()).toBe(false);
     });
 });
+
+/**
+ * A refresh walks fourteen pages against the real catalogue, which is long
+ * enough for a language change to land in the middle of one. Both walks then
+ * write the same rows page by page and the slower request wins each one, so the
+ * library comes out part Hindi and part English — and the marker the second
+ * walk stores tells `isRefreshFresh` the job is done, which makes it stick.
+ */
+describe('a language change during a refresh', () => {
+    test('the overtaken walk stops writing and does not claim the catalogue', async () => {
+        let releaseSecondPage: (() => void) | null = null;
+        const secondPageReached = new Promise<void>((resolve) => {
+            releaseSecondPage = resolve;
+        });
+
+        const fetchMock = jest.fn();
+        // Page 1 of the English walk: more to come.
+        fetchMock.mockImplementationOnce(async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => page([entry(id('en1'), 'English one')], id('en1')),
+        }));
+        // Page 2 of the English walk, held open until Hindi has finished.
+        fetchMock.mockImplementationOnce(async () => {
+            await secondPageReached;
+
+            return {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                json: async () => page([entry(id('en2'), 'English two')], null),
+            };
+        });
+        // The Hindi walk, one page and done.
+        fetchMock.mockImplementationOnce(async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => page([entry(id('en1'), 'हिन्दी एक')], null),
+        }));
+        global.fetch = fetchMock as unknown as typeof fetch;
+
+        const { ensureExerciseCatalogue } = loadModule();
+
+        const english = ensureExerciseCatalogue('en');
+        // Let the English walk get as far as requesting its second page.
+        await new Promise((resolve) => setImmediate(resolve));
+
+        await ensureExerciseCatalogue('hi');
+
+        releaseSecondPage!();
+        await english;
+
+        const names = written.flat().map((row) => row.name);
+
+        // "English two" is the row the overtaken walk would have written on top
+        // of a catalogue that is now Hindi.
+        expect(names).toEqual(['English one', 'हिन्दी एक']);
+        expect(mockStore.get('catalogue.locale')).toBe('hi');
+    });
+});

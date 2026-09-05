@@ -225,11 +225,32 @@ const writeRows = async (rows: ExerciseInsert[]): Promise<void> => {
  * deliberate: a refresh interrupted at page 7 of 14 leaves 700 usable exercises
  * behind instead of nothing.
  */
-const refresh = async (locale: string): Promise<void> => {
+/**
+ * Which refresh is allowed to write.
+ *
+ * A refresh walks 14 pages, which takes long enough that a language change can
+ * land in the middle of one. Both walks then write the same 1,324 rows, page by
+ * page, and whichever request happens to return last wins each page — so the
+ * library ends up part Hindi and part English, and the newer walk then stores
+ * its locale marker, which makes `isRefreshFresh` call the mess finished.
+ *
+ * A counter is enough: only the most recent caller may write, and an overtaken
+ * one stops where it is rather than fighting for rows it no longer owns.
+ */
+let refreshGeneration = 0;
+
+const refresh = async (locale: string, isCurrent: () => boolean): Promise<void> => {
     let cursor: string | null = null;
 
     for (let page = 0; page < MAX_PAGES; page++) {
+        if (!isCurrent()) return;
+
         const { items, nextCursor, hasMore }: RemotePage = await fetchPage(locale, cursor);
+
+        // Checked again after the round trip, not just before it: the whole
+        // point is that a language change arrives while this request is in
+        // flight.
+        if (!isCurrent()) return;
 
         if (items.length > 0) await writeRows(items.map(toRow));
 
@@ -277,8 +298,16 @@ export const ensureExerciseCatalogue = async (locale: string): Promise<void> => 
     const normalized = normalizeLocale(locale);
     if (isRefreshFresh(normalized)) return;
 
+    const generation = ++refreshGeneration;
+    const isCurrent = () => generation === refreshGeneration;
+
     try {
-        await refresh(normalized);
+        await refresh(normalized, isCurrent);
+
+        // Overtaken part-way. The newer walk owns the rows and the markers now;
+        // writing them here would claim a complete catalogue in a language this
+        // one only half finished.
+        if (!isCurrent()) return;
 
         storage.set(VERSION_KEY, CATALOGUE_VERSION);
         storage.set(LOCALE_KEY, normalized);

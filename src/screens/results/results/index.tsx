@@ -9,8 +9,10 @@ import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/forms/label';
-import { useWorkoutStats } from '@/hooks/use-workouts';
+import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
+import { useWorkoutStats, useWorkouts } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
+import { computeStreakDays } from '@/helpers/workouts';
 
 import { ActivitySummary } from './components/activity-summary';
 import { MonthStats } from './components/month';
@@ -68,6 +70,46 @@ const ResultsScreen = () => {
     const { user } = useUser();
     const stats = useWorkoutStats();
     const [isChartScrubbing, setIsChartScrubbing] = useState(false);
+
+    // `MonthStats` below already runs this query, so the streak rides along on
+    // a cache hit rather than a second fetch.
+    const { data: workouts } = useWorkouts();
+
+    /**
+     * The three figures worth reading from across a room, promoted out of the
+     * eight-row list further down.
+     *
+     * Every one of them is a real total or `—`. `useWorkoutStats` returns null
+     * for a metric it cannot compute, and that is shown as an em dash rather
+     * than as a zero that would read as a fact about the user's training.
+     */
+    const heroBlocks = useMemo<StatBlock[]>(() => {
+        const streak = computeStreakDays(workouts ?? []);
+
+        return [
+            {
+                key: 'workouts',
+                value: stats.workoutsCount
+                    ? t('number', { value: stats.workoutsCount, ns: 'common' })
+                    : '—',
+                label: t('results.stats.workoutsCount.title', { ns: 'screens' }),
+                emphasised: true,
+            },
+            {
+                key: 'time',
+                value: stats.trainingHours
+                    ? t('results.hero.hours', { ns: 'screens', value: stats.trainingHours })
+                    : '—',
+                label: t('results.stats.trainingHours.title', { ns: 'screens' }),
+            },
+            {
+                key: 'streak',
+                value: streak > 0 ? String(streak) : '—',
+                label: t('results.hero.streak', { ns: 'screens' }),
+                emphasised: streak >= 2,
+            },
+        ];
+    }, [stats.trainingHours, stats.workoutsCount, t, workouts]);
 
     const statsData = useMemo(() => {
         return [
@@ -133,6 +175,7 @@ const ResultsScreen = () => {
             scrollEnabled={!isChartScrubbing}
         >
             <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
+            <StatBlocks blocks={heroBlocks} inset={false} />
             <MonthStats />
             <ActivitySummary onScrubbingChange={setIsChartScrubbing} />
             <StrengthStats />

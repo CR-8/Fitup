@@ -1,11 +1,12 @@
 import { FC, memo, useCallback, useMemo } from 'react';
 import { GestureResponderEvent } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Image as ExpoImage } from 'expo-image';
+import { Play } from 'lucide-react-native';
 
+import { Box, BoxProps } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
 import { buildExerciseGifUrl, EXERCISE_GIF_THUMBNAIL_RESOLUTION } from '@/constants/fitup';
-import { BoxProps } from '@/components/primitives/box';
 import { useAnalytics } from '@/hooks/use-analytics';
 
 const styles = StyleSheet.create((theme) => ({
@@ -22,6 +23,24 @@ const styles = StyleSheet.create((theme) => ({
     gifPreviewImage: {
         width: '100%',
         height: '100%',
+    },
+    /**
+     * These render with `autoplay={false}`, so an animated exercise sits here
+     * as a single frozen frame and looks like a plain still. The badge is the
+     * only thing telling anyone there is an animation behind it — and it is
+     * drawn only when a GIF actually exists, so it never promises playback the
+     * exercise does not have.
+     */
+    playBadge: {
+        position: 'absolute',
+        right: theme.space(0.5),
+        bottom: theme.space(0.5),
+        height: theme.space(4),
+        width: theme.space(4),
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(11, 11, 12, 0.65)',
     },
 }));
 
@@ -43,6 +62,7 @@ const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
     analyticsWorkoutId,
 }) => {
     const { track } = useAnalytics();
+    const { theme } = useUnistyles();
     const gifThumbnailUrl = useMemo(() => {
         if (!gifFilename) return '';
         return buildExerciseGifUrl(gifFilename, EXERCISE_GIF_THUMBNAIL_RESOLUTION);
@@ -77,6 +97,14 @@ const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
                 contentFit="cover"
                 autoplay={false}
             />
+            <Box style={styles.playBadge}>
+                <Play
+                    size={theme.space(2)}
+                    color={theme.colors.white}
+                    fill={theme.colors.white}
+                    strokeWidth={3}
+                />
+            </Box>
         </Pressable>
     );
 };

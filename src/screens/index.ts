@@ -8,6 +8,7 @@ export { default as AppReviewScreen } from './app-review';
 export { default as FilterScreen } from './exercises/filter';
 export { default as SelectScreen } from './select';
 export { default as WorkoutScreen } from './workouts/workout';
+export { default as WorkoutHubScreen } from './workouts/hub';
 export { default as WorkoutExerciseScreen } from './workouts/exercise';
 export { default as TonyScreen } from './tony';
 export { default as SignInScreen } from './auth/sign-in';

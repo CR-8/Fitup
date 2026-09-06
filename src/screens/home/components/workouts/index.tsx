@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from 'react';
+import { FC, ReactNode, useCallback, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -12,13 +12,9 @@ import { HStack } from '@/components/primitives/hstack';
 import { WorkoutGroup } from '@/helpers/workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import type { WorkoutOverviewMetaMap } from '@/hooks/use-workouts';
-import { Pushes } from '@/components/promo/pushes';
 
 import { WorkoutCard } from '../workout-card';
-import { Greeting } from '../greeting';
-import { WeekStats } from '../week';
-import { UpNext, type UpNextState } from '../up-next';
-import { WeekStatsBlocks, type WeekStatsBlock } from '../week-stats';
+import { type UpNextState } from '../up-next';
 
 type WorkoutSectionType = 'in_progress' | 'planned' | 'completed';
 
@@ -50,16 +46,13 @@ type WorkoutsListItem = CardItem | PlannedHeaderItem | CompletedHeaderItem;
 const COMPLETED_WEEKS_PAGE_SIZE = 5;
 
 interface WorkoutsProps {
-    workouts: WorkoutSelect[];
-    firstWeekday: number;
     inProgressWorkouts: WorkoutSelect[];
     plannedWorkouts: WorkoutSelect[];
     completedGroups: WorkoutGroup[];
     workoutsOverviewMeta: WorkoutOverviewMetaMap;
     upNext: UpNextState;
-    statBlocks: WeekStatsBlock[];
-    weekSessions: number;
-    sessionsGoal: number | null;
+    /** What sits above the list. Supplied by the screen that owns it. */
+    header: ReactNode;
 }
 
 const styles = StyleSheet.create((theme) => ({
@@ -115,16 +108,12 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 export const Workouts: FC<WorkoutsProps> = ({
-    workouts,
-    firstWeekday,
     inProgressWorkouts,
     plannedWorkouts,
     completedGroups,
     workoutsOverviewMeta,
     upNext,
-    statBlocks,
-    weekSessions,
-    sessionsGoal,
+    header,
 }) => {
     const { t } = useTranslation(['screens']);
     const router = useRouter();
@@ -239,46 +228,6 @@ export const Workouts: FC<WorkoutsProps> = ({
         return items;
     }, [inProgressWorkouts, plannedWorkouts, upNext, visibleCompletedGroups, t]);
 
-    const renderHeader = useCallback(
-        () => (
-            <VStack style={styles.headerContent}>
-                <Greeting />
-                <UpNext
-                    state={upNext}
-                    overviewMeta={
-                        upNext.kind === 'create'
-                            ? undefined
-                            : workoutsOverviewMeta[upNext.workout.id]
-                    }
-                    elapsedFormatted={
-                        upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
-                            ? elapsedFormated
-                            : null
-                    }
-                />
-                <WeekStatsBlocks blocks={statBlocks} />
-                <WeekStats
-                    workouts={workouts}
-                    firstWeekday={firstWeekday}
-                    sessions={weekSessions}
-                    sessionsGoal={sessionsGoal}
-                />
-                <Pushes />
-            </VStack>
-        ),
-        [
-            elapsedFormated,
-            firstWeekday,
-            runningWorkout?.id,
-            sessionsGoal,
-            statBlocks,
-            upNext,
-            weekSessions,
-            workouts,
-            workoutsOverviewMeta,
-        ],
-    );
-
     const renderItem = useCallback(
         ({ item }: { item: WorkoutsListItem }) => {
             if (item.type === 'planned_header') {
@@ -335,7 +284,7 @@ export const Workouts: FC<WorkoutsProps> = ({
             keyExtractor={(item) => item.key}
             getItemType={(item) => item.type}
             drawDistance={320}
-            ListHeaderComponent={renderHeader}
+            ListHeaderComponent={() => header}
             contentContainerStyle={styles.listContent}
             style={styles.listContainer}
             showsVerticalScrollIndicator={false}

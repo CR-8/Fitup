@@ -73,7 +73,12 @@ export type AnalyticsEventMap = {
         storeReviewHasAction: boolean;
     };
     'workout:create_requested': {
-        surface: 'home_empty_state' | 'home_header' | 'home_up_next';
+        surface:
+            | 'home_empty_state'
+            | 'home_header'
+            | 'home_up_next'
+            | 'workout_tab'
+            | 'workout_tab_header';
     };
     'workout:editor_opened': WorkoutEditorProperties;
     'workout:editor_submitted': WorkoutEditorProperties & {
@@ -298,6 +303,7 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
 
 export type AnalyticsScreenName =
     | 'home'
+    | 'workout_hub'
     | 'progress'
     | 'exercise_library'
     | 'settings'

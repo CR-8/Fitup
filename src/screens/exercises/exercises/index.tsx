@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 
 import { Box } from '@/components/primitives/box';
+import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { useExercisesList } from '@/hooks/use-exercises';
 import { countActiveFilters, useFilterStore } from '@/stores/filter';
@@ -22,6 +23,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginBottom: theme.space(3),
         backgroundColor: theme.colors.background,
         gap: theme.space(2),
+    },
+    subtitle: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
     listContainer: {
         flex: 1,
@@ -60,6 +65,7 @@ const Exercises: FC = () => {
         <Box style={styles.container}>
             <Box style={styles.header}>
                 <Title type="h1">{t('exercises.title', { ns: 'screens' })}</Title>
+                <Text style={styles.subtitle}>{t('exercises.subtitle', { ns: 'screens' })}</Text>
                 <Search
                     value={query}
                     onChange={setQuery}

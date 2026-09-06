@@ -194,6 +194,51 @@ export const summariseWeek = (
     );
 };
 
+/**
+ * Consecutive days, ending today, on which a workout was completed.
+ *
+ * Same bargain as `summariseWeek`: `status` and `completedAt` are columns the
+ * screens have already loaded, so this is arithmetic over an array in hand
+ * rather than another query.
+ *
+ * Today counts when it has a completed workout, and is skipped rather than
+ * fatal when it does not — a run of five days should not read as broken at
+ * breakfast on the sixth, before anyone has had the chance to train. Two days
+ * without a workout ends it.
+ */
+export const computeStreakDays = (workouts: WorkoutSelect[], now: Date = new Date()): number => {
+    const days = new Set<number>();
+
+    for (const workout of workouts) {
+        if (workout.status !== 'completed' || !workout.completedAt) continue;
+
+        const day = new Date(workout.completedAt);
+        day.setHours(0, 0, 0, 0);
+        days.add(day.getTime());
+    }
+
+    if (days.size === 0) return 0;
+
+    const cursor = new Date(now);
+    cursor.setHours(0, 0, 0, 0);
+
+    // Yesterday is the other valid anchor, so an untrained today is a grace day
+    // rather than a reset.
+    if (!days.has(cursor.getTime())) {
+        cursor.setDate(cursor.getDate() - 1);
+        if (!days.has(cursor.getTime())) return 0;
+    }
+
+    let streak = 0;
+
+    while (days.has(cursor.getTime())) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
+};
+
 const formatWeekRange = (start: Date, end: Date, locale: string): string => {
     const startMonth = start.toLocaleDateString(locale, { month: 'long' });
     const endMonth = end.toLocaleDateString(locale, { month: 'long' });

@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 
-import { sumConsumed, sumPlanned, toDateKey, type MealWithItems } from './totals';
+import { countDayItems, sumConsumed, sumPlanned, toDateKey, type MealWithItems } from './totals';
 import type { MealItemSelect, MealSelect } from '@/db/schema';
 
 const buildItem = (overrides: Partial<MealItemSelect>): MealItemSelect =>
@@ -74,6 +74,44 @@ describe('daily totals', () => {
 
     test('an empty day totals zero', () => {
         expect(sumConsumed([])).toEqual({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0 });
+    });
+});
+
+/**
+ * These counts decide which of the nutrition screen's three states renders, so
+ * getting them wrong shows an empty-day setup card to someone holding a full
+ * meal plan — or a progress panel to someone with nothing logged.
+ */
+describe('counting the day', () => {
+    test('separates what is planned from what was eaten', () => {
+        const meals = [
+            buildMeal([
+                buildItem({ id: 'a', consumedAt: new Date() }),
+                buildItem({ id: 'b' }),
+                buildItem({ id: 'c' }),
+            ]),
+        ];
+
+        expect(countDayItems(meals)).toEqual({ total: 3, consumed: 1 });
+    });
+
+    test('a generated chart nobody has touched counts as planned, not eaten', () => {
+        const meals = [buildMeal([buildItem({ id: 'a' }), buildItem({ id: 'b' })])];
+
+        expect(countDayItems(meals)).toEqual({ total: 2, consumed: 0 });
+    });
+
+    test('counts across meals', () => {
+        const meals = [
+            buildMeal([buildItem({ id: 'a', consumedAt: new Date() })]),
+            buildMeal([buildItem({ id: 'b', consumedAt: new Date() }), buildItem({ id: 'c' })]),
+        ];
+
+        expect(countDayItems(meals)).toEqual({ total: 3, consumed: 2 });
+    });
+
+    test('an empty day counts zero', () => {
+        expect(countDayItems([])).toEqual({ total: 0, consumed: 0 });
     });
 });
 

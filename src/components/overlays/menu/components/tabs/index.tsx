@@ -7,7 +7,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import {
     LucideIcon,
     House,
-    Settings2,
+    Dumbbell,
     CircleGauge,
     ChartNoAxesColumn,
     MessageCircle,
@@ -52,8 +52,11 @@ const styles = StyleSheet.create((theme, rt) => ({
         height: theme.space(5),
         width: theme.space(5),
     },
+    // The selected tab was distinguished by opacity alone, which reads as
+    // "slightly less faded" rather than as the place you are. The accent is
+    // already the app's colour for the active thing, so it says it directly.
     itemText: (isFocused: boolean) => ({
-        color: theme.colors.typography,
+        color: isFocused ? theme.colors.primary : theme.colors.typography,
         opacity: isFocused ? 1 : 0.6,
     }),
 }));
@@ -77,7 +80,7 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
                     <Box style={styles.itemIconWrapper}>
                         <Icon
                             size={theme.space(5)}
-                            color={theme.colors.typography}
+                            color={isFocused ? theme.colors.primary : theme.colors.typography}
                             opacity={isFocused ? 1 : 0.7}
                         />
                     </Box>
@@ -98,11 +101,24 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
+        // Home, Exercises, Workout, Results, Tony — in the order the product
+        // is used. Settings left the bar because it is configuration rather
+        // than a daily destination; it is reached from the home header.
         const items = [
             {
                 screen: 'index',
                 title: 'home.title',
                 icon: House,
+            },
+            {
+                screen: 'exercises',
+                title: 'exercises.title',
+                icon: CircleGauge,
+            },
+            {
+                screen: 'workouts',
+                title: 'workouts.title',
+                icon: Dumbbell,
             },
             {
                 screen: 'results',
@@ -113,16 +129,6 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 screen: 'tony',
                 title: 'tony.title',
                 icon: MessageCircle,
-            },
-            {
-                screen: 'exercises',
-                title: 'exercises.title',
-                icon: CircleGauge,
-            },
-            {
-                screen: 'settings',
-                title: 'settings.title',
-                icon: Settings2,
             },
         ];
 

@@ -89,6 +89,24 @@ const WorkoutExerciseScreen: FC = () => {
     }, [workoutDetails, workoutExerciseId]);
 
     const sourceItems = useMemo(() => exerciseInfo?.sets || [], [exerciseInfo?.sets]);
+
+    /**
+     * The current set is the first one not yet completed, which is the same
+     * rule the execution order uses to decide what to start next — so the
+     * header agrees with the button at the bottom of the screen.
+     */
+    const setProgress = useMemo(() => {
+        const total = sourceItems.length;
+        if (total === 0) return null;
+
+        const completed = sourceItems.filter((item) => !!item.completedAt).length;
+
+        return {
+            current: Math.min(completed + 1, total),
+            total,
+            allDone: completed === total,
+        };
+    }, [sourceItems]);
     const sourceItemsKey = useMemo(
         () => sourceItems.map(getSetSnapshotKey).join('|'),
         [sourceItems],
@@ -140,7 +158,7 @@ const WorkoutExerciseScreen: FC = () => {
                 bottomOffset={theme.space(2)}
                 extraKeyboardSpace={-actionsHeight}
             >
-                <Header exerciseInfo={exerciseInfo} />
+                <Header exerciseInfo={exerciseInfo} setProgress={setProgress} />
                 {isLoading ? (
                     <Box>
                         <Spinner />

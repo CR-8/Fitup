@@ -2,7 +2,15 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, type ListRenderItem } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Undo2 } from 'lucide-react-native';
+import {
+    ChevronRight,
+    Dumbbell,
+    Salad,
+    Sparkles,
+    TrendingUp,
+    Undo2,
+    type LucideIcon,
+} from 'lucide-react-native';
 
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
@@ -19,6 +27,9 @@ import {
     useAiQuota,
     useClearAiConversation,
 } from '@/hooks/use-ai';
+
+import { useUser } from '@/hooks/use-user';
+import { Box } from '@/components/primitives/box';
 
 import { Composer } from './components/composer';
 import { Message } from './components/message';
@@ -69,6 +80,75 @@ const styles = StyleSheet.create((theme, rt) => ({
         textAlign: 'center',
         color: theme.colors.neutral[400],
     },
+    /**
+     * What the screen shows before anyone has typed.
+     *
+     * It was a centred title and one line in the middle of an otherwise blank
+     * screen, which reads as an unfinished feature rather than as a coach
+     * waiting. The card says who is talking and the rows below say what can be
+     * asked — and every one of them runs something that already exists.
+     */
+    intro: {
+        gap: theme.space(3),
+        paddingTop: theme.space(2),
+    },
+    introCard: {
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['3xl'],
+        padding: theme.space(5),
+        gap: theme.space(2),
+    },
+    introHeader: {
+        alignItems: 'center',
+        gap: theme.space(2.5),
+    },
+    introAvatar: {
+        height: theme.space(10),
+        width: theme.space(10),
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.primarySoft,
+    },
+    introTitle: {
+        ...theme.fontSize.lg,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    introBody: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space(3),
+        paddingHorizontal: theme.space(4),
+        paddingVertical: theme.space(3.5),
+        borderRadius: theme.radius['2xl'],
+        backgroundColor: theme.colors.foreground,
+    },
+    actionIcon: {
+        height: theme.space(8),
+        width: theme.space(8),
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.background,
+    },
+    actionText: {
+        flex: 1,
+        gap: theme.space(0.5),
+    },
+    actionHint: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
+    },
+    actionLabel: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+        color: theme.colors.typography,
+    },
     suggestions: {
         paddingBottom: theme.space(2),
         gap: theme.space(2),
@@ -96,6 +176,9 @@ const TonyScreen = () => {
     const { t } = useTranslation('screens');
     const { theme } = useUnistyles();
     const listRef = useRef<FlatList<AiMessageSelect>>(null);
+
+    const { user } = useUser();
+    const name = user?.displayName?.trim();
 
     const available = useAiAvailable();
     const { conversation, isLoading } = useAiConversation();
@@ -164,16 +247,104 @@ const TonyScreen = () => {
         [plans],
     );
 
+    /**
+     * Four ways in, each bound to something the app can already do.
+     *
+     * The first two call `generatePlan`, which is what the suggestion pills
+     * have always done. The second two send a prompt through the same
+     * `sendMessage` the composer uses — so they are the user typing a good
+     * question, not a scripted answer. Nothing here fakes a reply.
+     */
+    const quickActions = useMemo<
+        { key: string; icon: LucideIcon; label: string; hint: string; run: () => void }[]
+    >(
+        () => [
+            {
+                key: 'workout',
+                icon: Dumbbell,
+                label: t('tony.actions.workout'),
+                hint: t('tony.actions.workoutHint'),
+                run: () => handleGenerate('workout'),
+            },
+            {
+                key: 'nutrition',
+                icon: Salad,
+                label: t('tony.actions.nutrition'),
+                hint: t('tony.actions.nutritionHint'),
+                run: () => handleGenerate('nutrition'),
+            },
+            {
+                key: 'explain',
+                icon: Sparkles,
+                label: t('tony.actions.explain'),
+                hint: t('tony.actions.explainHint'),
+                run: () => handleSend(t('tony.actions.explainIntent')),
+            },
+            {
+                key: 'progress',
+                icon: TrendingUp,
+                label: t('tony.actions.progress'),
+                hint: t('tony.actions.progressHint'),
+                run: () => handleSend(t('tony.actions.progressIntent')),
+            },
+        ],
+        [handleGenerate, handleSend, t],
+    );
+
     const listEmpty = useMemo(
         () => (
-            <VStack style={styles.empty}>
-                <Title type="h5">{t('tony.empty.title')}</Title>
-                <Text fontSize="sm" style={styles.emptyText}>
-                    {t('tony.empty.message')}
-                </Text>
+            <VStack style={styles.intro}>
+                <VStack style={styles.introCard}>
+                    <HStack style={styles.introHeader}>
+                        <Box style={styles.introAvatar}>
+                            <Sparkles
+                                size={theme.space(5)}
+                                strokeWidth={2}
+                                color={theme.colors.primary}
+                            />
+                        </Box>
+                        <Text style={styles.introTitle}>
+                            {/* The name is optional — onboarding can be skipped —
+                                so this has to read as a sentence without it. */}
+                            {name
+                                ? t('tony.intro.greeting', { name })
+                                : t('tony.intro.greetingFallback')}
+                        </Text>
+                    </HStack>
+                    <Text style={styles.introBody}>{t('tony.intro.body')}</Text>
+                </VStack>
+
+                {quickActions.map((action) => (
+                    <Pressable
+                        key={action.key}
+                        style={[styles.actionRow, isBusy && styles.suggestionDisabled]}
+                        onPress={action.run}
+                        disabled={isBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel={action.label}
+                    >
+                        <Box style={styles.actionIcon}>
+                            <action.icon
+                                size={theme.space(4)}
+                                strokeWidth={2}
+                                color={theme.colors.primary}
+                            />
+                        </Box>
+                        <VStack style={styles.actionText}>
+                            <Text style={styles.actionLabel}>{action.label}</Text>
+                            <Text style={styles.actionHint} numberOfLines={2}>
+                                {action.hint}
+                            </Text>
+                        </VStack>
+                        <ChevronRight
+                            size={theme.space(4.5)}
+                            color={theme.colors.mutedTypography}
+                        />
+                    </Pressable>
+                ))}
             </VStack>
         ),
-        [t],
+        [isBusy, name, quickActions, t, theme],
     );
 
     // A build with no AI host configured shows why rather than failing on every turn.
@@ -206,6 +377,9 @@ const TonyScreen = () => {
             <HStack style={styles.header}>
                 <VStack style={styles.headerTitles}>
                     <Title type="h1">{t('tony.title')}</Title>
+                    <Text fontSize="sm" style={styles.muted}>
+                        {t('tony.subtitle')}
+                    </Text>
                     <Text fontSize="xs" style={styles.muted}>
                         {t('tony.quota.remaining', {
                             remaining: quota.remaining,
@@ -247,33 +421,38 @@ const TonyScreen = () => {
                 showsVerticalScrollIndicator={false}
             />
 
-            <HStack style={styles.suggestions}>
-                <Pressable
-                    style={[
-                        styles.suggestion,
-                        (isBusy || quotaExhausted) && styles.suggestionDisabled,
-                    ]}
-                    onPress={() => handleGenerate('workout')}
-                    disabled={isBusy || quotaExhausted}
-                >
-                    <Text fontSize="xs" fontWeight="medium">
-                        {t('tony.actions.workout')}
-                    </Text>
-                </Pressable>
+            {/* The intro above already offers both of these as full rows, so the
+                pills would be the same two actions twice on an empty screen.
+                They come back once there is a conversation to act on. */}
+            {messages.length > 0 ? (
+                <HStack style={styles.suggestions}>
+                    <Pressable
+                        style={[
+                            styles.suggestion,
+                            (isBusy || quotaExhausted) && styles.suggestionDisabled,
+                        ]}
+                        onPress={() => handleGenerate('workout')}
+                        disabled={isBusy || quotaExhausted}
+                    >
+                        <Text fontSize="xs" fontWeight="medium">
+                            {t('tony.actions.workout')}
+                        </Text>
+                    </Pressable>
 
-                <Pressable
-                    style={[
-                        styles.suggestion,
-                        (isBusy || quotaExhausted) && styles.suggestionDisabled,
-                    ]}
-                    onPress={() => handleGenerate('nutrition')}
-                    disabled={isBusy || quotaExhausted}
-                >
-                    <Text fontSize="xs" fontWeight="medium">
-                        {t('tony.actions.nutrition')}
-                    </Text>
-                </Pressable>
-            </HStack>
+                    <Pressable
+                        style={[
+                            styles.suggestion,
+                            (isBusy || quotaExhausted) && styles.suggestionDisabled,
+                        ]}
+                        onPress={() => handleGenerate('nutrition')}
+                        disabled={isBusy || quotaExhausted}
+                    >
+                        <Text fontSize="xs" fontWeight="medium">
+                            {t('tony.actions.nutrition')}
+                        </Text>
+                    </Pressable>
+                </HStack>
+            ) : null}
 
             <Composer onSend={handleSend} busy={isBusy} />
         </VStack>

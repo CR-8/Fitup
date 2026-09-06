@@ -21,6 +21,8 @@ interface HeaderProps {
         exercise: ExerciseSelect;
         workoutExercise: WorkoutExerciseSelect;
     } | null;
+    /** Where the user is in this exercise. Null when it holds no sets yet. */
+    setProgress: { current: number; total: number; allDone: boolean } | null;
 }
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -42,6 +44,15 @@ const styles = StyleSheet.create((theme, rt) => ({
     subtitle: {
         fontSize: theme.fontSize.sm.fontSize,
         color: theme.colors.neutral[950],
+    },
+    // Sits on the coral band, so it takes the same near-black as everything
+    // else up here and earns its emphasis from weight rather than colour.
+    setProgress: {
+        marginTop: theme.space(1),
+        fontSize: theme.fontSize.sm.fontSize,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.neutral[950],
+        opacity: 0.75,
     },
     muscleGroupContainer: {
         position: 'relative',
@@ -117,7 +128,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
-export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
+export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
     const { t } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
     const { runningWorkout } = useRunningWorkoutStatic();
@@ -192,6 +203,22 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
                         .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
                         .join(' + ')}
                 </Text>
+                {/* The one thing this screen is for. It was previously
+                    answerable only by counting rows down the page. */}
+                {setProgress ? (
+                    <Text style={styles.setProgress}>
+                        {setProgress.allDone
+                            ? t('workoutExercise.setsAllDone', {
+                                  ns: 'screens',
+                                  count: setProgress.total,
+                              })
+                            : t('workoutExercise.setProgress', {
+                                  ns: 'screens',
+                                  current: setProgress.current,
+                                  total: setProgress.total,
+                              })}
+                    </Text>
+                ) : null}
             </Box>
             <HStack style={styles.actionsContainer}>
                 <Box style={styles.leftActionsContainer}>

@@ -7,18 +7,20 @@ import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 
 /**
- * Three numbers, taken from the design's own vocabulary.
+ * A row of headline numbers: a large value over a quiet label.
  *
- * The reference site leads with `60s / AI plan`, `7 day / Auto sync`,
- * `500+ / Exercises` — a large value over a quiet label. The same shape answers
- * a more useful question here: am I on track this week?
+ * Taken from the design's own vocabulary — `60s / AI plan`, `7 day / Auto sync`,
+ * `500+ / Exercises` — and used wherever a screen needs to lead with figures
+ * rather than bury them in a list. Home answers "am I on track this week?" with
+ * it; Results opens with the all-time totals.
  *
  * Purely presentational. Everything it shows is derived by the screen above it,
- * so it renders identically for a real week and for the sample figures on the
- * empty state.
+ * so it renders identically for real figures and for the sample ones on Home's
+ * empty state. Lives in `components/layout` rather than under one screen
+ * because two now share it.
  */
 
-export interface WeekStatsBlock {
+export interface StatBlock {
     key: string;
     value: string;
     label: string;
@@ -65,9 +67,16 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-export const WeekStatsBlocks: FC<{ blocks: WeekStatsBlock[] }> = ({ blocks }) => {
+export const StatBlocks: FC<{
+    blocks: StatBlock[];
+    /**
+     * Whether the row supplies its own gutter. Home's list has none, so it
+     * does; Results already pads its scroll view, so it does not.
+     */
+    inset?: boolean;
+}> = ({ blocks, inset = true }) => {
     return (
-        <Box style={styles.container}>
+        <Box style={inset ? styles.container : undefined}>
             <HStack style={styles.row}>
                 {blocks.map((block, index) => (
                     <Fragment key={block.key}>

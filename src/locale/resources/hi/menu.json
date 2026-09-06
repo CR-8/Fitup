@@ -13,5 +13,8 @@
     },
     "settings": {
         "title": "सेटिंग्स"
+    },
+    "workouts": {
+        "title": "वर्कआउट"
     }
 }

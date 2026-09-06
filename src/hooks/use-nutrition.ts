@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+    countDayItems,
     createMealItems,
     type CreateMealItemInput,
     deleteMeal,
@@ -37,6 +38,8 @@ export const useMealsForDate = (date: string) => {
 export interface DayProgress {
     consumed: ReturnType<typeof sumConsumed>;
     planned: ReturnType<typeof sumPlanned>;
+    /** Entry counts, which is what decides whether the day has anything to show. */
+    counts: ReturnType<typeof countDayItems>;
     targets: {
         calories: number | null;
         proteinG: number | null;
@@ -59,6 +62,7 @@ export const useDayProgress = (meals: MealWithItems[]): DayProgress => {
         () => ({
             consumed: sumConsumed(meals),
             planned: sumPlanned(meals),
+            counts: countDayItems(meals),
             targets: {
                 calories: profile?.dailyCalorieTarget ?? null,
                 proteinG: profile?.dailyProteinTargetG ?? null,

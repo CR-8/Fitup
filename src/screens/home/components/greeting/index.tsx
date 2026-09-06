@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Salad } from 'lucide-react-native';
+import { Settings2 } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -71,13 +71,16 @@ export const Greeting: FC = () => {
                     </Title>
                 </VStack>
 
+                {/* Settings left the tab bar — it is configuration, not a daily
+                    destination — so this is the way in. Nutrition took its place
+                    in Home's quick actions below. */}
                 <Pressable
                     style={styles.dietButton}
-                    onPress={() => router.navigate('/diet')}
+                    onPress={() => router.navigate('/settings')}
                     accessibilityRole="button"
-                    accessibilityLabel={t('diet.title', { ns: 'screens' })}
+                    accessibilityLabel={t('settings.title', { ns: 'screens' })}
                 >
-                    <Salad
+                    <Settings2
                         size={theme.space(5)}
                         strokeWidth={theme.space(0.375)}
                         opacity={0.8}

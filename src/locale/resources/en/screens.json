@@ -57,6 +57,22 @@
             "exerciseCount_one": "{{count}} exercise",
             "exerciseCount_other": "{{count}} exercises",
             "startFailed": "Could not start that workout. Try again."
+        },
+        "streak_one": "{{count}} day streak",
+        "streak_other": "{{count}} day streak",
+        "streakLabel": "Day streak",
+        "streakEmpty": "Complete a workout to start a streak.",
+        "recentActivity": "Recent activity",
+        "viewAll": "View all",
+        "quick": {
+            "exercises": "Exercises",
+            "tony": "Tony",
+            "nutrition": "Nutrition"
+        },
+        "recentEmpty": {
+            "title": "No workouts yet",
+            "description": "Complete your first workout and your training history will appear here.",
+            "action": "Plan a workout"
         }
     },
     "results": {
@@ -98,8 +114,8 @@
                 "currentBodyFatPercentage": "Current body fat"
             },
             "chart": {
-                "empty": "No weight logs yet",
-                "bodyFatPercentageEmpty": "No body fat logs yet"
+                "empty": "Your weight log starts here",
+                "bodyFatPercentageEmpty": "Your body fat log starts here"
             },
             "modal": {
                 "date": "Date",
@@ -131,7 +147,15 @@
             },
             "sessions_one": "{{count}} session",
             "sessions_other": "{{count}} sessions",
-            "kSuffix": "K"
+            "kSuffix": "K",
+            "empty": {
+                "title": "Your training map starts here",
+                "description": "Log a few sets and this fills in — volume, frequency and load, muscle by muscle, over the last 30 days."
+            }
+        },
+        "hero": {
+            "hours": "{{value}}h",
+            "streak": "Day streak"
         }
     },
     "exercises": {
@@ -147,7 +171,8 @@
                 "title": "Exercise library unavailable",
                 "description": "This build has no exercise source configured. You can still create your own exercises."
             }
-        }
+        },
+        "subtitle": "Search the library, then open one for form, history and stats."
     },
     "filter": {
         "title": "Filter",
@@ -189,7 +214,7 @@
         },
         "history": {
             "empty": {
-                "title": "No history",
+                "title": "Your history starts here",
                 "description": "Start a workout with this exercise to see your history."
             }
         },
@@ -205,7 +230,7 @@
         },
         "stats": {
             "empty": {
-                "title": "No 1RM data",
+                "title": "Track your one-rep max",
                 "description": "Complete sets with weight and reps to calculate one-rep max."
             },
             "oneRm": {
@@ -220,7 +245,7 @@
                 "latest": "Latest",
                 "progress": "Progress",
                 "empty": {
-                    "title": "No volume data",
+                    "title": "Start logging sets",
                     "description": "Complete sets with weight and reps to calculate total volume."
                 }
             },
@@ -230,7 +255,7 @@
                 "latest": "Latest",
                 "workoutsCount": "Workout exercises",
                 "empty": {
-                    "title": "No average-weight data",
+                    "title": "Track your average weight",
                     "description": "Complete sets with weight and reps to calculate average weight."
                 }
             },
@@ -240,7 +265,7 @@
                 "latest": "Latest",
                 "workoutsCount": "Workout exercises",
                 "empty": {
-                    "title": "No intensity data",
+                    "title": "Track your intensity",
                     "description": "Complete sets with weight and reps to calculate intensity."
                 }
             },
@@ -258,7 +283,7 @@
                 },
                 "empty": {
                     "noTraining": {
-                        "title": "No relative-strength data",
+                        "title": "Track your relative strength",
                         "description": "Complete working sets with weight and reps to calculate 1RM."
                     },
                     "noBodyWeight": {
@@ -383,7 +408,10 @@
                 "title": "Add Working Set",
                 "description": "A standard set with consistent weight and reps."
             }
-        }
+        },
+        "setProgress": "Set {{current}} of {{total}}",
+        "setsAllDone_one": "{{count}} set done",
+        "setsAllDone_other": "All {{count}} sets done"
     },
     "settings": {
         "title": "Settings",
@@ -567,7 +595,15 @@
             "workout": "Training plan",
             "nutrition": "Food chart",
             "workoutIntent": "Build me a training plan for the week.",
-            "nutritionIntent": "Build me a food chart for the week."
+            "nutritionIntent": "Build me a food chart for the week.",
+            "explain": "Explain an exercise",
+            "explainIntent": "Explain how to perform an exercise properly — the setup, the form cues, and the mistakes to avoid.",
+            "progress": "Analyse my progress",
+            "progressIntent": "Look at my recent workouts and tell me how my training is going and what to focus on next.",
+            "workoutHint": "A week of sessions built around your goal.",
+            "nutritionHint": "Meals and macros that land in Nutrition.",
+            "explainHint": "Setup, form cues and mistakes to avoid.",
+            "progressHint": "What your recent training says about you."
         },
         "quota": {
             "remaining": "{{remaining}} of {{limit}} plans left this month",
@@ -618,7 +654,13 @@
             "invalid": "The reply could not be read as a plan. Try again.",
             "provider": "The assistant is unavailable right now.",
             "truncated": "The reply was cut off before it finished. Try a shorter plan."
-        }
+        },
+        "intro": {
+            "greeting": "Hey {{name}} 👋",
+            "greetingFallback": "Hey there 👋",
+            "body": "I can see your training history and your profile. Ask me anything, or start with one of these."
+        },
+        "subtitle": "Your personal fitness assistant."
     },
     "signIn": {
         "title": "Welcome to FitSync",
@@ -748,7 +790,7 @@
         }
     },
     "diet": {
-        "title": "Diet",
+        "title": "Nutrition",
         "today": "Today",
         "previousDay": "Previous day",
         "nextDay": "Next day",
@@ -757,7 +799,7 @@
         "carbs": "Carbs",
         "fat": "Fat",
         "kcal": "{{value}} kcal",
-        "plannedRemaining": "{{value}} kcal still planned for today",
+        "plannedRemaining": "{{value}} kcal to go",
         "removeTitle": "Remove item",
         "remove": "Remove",
         "cancel": "Cancel",
@@ -768,9 +810,16 @@
             "snack": "Snack"
         },
         "empty": {
-            "title": "Nothing logged yet",
-            "message": "Ask Tony for a food chart and add it here, or log what you ate."
-        }
+            "title": "Your nutrition starts here",
+            "message": "Ask Tony for a food chart and it lands here as meals you can tick off as you eat them.",
+            "messageOffline": "Meals from a generated food chart appear here, so you can tick them off as you eat them."
+        },
+        "subtitle": "Your meals, macros and daily intake.",
+        "eatenToday": "Eaten today",
+        "againstPlan": "Today's plan",
+        "againstTarget": "Daily target",
+        "itemsEaten": "{{consumed}} of {{total}} eaten",
+        "buildPlan": "Build my meal plan"
     },
     "forgotPassword": {
         "title": "Reset your password",
@@ -795,5 +844,14 @@
         "confirm": "Confirm password",
         "action": "Save password",
         "abandon": "Not you? Sign out"
+    },
+    "workoutHub": {
+        "title": "Workout",
+        "subtitle": "Your sessions, planned and completed.",
+        "empty": {
+            "title": "No workouts yet",
+            "description": "Plan your first workout and it will show up here, ready to start.",
+            "action": "Plan a workout"
+        }
     }
 }

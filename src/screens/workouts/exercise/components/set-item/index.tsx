@@ -1,7 +1,12 @@
-import { FC, memo, useMemo, useCallback } from 'react';
+import { FC, memo, useMemo, useCallback, useEffect } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { Trash2 } from 'lucide-react-native';
+import Reanimated, {
+    SharedValue,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from 'react-native-reanimated';
+import { Check, Trash2 } from 'lucide-react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Sortable, { useItemContext } from 'react-native-sortables';
 
@@ -55,11 +60,37 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingTop: theme.space(3),
         paddingBottom: theme.space(3),
     }),
+    // Row rather than a single cell now, so the glyph and the set label sit
+    // side by side. `HStack` supplies the direction.
     orderContainer: {
         paddingLeft: theme.space(4),
         width: theme.space(24),
-        alignItems: 'flex-start',
-        justifyContent: 'center',
+        alignItems: 'center',
+        gap: theme.space(2),
+    },
+    /**
+     * Which set is done, which is running, which is still to come.
+     *
+     * Completion was previously carried by opacity alone — a finished set and a
+     * pending one differed by 0.3 on the input, and nothing else. Mid-workout,
+     * looking down at a phone between sets, that is not a distinction anyone
+     * can read. A filled check, a ringed dot and an empty ring are.
+     */
+    statusDot: (active: boolean, completed: boolean) => ({
+        height: theme.space(5),
+        width: theme.space(5),
+        borderRadius: theme.radius.full,
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        borderWidth: completed ? 0 : theme.space(0.5),
+        borderColor: active ? theme.colors.brand[500] : theme.colors.border,
+        backgroundColor: completed ? theme.colors.brand[500] : 'transparent',
+    }),
+    statusDotCore: {
+        height: theme.space(2),
+        width: theme.space(2),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.brand[500],
     },
     orderWrapper: (active: boolean, isTimerActive: boolean) => ({
         backgroundColor: active
@@ -162,6 +193,43 @@ const RightAction: FC<RightActionProps> = ({ drag, handleDelete }) => {
                 <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
             </Pressable>
         </Reanimated.View>
+    );
+};
+
+/**
+ * The check lands rather than appears.
+ *
+ * A set is completed by a button at the other end of the screen, so without
+ * something moving here it is easy to miss that the tap registered at all. One
+ * short scale settles that without turning a workout log into an animation.
+ */
+const SetStatus: FC<{ active: boolean; completed: boolean }> = ({ active, completed }) => {
+    const { theme } = useUnistyles();
+    const scale = useSharedValue(completed ? 1 : 0);
+
+    useEffect(() => {
+        scale.set(withTiming(completed ? 1 : 0, { duration: completed ? 180 : 0 }));
+    }, [completed, scale]);
+
+    const checkStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.get() }],
+        opacity: scale.get(),
+    }));
+
+    return (
+        <Box style={styles.statusDot(active, completed)}>
+            {completed ? (
+                <Reanimated.View style={checkStyle}>
+                    <Check
+                        size={theme.space(3.5)}
+                        strokeWidth={3}
+                        color={theme.colors.primaryTypography}
+                    />
+                </Reanimated.View>
+            ) : active ? (
+                <Box style={styles.statusDotCore} />
+            ) : null}
+        </Box>
     );
 };
 
@@ -380,7 +448,8 @@ const SetItemComponent = ({
                 )}
             >
                 <HStack style={styles.set(isActive, isTimerActive)}>
-                    <Box style={styles.orderContainer}>
+                    <HStack style={styles.orderContainer}>
+                        <SetStatus active={isActive} completed={isCompleted} />
                         <Pressable onPress={handleOpenSetMenu}>
                             <Box style={styles.orderWrapper(isActive, isTimerActive)}>
                                 <Text style={styles.orderTitle}>
@@ -388,7 +457,7 @@ const SetItemComponent = ({
                                 </Text>
                             </Box>
                         </Pressable>
-                    </Box>
+                    </HStack>
                     <HStack style={styles.setContainer}>{interspersedFields}</HStack>
                     <Box style={styles.restContainer}>
                         <Rest

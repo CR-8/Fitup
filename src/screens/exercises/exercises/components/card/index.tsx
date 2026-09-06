@@ -13,6 +13,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { ExerciseListItem } from '@/hooks/use-exercises';
 import { exerciseDisplayName } from '@/helpers/exercise-name';
+import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
 
 const styles = StyleSheet.create((theme) => ({
     categoryHeaderContainer: {
@@ -325,6 +326,8 @@ const ExerciseCardComponent = ({
     const hasLeft = showLeftSelection || !!leftAccessory;
     const hasRight = showRightSelection || !!rightAccessory;
 
+    const primaryMuscle = getPrimaryAnchorMuscleValue(item.exercise.primaryMuscleGroups);
+
     const exerciseRow = (
         <HStack style={styles.exerciseRow}>
             {showLeftSelection ? (
@@ -339,10 +342,22 @@ const ExerciseCardComponent = ({
                 ]}
             >
                 <Text style={styles.exerciseName}>{exerciseDisplayName(item.exercise)}</Text>
-                <Text fontSize="xs" style={styles.exerciseTracking}>
-                    {item.exercise.tracking
-                        .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
-                        .join(' + ')}
+                <Text fontSize="xs" style={styles.exerciseTracking} numberOfLines={1}>
+                    {/* Muscle first: it is what someone scanning the library is
+                        looking for. The tracking mode follows it. */}
+                    {[
+                        primaryMuscle
+                            ? t(`muscleGroup.${primaryMuscle}`, {
+                                  ns: 'common',
+                                  defaultValue: primaryMuscle,
+                              })
+                            : null,
+                        item.exercise.tracking
+                            .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
+                            .join(' + '),
+                    ]
+                        .filter(Boolean)
+                        .join(' · ')}
                 </Text>
             </VStack>
             {showRightSelection ? (

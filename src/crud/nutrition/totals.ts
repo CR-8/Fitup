@@ -42,3 +42,27 @@ export const sumConsumed = (meals: MealWithItems[]): DayTotals =>
 /** Totals for everything planned for the day, eaten or not. */
 export const sumPlanned = (meals: MealWithItems[]): DayTotals =>
     total(meals.flatMap((entry) => entry.items));
+
+export interface DayItemCounts {
+    /** Every food entry on the day, planned or eaten. */
+    total: number;
+    /** Those ticked off as actually eaten. */
+    consumed: number;
+}
+
+/**
+ * How much of the day has been worked through, counted in entries.
+ *
+ * The macro sums answer "how much", this answers "how far" — and it is what
+ * decides whether the screen has anything worth showing at all. A day with a
+ * generated chart but nothing ticked has `total > 0` and `consumed === 0`,
+ * which is a real state and reads very differently from an empty day.
+ */
+export const countDayItems = (meals: MealWithItems[]): DayItemCounts => {
+    const items = meals.flatMap((entry) => entry.items);
+
+    return {
+        total: items.length,
+        consumed: items.filter((item) => item.consumedAt != null).length,
+    };
+};

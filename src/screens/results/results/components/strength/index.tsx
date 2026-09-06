@@ -57,6 +57,23 @@ const styles = StyleSheet.create((theme, rt) => ({
     cards: {
         gap: theme.space(3),
     },
+    // Same card language as the charts it stands in for, so the section keeps
+    // its shape whether or not there is anything to plot.
+    emptyCard: {
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['4xl'],
+        padding: theme.space(5),
+        gap: theme.space(1.5),
+    },
+    emptyTitle: {
+        ...theme.fontSize.lg,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    emptyDescription: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
     card: {
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
@@ -464,6 +481,20 @@ const StrengthStats = () => {
     const { user } = useUser();
     const stats = useStrengthRadarStats();
 
+    /**
+     * Before any sets are logged every muscle reads zero, and the section
+     * renders three identical wheels ringed by twenty-one noughts — which looks
+     * like a broken chart rather than an empty one. One card saying what will
+     * fill it is both more honest and less alarming.
+     */
+    const hasData = useMemo(
+        () =>
+            [stats.totalVolume, stats.workoutFrequency, stats.muscularLoad].some((metric) =>
+                Object.values(metric).some((value) => value > 0),
+            ),
+        [stats],
+    );
+
     const cards: StrengthMetricCard[] = [
         {
             key: 'totalVolume',
@@ -487,11 +518,26 @@ const StrengthStats = () => {
             <VStack style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('exerciseCategory.strength')}</Text>
             </VStack>
-            <VStack style={styles.cards}>
-                {cards.map((card) => (
-                    <StrengthChartCard key={card.key} card={card} weightUnits={user?.weightUnits} />
-                ))}
-            </VStack>
+            {hasData ? (
+                <VStack style={styles.cards}>
+                    {cards.map((card) => (
+                        <StrengthChartCard
+                            key={card.key}
+                            card={card}
+                            weightUnits={user?.weightUnits}
+                        />
+                    ))}
+                </VStack>
+            ) : (
+                <VStack style={styles.emptyCard}>
+                    <Text style={styles.emptyTitle}>
+                        {t('results.strength.empty.title', { ns: 'screens' })}
+                    </Text>
+                    <Text style={styles.emptyDescription}>
+                        {t('results.strength.empty.description', { ns: 'screens' })}
+                    </Text>
+                </VStack>
+            )}
         </VStack>
     );
 };

@@ -1,82 +1,115 @@
 import { FC, useCallback, useMemo } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 
-import { useWorkouts, useWorkoutsOverviewMeta, useWeeklyWorkoutStats } from '@/hooks/use-workouts';
+import { useWorkouts, useWorkoutsOverviewMeta } from '@/hooks/use-workouts';
 import { useEditor } from '@/hooks/use-editor';
 import { useUser } from '@/hooks/use-user';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import {
+    computeStreakDays,
     getPlannedWorkouts,
-    groupWorkoutsByWeek,
     getInProgressWorkouts,
     summariseWeek,
 } from '@/helpers/workouts';
-import { formatWorkoutDuration } from '@/helpers/times';
-import { readProfileDetails } from '@/crud/onboarding';
+import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
+import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Box } from '@/components/primitives/box';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
+import { Pressable } from '@/components/primitives/pressable';
+import Spinner from '@/components/feedback/spinner';
+import { Pushes } from '@/components/promo/pushes';
 
-import { Greeting, Workouts } from './components';
+import { Greeting, WorkoutCard } from './components';
+import { UpNext } from './components/up-next';
 import { resolveUpNext } from './components/up-next/resolve';
-import { WeekStatsBlocks, type WeekStatsBlock } from './components/week-stats';
+import { WeekStats } from './components/week';
+import { StreakCard } from './components/streak-card';
+import { QuickActions } from './components/quick-actions';
 
-const styles = StyleSheet.create((theme, rt) => ({
+/**
+ * The daily command center.
+ *
+ * Home used to render the entire workout library — every completed week,
+ * paginated — which made it both the dashboard and the workout list, and left
+ * "where do I start a workout?" with two different answers. The list now lives
+ * on the workout tab. What is left here answers one question: what should I do
+ * today?
+ *
+ * Order is deliberate and matches the product hierarchy: who you are, what you
+ * have going, what to do next, then the ways elsewhere.
+ */
+
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
     },
-    empty: {
+    content: {
         ...theme.screenContentPadding('root'),
-        flex: 1,
-        gap: theme.space(6),
+        gap: theme.space(5),
     },
-    emptyContainer: {
+    loading: {
         flex: 1,
+        alignItems: 'center',
         justifyContent: 'center',
+    },
+    sectionHeader: {
         paddingHorizontal: theme.space(4),
-        paddingBottom: rt.insets.bottom + theme.space(16),
-        gap: theme.space(7),
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
-    // The reference leads with three short stacked lines rather than a
-    // paragraph. It reads as a claim rather than a description.
-    emptyHeadline: {
-        gap: theme.space(1),
+    sectionTitle: {
+        ...theme.fontSize.xl,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
     },
-    emptyHeadlineAccent: {
+    sectionLink: {
+        ...theme.fontSize.sm,
         color: theme.colors.primary,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
+    recent: {
+        paddingHorizontal: theme.space(4),
+        gap: theme.space(2),
+    },
+    emptyBlock: {
+        marginHorizontal: theme.space(4),
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['3xl'],
+        padding: theme.space(5),
+        gap: theme.space(2),
+    },
+    emptyTitle: {
+        ...theme.fontSize.lg,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
     },
     emptyDescription: {
-        ...theme.fontSize.default,
+        ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
     },
-    // `Button` renders a ReactNode title verbatim, so `styles.title` — which is
-    // where the theme-correct colour lives — never reaches these. They have to
-    // invert with the button's own fill, which is white in dark mode and near
-    // black in light. `primaryTypography` is white in *both*, so it used to
-    // render white on white every time the app was in dark mode.
+    emptyAction: {
+        marginTop: theme.space(2),
+    },
     buttonTitle: {
         fontSize: theme.fontSize.default.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
         textAlign: 'center',
-    },
-    buttonDescription: {
-        fontSize: theme.fontSize.xs.fontSize,
-        textAlign: 'center',
-        marginTop: -theme.space(1),
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
-        opacity: 0.8,
     },
 }));
+
+/** Home shows a glance at recent training, not the archive. */
+const RECENT_LIMIT = 3;
 
 const HomeScreen: FC = () => {
     const { navigate } = useEditor();
     const { track } = useAnalytics();
-    const { t, i18n } = useTranslation(['screens']);
+    const { t } = useTranslation(['screens']);
     const { user } = useUser();
 
     const firstWeekday = user?.firstWeekday || 2;
@@ -84,166 +117,138 @@ const HomeScreen: FC = () => {
     const { data: workouts, isLoading } = useWorkouts();
     const workoutIds = useMemo(() => (workouts ?? []).map((workout) => workout.id), [workouts]);
     const { data: workoutsOverviewMeta = {} } = useWorkoutsOverviewMeta(workoutIds);
-
-    // Volume is the only figure that needs a query — it lives on the sets.
-    // Sessions and time come out of the rows already loaded above.
-    const { volume: weeklyVolume } = useWeeklyWorkoutStats(firstWeekday);
-
-    /**
-     * The weekly target the user set during onboarding, which until now was
-     * written down and never referred to again.
-     */
-    const { data: sessionsGoal = null } = useQuery({
-        queryKey: ['onboarding', 'sessions-per-week', user?.id],
-        queryFn: async () => (await readProfileDetails(user!.id)).sessionsPerWeek,
-        enabled: !!user?.id,
-        staleTime: 60_000 * 10,
-    });
+    const { runningWorkout } = useRunningWorkoutStatic();
+    const { elapsedFormated } = useRunningWorkoutTicker();
 
     const handleCreateWorkout = useCallback(() => {
         track('workout:create_requested', { surface: 'home_empty_state' });
         navigate({ type: 'workout__create' });
     }, [navigate, track]);
 
-    const { inProgressWorkouts, plannedWorkouts, completedGroups, hasWorkouts } = useMemo(() => {
-        const workoutsList = workouts ?? [];
-        const inProgress = getInProgressWorkouts(workoutsList);
-        const planned = getPlannedWorkouts(workoutsList);
-        const completed = groupWorkoutsByWeek(workoutsList, i18n.language, firstWeekday);
-        const hasAny = inProgress.length > 0 || planned.length > 0 || completed.length > 0;
+    const { inProgressWorkouts, plannedWorkouts, recentWorkouts } = useMemo(() => {
+        const list = workouts ?? [];
 
         return {
-            inProgressWorkouts: inProgress,
-            plannedWorkouts: planned,
-            completedGroups: completed,
-            hasWorkouts: hasAny,
+            inProgressWorkouts: getInProgressWorkouts(list),
+            plannedWorkouts: getPlannedWorkouts(list),
+            recentWorkouts: list
+                .filter((workout) => workout.status === 'completed' && workout.completedAt)
+                .sort(
+                    (a, b) =>
+                        new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime(),
+                )
+                .slice(0, RECENT_LIMIT),
         };
-    }, [workouts, i18n.language, firstWeekday]);
+    }, [workouts]);
 
     const upNext = useMemo(
         () => resolveUpNext(inProgressWorkouts, plannedWorkouts),
         [inProgressWorkouts, plannedWorkouts],
     );
 
+    const streak = useMemo(() => computeStreakDays(workouts ?? []), [workouts]);
+
+    // The strip's caption reports the real week, not a placeholder.
     const weekSummary = useMemo(
         () => summariseWeek(workouts ?? [], firstWeekday),
         [workouts, firstWeekday],
     );
 
-    const weightUnits = user?.weightUnits || 'kg';
-
-    const statBlocks = useMemo<WeekStatsBlock[]>(
-        () => [
-            {
-                key: 'sessions',
-                // Shown against the goal when there is one, and on its own when
-                // onboarding was skipped — rather than inventing a target.
-                value:
-                    typeof sessionsGoal === 'number' && sessionsGoal > 0
-                        ? `${weekSummary.sessions}/${sessionsGoal}`
-                        : String(weekSummary.sessions),
-                label: t('home.stats.sessions', { ns: 'screens' }),
-                emphasised: true,
-            },
-            {
-                key: 'time',
-                value:
-                    weekSummary.durationSeconds > 0
-                        ? formatWorkoutDuration(weekSummary.durationSeconds)
-                        : '—',
-                label: t('home.stats.time', { ns: 'screens' }),
-            },
-            {
-                key: 'volume',
-                value:
-                    weeklyVolume > 0
-                        ? `${Math.round(weeklyVolume).toLocaleString(i18n.language)}`
-                        : '—',
-                label: t(`home.stats.volume_${weightUnits}`, { ns: 'screens' }),
-            },
-        ],
-        [i18n.language, sessionsGoal, t, weekSummary, weeklyVolume, weightUnits],
-    );
+    const handleWorkoutPress = useCallback((workoutId: string) => {
+        router.navigate(`/workout/${workoutId}`);
+    }, []);
 
     if (isLoading || !workouts) {
-        return null;
-    }
-
-    const buttonContent = (
-        <VStack>
-            <Text style={styles.buttonTitle}>
-                {t('home.empty.button.title', { ns: 'screens' })}
-            </Text>
-            <Text style={styles.buttonDescription}>
-                {t('home.empty.button.description', { ns: 'screens' })}
-            </Text>
-        </VStack>
-    );
-
-    if (!hasWorkouts) {
         return (
-            <VStack style={styles.empty}>
-                <Greeting />
-                <VStack style={styles.emptyContainer}>
-                    <VStack style={styles.emptyHeadline}>
-                        <Title type="h1">{t('home.empty.headline.first', { ns: 'screens' })}</Title>
-                        <Title type="h1">
-                            {t('home.empty.headline.second', { ns: 'screens' })}
-                        </Title>
-                        <Title type="h1" style={styles.emptyHeadlineAccent}>
-                            {t('home.empty.headline.third', { ns: 'screens' })}
-                        </Title>
-                        <Text style={styles.emptyDescription}>
-                            {t('home.empty.description', { ns: 'screens' })}
-                        </Text>
-                    </VStack>
-
-                    {/* What the app offers, not the user's zeroes — three noughts
-                        is a worse first impression than no numbers at all. */}
-                    <WeekStatsBlocks
-                        blocks={[
-                            {
-                                key: 'exercises',
-                                value: t('home.empty.stats.exercisesValue', { ns: 'screens' }),
-                                label: t('home.empty.stats.exercisesLabel', { ns: 'screens' }),
-                                emphasised: true,
-                            },
-                            {
-                                key: 'plan',
-                                value: t('home.empty.stats.planValue', { ns: 'screens' }),
-                                label: t('home.empty.stats.planLabel', { ns: 'screens' }),
-                            },
-                            {
-                                key: 'sync',
-                                value: t('home.empty.stats.syncValue', { ns: 'screens' }),
-                                label: t('home.empty.stats.syncLabel', { ns: 'screens' }),
-                            },
-                        ]}
-                    />
-
-                    <Box>
-                        <Button size="lg" onPress={handleCreateWorkout} title={buttonContent} />
-                    </Box>
-                </VStack>
-            </VStack>
+            <Box style={styles.loading}>
+                <Spinner />
+            </Box>
         );
     }
 
     return (
-        <Box style={styles.container}>
-            <Workouts
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+        >
+            <Greeting />
+
+            <StreakCard streak={streak} />
+
+            <WeekStats
                 workouts={workouts}
                 firstWeekday={firstWeekday}
-                inProgressWorkouts={inProgressWorkouts}
-                plannedWorkouts={plannedWorkouts}
-                completedGroups={completedGroups}
-                workoutsOverviewMeta={workoutsOverviewMeta}
-                upNext={upNext}
-                statBlocks={statBlocks}
-                weekSessions={weekSummary.sessions}
-                sessionsGoal={sessionsGoal}
+                sessions={weekSummary.sessions}
+                sessionsGoal={null}
             />
-        </Box>
+
+            <UpNext
+                state={upNext}
+                overviewMeta={
+                    upNext.kind === 'create' ? undefined : workoutsOverviewMeta[upNext.workout.id]
+                }
+                elapsedFormatted={
+                    upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
+                        ? elapsedFormated
+                        : null
+                }
+            />
+
+            <QuickActions />
+
+            <Pushes />
+
+            <HStack style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                    {t('home.recentActivity', { ns: 'screens' })}
+                </Text>
+                {recentWorkouts.length > 0 ? (
+                    <Pressable
+                        onPress={() => router.navigate('/workouts')}
+                        accessibilityRole="button"
+                    >
+                        <Text style={styles.sectionLink}>
+                            {t('home.viewAll', { ns: 'screens' })}
+                        </Text>
+                    </Pressable>
+                ) : null}
+            </HStack>
+
+            {recentWorkouts.length > 0 ? (
+                <VStack style={styles.recent}>
+                    {recentWorkouts.map((workout) => (
+                        <WorkoutCard
+                            key={workout.id}
+                            workout={workout}
+                            onPress={handleWorkoutPress}
+                            activeElapsedFormatted={null}
+                            overviewMeta={workoutsOverviewMeta[workout.id]}
+                        />
+                    ))}
+                </VStack>
+            ) : (
+                <VStack style={styles.emptyBlock}>
+                    <Text style={styles.emptyTitle}>
+                        {t('home.recentEmpty.title', { ns: 'screens' })}
+                    </Text>
+                    <Text style={styles.emptyDescription}>
+                        {t('home.recentEmpty.description', { ns: 'screens' })}
+                    </Text>
+                    <Box style={styles.emptyAction}>
+                        <Button
+                            size="sm"
+                            onPress={handleCreateWorkout}
+                            title={
+                                <Title type="h6" style={styles.buttonTitle}>
+                                    {t('home.recentEmpty.action', { ns: 'screens' })}
+                                </Title>
+                            }
+                        />
+                    </Box>
+                </VStack>
+            )}
+        </ScrollView>
     );
 };
 

@@ -94,7 +94,7 @@ const WorkoutDay: FC<{ dayOffset: number; workouts: AiPlanWorkout[] }> = ({
     return (
         <VStack style={styles.day}>
             <Text fontSize="xs" fontWeight="semibold" style={styles.dayLabel}>
-                {t('tony.plan.day', { number: dayOffset + 1 })}
+                {t('syn.plan.day', { number: dayOffset + 1 })}
             </Text>
 
             {workouts.map((workout, workoutIndex) => (
@@ -113,11 +113,11 @@ const WorkoutDay: FC<{ dayOffset: number; workouts: AiPlanWorkout[] }> = ({
                             </Text>
                             <Text fontSize="xs" style={styles.muted}>
                                 {exercise.reps
-                                    ? t('tony.plan.setsReps', {
+                                    ? t('syn.plan.setsReps', {
                                           sets: exercise.sets,
                                           reps: exercise.reps,
                                       })
-                                    : t('tony.plan.sets', { sets: exercise.sets })}
+                                    : t('syn.plan.sets', { sets: exercise.sets })}
                             </Text>
                         </HStack>
                     ))}
@@ -133,13 +133,13 @@ const MealDay: FC<{ dayOffset: number; meals: AiPlanMeal[] }> = ({ dayOffset, me
     return (
         <VStack style={styles.day}>
             <Text fontSize="xs" fontWeight="semibold" style={styles.dayLabel}>
-                {t('tony.plan.day', { number: dayOffset + 1 })}
+                {t('syn.plan.day', { number: dayOffset + 1 })}
             </Text>
 
             {meals.map((meal, mealIndex) => (
                 <VStack key={`${meal.slot}-${mealIndex}`} style={styles.day}>
                     <Text fontSize="sm" fontWeight="semibold">
-                        {t(`tony.plan.slots.${meal.slot}`)}
+                        {t(`syn.plan.slots.${meal.slot}`)}
                     </Text>
 
                     {meal.items.map((item, itemIndex) => (
@@ -149,7 +149,7 @@ const MealDay: FC<{ dayOffset: number; meals: AiPlanMeal[] }> = ({ dayOffset, me
                             </Text>
                             {item.calories ? (
                                 <Text fontSize="xs" style={styles.muted}>
-                                    {t('tony.plan.kcal', { value: Math.round(item.calories) })}
+                                    {t('syn.plan.kcal', { value: Math.round(item.calories) })}
                                 </Text>
                             ) : null}
                         </HStack>
@@ -181,25 +181,25 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
     const targets = payload.targets[0];
 
     const handleApply = () => {
-        Alert.alert(t('tony.plan.applyTitle'), t('tony.plan.applyMessage'), [
-            { text: t('tony.plan.cancel'), style: 'cancel' },
+        Alert.alert(t('syn.plan.applyTitle'), t('syn.plan.applyMessage'), [
+            { text: t('syn.plan.cancel'), style: 'cancel' },
             {
-                text: t('tony.plan.applyConfirm'),
+                text: t('syn.plan.applyConfirm'),
                 onPress: () => {
-                    apply(plan).catch(() => Alert.alert(t('tony.plan.applyFailed')));
+                    apply(plan).catch(() => Alert.alert(t('syn.plan.applyFailed')));
                 },
             },
         ]);
     };
 
     const handleRevert = () => {
-        Alert.alert(t('tony.plan.revertTitle'), t('tony.plan.revertMessage'), [
-            { text: t('tony.plan.cancel'), style: 'cancel' },
+        Alert.alert(t('syn.plan.revertTitle'), t('syn.plan.revertMessage'), [
+            { text: t('syn.plan.cancel'), style: 'cancel' },
             {
-                text: t('tony.plan.revertConfirm'),
+                text: t('syn.plan.revertConfirm'),
                 style: 'destructive',
                 onPress: () => {
-                    revert(plan).catch(() => Alert.alert(t('tony.plan.revertFailed')));
+                    revert(plan).catch(() => Alert.alert(t('syn.plan.revertFailed')));
                 },
             },
         ]);
@@ -212,7 +212,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                     <Title type="h6">{payload.title}</Title>
                     {isApplied ? (
                         <Text fontSize="2xs" fontWeight="bold" style={styles.muted}>
-                            {t('tony.plan.applied')}
+                            {t('syn.plan.applied')}
                         </Text>
                     ) : null}
                 </HStack>
@@ -227,21 +227,21 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
             {targets?.calories ? (
                 <HStack style={styles.macroRow}>
                     <Text fontSize="xs" style={styles.muted}>
-                        {t('tony.plan.kcal', { value: Math.round(targets.calories) })}
+                        {t('syn.plan.kcal', { value: Math.round(targets.calories) })}
                     </Text>
                     {targets.proteinG ? (
                         <Text fontSize="xs" style={styles.muted}>
-                            {t('tony.plan.protein', { value: Math.round(targets.proteinG) })}
+                            {t('syn.plan.protein', { value: Math.round(targets.proteinG) })}
                         </Text>
                     ) : null}
                     {targets.carbsG ? (
                         <Text fontSize="xs" style={styles.muted}>
-                            {t('tony.plan.carbs', { value: Math.round(targets.carbsG) })}
+                            {t('syn.plan.carbs', { value: Math.round(targets.carbsG) })}
                         </Text>
                     ) : null}
                     {targets.fatG ? (
                         <Text fontSize="xs" style={styles.muted}>
-                            {t('tony.plan.fat', { value: Math.round(targets.fatG) })}
+                            {t('syn.plan.fat', { value: Math.round(targets.fatG) })}
                         </Text>
                     ) : null}
                 </HStack>
@@ -262,7 +262,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                 <Pressable onPress={() => setExpanded((value) => !value)}>
                     <HStack style={styles.toggle}>
                         <Text fontSize="xs" style={styles.muted}>
-                            {expanded ? t('tony.plan.showLess') : t('tony.plan.showMore')}
+                            {expanded ? t('syn.plan.showLess') : t('syn.plan.showMore')}
                         </Text>
                         {expanded ? (
                             <ChevronUp size={theme.space(3.5)} color={theme.colors.neutral[400]} />
@@ -281,7 +281,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                     {isApplied ? (
                         <Button
                             size="sm"
-                            title={t('tony.plan.undo')}
+                            title={t('syn.plan.undo')}
                             loading={isReverting}
                             onPress={handleRevert}
                             containerStyle={styles.appliedButton}
@@ -291,7 +291,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                     ) : (
                         <Button
                             size="sm"
-                            title={t('tony.plan.addToSchedule')}
+                            title={t('syn.plan.addToSchedule')}
                             loading={isApplying}
                             onPress={handleApply}
                             spinnerColor={

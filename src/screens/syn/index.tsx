@@ -172,7 +172,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
-const TonyScreen = () => {
+const SynScreen = () => {
     const { t } = useTranslation('screens');
     const { theme } = useUnistyles();
     const listRef = useRef<FlatList<AiMessageSelect>>(null);
@@ -210,7 +210,7 @@ const TonyScreen = () => {
     const handleGenerate = useCallback(
         (kind: 'workout' | 'nutrition') => {
             if (quotaExhausted) {
-                Alert.alert(t('tony.quota.title'), t('tony.quota.message', { limit: quota.limit }));
+                Alert.alert(t('syn.quota.title'), t('syn.quota.message', { limit: quota.limit }));
                 return;
             }
 
@@ -218,8 +218,8 @@ const TonyScreen = () => {
                 kind,
                 intent:
                     kind === 'workout'
-                        ? t('tony.actions.workoutIntent')
-                        : t('tony.actions.nutritionIntent'),
+                        ? t('syn.actions.workoutIntent')
+                        : t('syn.actions.nutritionIntent'),
             }).catch(() => undefined);
         },
         [generatePlan, quota.limit, quotaExhausted, t],
@@ -228,10 +228,10 @@ const TonyScreen = () => {
     const handleClear = useCallback(() => {
         if (!conversationId) return;
 
-        Alert.alert(t('tony.clear.title'), t('tony.clear.message'), [
-            { text: t('tony.plan.cancel'), style: 'cancel' },
+        Alert.alert(t('syn.clear.title'), t('syn.clear.message'), [
+            { text: t('syn.plan.cancel'), style: 'cancel' },
             {
-                text: t('tony.clear.confirm'),
+                text: t('syn.clear.confirm'),
                 style: 'destructive',
                 onPress: () => {
                     clearConversation(conversationId).catch(() => undefined);
@@ -262,30 +262,30 @@ const TonyScreen = () => {
             {
                 key: 'workout',
                 icon: Dumbbell,
-                label: t('tony.actions.workout'),
-                hint: t('tony.actions.workoutHint'),
+                label: t('syn.actions.workout'),
+                hint: t('syn.actions.workoutHint'),
                 run: () => handleGenerate('workout'),
             },
             {
                 key: 'nutrition',
                 icon: Salad,
-                label: t('tony.actions.nutrition'),
-                hint: t('tony.actions.nutritionHint'),
+                label: t('syn.actions.nutrition'),
+                hint: t('syn.actions.nutritionHint'),
                 run: () => handleGenerate('nutrition'),
             },
             {
                 key: 'explain',
                 icon: Sparkles,
-                label: t('tony.actions.explain'),
-                hint: t('tony.actions.explainHint'),
-                run: () => handleSend(t('tony.actions.explainIntent')),
+                label: t('syn.actions.explain'),
+                hint: t('syn.actions.explainHint'),
+                run: () => handleSend(t('syn.actions.explainIntent')),
             },
             {
                 key: 'progress',
                 icon: TrendingUp,
-                label: t('tony.actions.progress'),
-                hint: t('tony.actions.progressHint'),
-                run: () => handleSend(t('tony.actions.progressIntent')),
+                label: t('syn.actions.progress'),
+                hint: t('syn.actions.progressHint'),
+                run: () => handleSend(t('syn.actions.progressIntent')),
             },
         ],
         [handleGenerate, handleSend, t],
@@ -307,11 +307,11 @@ const TonyScreen = () => {
                             {/* The name is optional — onboarding can be skipped —
                                 so this has to read as a sentence without it. */}
                             {name
-                                ? t('tony.intro.greeting', { name })
-                                : t('tony.intro.greetingFallback')}
+                                ? t('syn.intro.greeting', { name })
+                                : t('syn.intro.greetingFallback')}
                         </Text>
                     </HStack>
-                    <Text style={styles.introBody}>{t('tony.intro.body')}</Text>
+                    <Text style={styles.introBody}>{t('syn.intro.body')}</Text>
                 </VStack>
 
                 {quickActions.map((action) => (
@@ -352,12 +352,12 @@ const TonyScreen = () => {
         return (
             <VStack style={styles.container}>
                 <HStack style={styles.header}>
-                    <Title type="h1">{t('tony.title')}</Title>
+                    <Title type="h1">{t('syn.title')}</Title>
                 </HStack>
                 <VStack style={styles.panel}>
-                    <Title type="h6">{t('tony.unavailable.title')}</Title>
+                    <Title type="h6">{t('syn.unavailable.title')}</Title>
                     <Text fontSize="sm" style={styles.muted}>
-                        {t('tony.unavailable.message')}
+                        {t('syn.unavailable.message')}
                     </Text>
                 </VStack>
             </VStack>
@@ -376,12 +376,12 @@ const TonyScreen = () => {
         <VStack style={styles.container}>
             <HStack style={styles.header}>
                 <VStack style={styles.headerTitles}>
-                    <Title type="h1">{t('tony.title')}</Title>
+                    <Title type="h1">{t('syn.title')}</Title>
                     <Text fontSize="sm" style={styles.muted}>
-                        {t('tony.subtitle')}
+                        {t('syn.subtitle')}
                     </Text>
                     <Text fontSize="xs" style={styles.muted}>
-                        {t('tony.quota.remaining', {
+                        {t('syn.quota.remaining', {
                             remaining: quota.remaining,
                             limit: quota.limit,
                         })}
@@ -393,7 +393,7 @@ const TonyScreen = () => {
                         style={styles.resetButton}
                         onPress={handleClear}
                         accessibilityRole="button"
-                        accessibilityLabel={t('tony.clear.title')}
+                        accessibilityLabel={t('syn.clear.title')}
                     >
                         <Undo2
                             size={theme.space(4)}
@@ -435,7 +435,7 @@ const TonyScreen = () => {
                         disabled={isBusy || quotaExhausted}
                     >
                         <Text fontSize="xs" fontWeight="medium">
-                            {t('tony.actions.workout')}
+                            {t('syn.actions.workout')}
                         </Text>
                     </Pressable>
 
@@ -448,7 +448,7 @@ const TonyScreen = () => {
                         disabled={isBusy || quotaExhausted}
                     >
                         <Text fontSize="xs" fontWeight="medium">
-                            {t('tony.actions.nutrition')}
+                            {t('syn.actions.nutrition')}
                         </Text>
                     </Pressable>
                 </HStack>
@@ -459,4 +459,4 @@ const TonyScreen = () => {
     );
 };
 
-export default TonyScreen;
+export default SynScreen;

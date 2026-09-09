@@ -63,10 +63,10 @@ export const QuickActions: FC = () => {
             go: () => router.navigate('/exercises'),
         },
         {
-            key: 'tony',
+            key: 'syn',
             icon: MessageCircle,
-            label: t('home.quick.tony', { ns: 'screens' }),
-            go: () => router.navigate('/tony'),
+            label: t('home.quick.syn', { ns: 'screens' }),
+            go: () => router.navigate('/syn'),
         },
         {
             key: 'nutrition',

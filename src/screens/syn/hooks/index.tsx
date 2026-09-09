@@ -1,10 +1,10 @@
 import { useScreen } from '@/hooks/use-screen';
 
-export const useTonyTab = () => {
+export const useSynTab = () => {
     const { options } = useScreen();
 
     return {
-        name: 'tony',
+        name: 'syn',
         options: {
             ...options,
             headerTransparent: true,

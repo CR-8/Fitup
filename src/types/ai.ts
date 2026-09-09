@@ -18,6 +18,15 @@ export interface AiPlanExercise {
     /** Echoed back by the model for readability; the local row is authoritative. */
     name?: string;
     sets: number;
+    /**
+     * How many of `sets` are ramp-up rather than working sets.
+     *
+     * Counted into `sets`, not added to it, so the total the user sees is the
+     * number the model wrote. The first `warmupSets` of the exercise are
+     * created as `warmup`, which is a set type the schema already carries and
+     * the stats already exclude from working volume.
+     */
+    warmupSets?: number | null;
     reps?: number | null;
     weight?: number | null;
     timeSeconds?: number | null;
@@ -96,6 +105,11 @@ export interface AiHistoryEntry {
     name: string;
     completedAt: number;
     exerciseNames: string[];
+    /**
+     * What the user answered when they ended the session. Null for anything
+     * completed before the question existed, or dismissed without an answer.
+     */
+    difficulty: 'easy' | 'medium' | 'hard' | null;
 }
 
 export interface AiRequestContext {

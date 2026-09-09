@@ -66,7 +66,7 @@
         "viewAll": "View all",
         "quick": {
             "exercises": "Exercises",
-            "tony": "Tony",
+            "syn": "Syn",
             "nutrition": "Nutrition"
         },
         "recentEmpty": {
@@ -577,18 +577,18 @@
             "zone5": "Zone 5 — Max"
         }
     },
-    "tony": {
-        "title": "Tony",
+    "syn": {
+        "title": "Syn",
         "empty": {
-            "title": "Ask Tony",
+            "title": "Ask Syn",
             "message": "Get a training plan, a food chart, or just ask about your training."
         },
         "unavailable": {
-            "title": "Tony is off",
+            "title": "Syn is off",
             "message": "This build has no AI host configured. Set EXPO_PUBLIC_AI_BASE_URL to turn it on."
         },
         "composer": {
-            "placeholder": "Message Tony…",
+            "placeholder": "Message Syn…",
             "send": "Send"
         },
         "actions": {
@@ -690,8 +690,8 @@
     },
     "onboarding": {
         "title": "About you",
-        "subtitle": "This is what Tony uses to tailor your plans. Every field is optional and you can change it later.",
-        "save": "Save and continue",
+        "subtitle": "This is what Syn uses to tailor your plans. Every field is optional and you can change it later.",
+        "save": "Start training",
         "skip": "Skip for now",
         "saveFailed": "Could not save your details. Try again.",
         "somatotypeHint": "A rough self-description, not a measurement.",
@@ -732,22 +732,27 @@
         },
         "next": "Continue",
         "back": "Back",
+        "stepCounter": "Step {{current}} of {{total}}",
         "steps": {
             "about": {
                 "title": "About you",
-                "subtitle": "Just the basics, so plans fit the person doing them."
+                "subtitle": "Just the basics, so plans fit the person doing them.",
+                "motivation": "Everyone under that bar started at day one. Today is yours."
             },
             "body": {
                 "title": "Your body",
-                "subtitle": "Used to size portions and starting loads."
+                "subtitle": "Used to size portions and starting loads.",
+                "motivation": "Today's numbers are the ones you'll beat. Log them honestly."
             },
             "goal": {
                 "title": "Your goal",
-                "subtitle": "What you want out of the next few months."
+                "subtitle": "What you want out of the next few months.",
+                "motivation": "A goal you can name is a goal you can train for."
             },
             "training": {
                 "title": "Your training",
-                "subtitle": "How much time you actually have."
+                "subtitle": "How much time you actually have.",
+                "motivation": "Showing up beats going hard. Pick days you will keep."
             }
         }
     },
@@ -772,8 +777,6 @@
         "completeSet": "Complete set",
         "skipRest": "Skip rest",
         "endWorkout": "End workout",
-        "nextUp": "Next up",
-        "noNextSet": "Last set of the workout",
         "minimize": "Back to workout",
         "completedTitle": "Workout complete",
         "completedHint": "Finish up to save it to your history.",
@@ -788,6 +791,14 @@
             "endWorkout": "End the workout and save it",
             "minimize": "Go back to the workout"
         }
+    },
+    "workout-feedback": {
+        "easy": "Easy",
+        "easyHint": "Could have done more. Next plan pushes harder.",
+        "medium": "Just right",
+        "mediumHint": "Hard but finished it. Next plan keeps building.",
+        "hard": "Hard",
+        "hardHint": "Too much. Next plan eases off."
     },
     "diet": {
         "title": "Nutrition",
@@ -811,7 +822,7 @@
         },
         "empty": {
             "title": "Your nutrition starts here",
-            "message": "Ask Tony for a food chart and it lands here as meals you can tick off as you eat them.",
+            "message": "Ask Syn for a food chart and it lands here as meals you can tick off as you eat them.",
             "messageOffline": "Meals from a generated food chart appear here, so you can tick them off as you eat them."
         },
         "subtitle": "Your meals, macros and daily intake.",

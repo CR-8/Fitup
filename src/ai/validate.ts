@@ -188,6 +188,10 @@ const validateExercise = (
     }
 
     const sets = asPositiveInt(raw.sets, MAX_SETS) ?? 3;
+    // Warm-up sets are carved out of `sets`, so more of them than there are sets
+    // would leave the exercise with no working set at all. Clamped rather than
+    // dropped: the movement and its load are still the useful part.
+    const warmupSets = Math.min(asNonNegativeInt(raw.warmupSets, MAX_SETS) ?? 0, sets - 1);
     const reps = asPositiveInt(raw.reps, MAX_REPS);
     const weight = asFiniteNumber(raw.weight);
     const timeSeconds = asPositiveInt(raw.timeSeconds, MAX_REST_SECONDS);
@@ -198,6 +202,7 @@ const validateExercise = (
         exerciseId,
         name: candidate.name,
         sets,
+        warmupSets: Math.max(0, warmupSets),
         reps,
         weight: weight !== null && weight >= 0 ? weight : null,
         timeSeconds,

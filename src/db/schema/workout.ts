@@ -24,6 +24,14 @@ export const workout = sqliteTable(
         startedAt: integer('started_at', { mode: 'timestamp_ms' }),
         completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
         duration: integer('duration'),
+        /**
+         * How hard the session felt, answered once when it is ended.
+         *
+         * Kept on the workout rather than in a table of its own: there is
+         * exactly one answer per session, and it is read back as one more
+         * column of training history when the next plan is generated.
+         */
+        difficulty: text('difficulty', { enum: ['easy', 'medium', 'hard'] }),
         remind: text('remind', {
             enum: ['start', '5m', '10m', '15m', '30m', '1h', '2h'],
         }),

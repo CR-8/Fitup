@@ -1,11 +1,10 @@
-import { FC, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import { ChevronDown, Pause, Play, Check, SkipForward } from 'lucide-react-native';
 
-import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { Box } from '@/components/primitives/box';
@@ -13,15 +12,13 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
-import { Guide } from '@/screens/exercises/exercise/components/guide';
 import {
     useCompleteExerciseSet,
     useUpdateExerciseSet,
     useWorkoutWithDetails,
 } from '@/hooks/use-workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
-import { getOrderedExercisesFromDetails, formatSet } from '@/helpers/workouts';
-import { getExecutionOrderSets } from '@/helpers/execution-order';
+import { formatSet } from '@/helpers/workouts';
 import { buildPauseUpdate, buildResumeUpdate, isSetPaused } from '@/helpers/pause';
 import {
     getStopwatchElapsedSeconds,
@@ -31,24 +28,21 @@ import {
 import { getRestSecondsPlanned } from '@/helpers/rest';
 import { finalizeRestNow, startNextSetOrExercise } from '@/services/set-transitions';
 import { reportError } from '@/services/error-reporting';
-import {
-    buildExerciseGifUrl,
-    EXERCISE_GIF_PREVIEW_RESOLUTION,
-    EXERCISE_MEDIA_ATTRIBUTION,
-} from '@/constants/fitup';
+import { buildExerciseGifUrl, EXERCISE_GIF_PREVIEW_RESOLUTION } from '@/constants/fitup';
 
 const styles = StyleSheet.create((theme, rt) => ({
+    /**
+     * One screenful, never a scroll view.
+     *
+     * Mid-set, a hand on the bar cannot go looking for a control that has been
+     * pushed below the fold, so everything tappable is laid out in a fixed
+     * column and the media panel absorbs whatever height is left over.
+     */
     container: {
         flex: 1,
         backgroundColor: theme.colors.background,
-    },
-    content: {
-        flexGrow: 1,
-        paddingTop: theme.screenHeaderHeight(),
-        paddingBottom: rt.insets.bottom + theme.space(6),
-        gap: theme.space(4),
-    },
-    header: {
+        paddingTop: rt.insets.top + theme.space(2),
+        paddingBottom: rt.insets.bottom + theme.space(3),
         paddingHorizontal: theme.space(4),
         gap: theme.space(3),
     },
@@ -79,8 +73,16 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(3.5),
         borderRadius: theme.radius.full,
     },
+    /**
+     * `brand[600]`, not `colors.primary`.
+     *
+     * The pill's label is `2xs` uppercase, far below the large-text allowance,
+     * so white on it has to clear 4.5:1. `brand[500]` is 3.41:1; `brand[600]` is
+     * 4.48:1 and still reads as the same coral. Same reasoning as the Home
+     * "Up Next" card, which is where this treatment comes from.
+     */
     phasePillWork: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: theme.colors.brand[600],
     },
     phasePillMuted: {
         backgroundColor: theme.colors.elevated,
@@ -100,38 +102,39 @@ const styles = StyleSheet.create((theme, rt) => ({
     muted: {
         color: theme.colors.mutedTypography,
     },
-    progressRow: {
-        gap: theme.space(3),
-        flexWrap: 'wrap',
+    /** Exercise, set and elapsed on one line — three labels would cost three rows. */
+    metaRow: {
+        color: theme.colors.mutedTypography,
+        fontVariant: ['tabular-nums'],
     },
-    card: {
-        marginHorizontal: theme.space(4),
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['3xl'],
-        padding: theme.space(5),
-        gap: theme.space(3),
-    },
-    // The source animations are drawn on white, so the plate stays white in
-    // both themes rather than showing a grey box behind a white GIF.
+    /**
+     * The only flexible row on the screen. `minHeight: 0` is what lets it give
+     * height back on a short device instead of forcing the buttons off-screen.
+     *
+     * The source animations are drawn on white, so the plate stays white in
+     * both themes rather than showing a grey box behind a white GIF.
+     */
     mediaPanel: {
-        marginHorizontal: theme.space(4),
+        flex: 1,
+        minHeight: 0,
         backgroundColor: theme.colors.white,
         borderRadius: theme.radius['3xl'],
-        padding: theme.space(4),
-        gap: theme.space(2),
+        padding: theme.space(3),
         alignItems: 'center',
+        justifyContent: 'center',
     },
     media: {
+        flex: 1,
         width: '100%',
-        aspectRatio: 1,
-        borderRadius: theme.radius['2xl'],
     },
-    attribution: {
-        color: theme.colors.neutral[500],
+    /** Holds the same slack as the media panel when an exercise has no GIF. */
+    mediaPlaceholder: {
+        flex: 1,
+        minHeight: 0,
     },
     timerPanel: {
         alignItems: 'center',
-        gap: theme.space(2),
+        gap: theme.space(1),
     },
     // The clock is the focal point while a set is running, so it gets the
     // largest type on the screen.
@@ -149,6 +152,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderRadius: theme.radius.full,
         backgroundColor: theme.colors.elevated,
         overflow: 'hidden',
+        marginTop: theme.space(1),
     },
     trackFill: {
         height: '100%',
@@ -163,12 +167,16 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.mutedTypography,
         fontVariant: ['tabular-nums'],
     },
-    actions: {
-        paddingHorizontal: theme.space(4),
+    /** Side by side: two stacked full-width buttons cost a GIF's worth of height. */
+    actionRow: {
         gap: theme.space(3),
     },
+    action: {
+        flex: 1,
+        width: 'auto',
+    },
     primaryAction: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: theme.colors.brand[600],
     },
     primaryActionText: {
         color: theme.colors.primaryTypography,
@@ -180,9 +188,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.typography,
     },
     // Ending the session is not a sibling of the timer controls, so it is
-    // pushed away from them and drawn as a link rather than a filled button.
+    // drawn as a link rather than a third filled button.
     endAction: {
-        marginTop: theme.space(2),
         alignSelf: 'center',
     },
     endActionText: {
@@ -193,7 +200,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: theme.space(8),
         gap: theme.space(2),
     },
     emptyText: {
@@ -214,7 +220,7 @@ type Phase = 'work' | 'rest' | 'paused' | 'complete';
 
 /**
  * The active-workout screen: what to do now, how long is left of it, and the
- * two controls that matter while doing it.
+ * controls that matter while doing it — on one screenful that never scrolls.
  *
  * It owns no workout state. Every transition — auto-completing a timed set at
  * zero, moving into rest, starting the next set when rest ends — already
@@ -245,31 +251,7 @@ const TimerScreen: FC = () => {
     const { mutateAsync: updateSet } = useUpdateExerciseSet();
     const { mutateAsync: completeSet } = useCompleteExerciseSet();
 
-    const orderedExercises = useMemo(
-        () => getOrderedExercisesFromDetails(workoutDetails),
-        [workoutDetails],
-    );
-
-    // Execution order, not the exercise list: in a superset the next set
-    // belongs to the next movement, not to the next set of this one.
-    const executionOrderSets = useMemo(
-        () => getExecutionOrderSets(orderedExercises, workoutDetails),
-        [orderedExercises, workoutDetails],
-    );
-
     const currentSet = runningWorkoutRestingSet ?? runningWorkoutActiveSet;
-
-    const nextEntry = useMemo(() => {
-        if (!currentSet) return undefined;
-        const index = executionOrderSets.findIndex((entry) => entry.set.id === currentSet.id);
-        if (index === -1) return undefined;
-        return executionOrderSets.slice(index + 1).find((entry) => !entry.set.completedAt);
-    }, [executionOrderSets, currentSet]);
-
-    const exerciseById = useMemo(
-        () => new Map(workoutDetails?.exercises.map((x) => [x.workoutExercise.id, x]) ?? []),
-        [workoutDetails],
-    );
 
     const currentExercise = runningWorkoutActiveExercise?.exercise;
     const timeOptions = currentExercise?.timeOptions ?? 'log';
@@ -281,22 +263,49 @@ const TimerScreen: FC = () => {
         return runningWorkoutRestingSet ? 'rest' : 'work';
     }, [currentSet, paused, runningWorkoutRestingSet]);
 
-    // Counted over the ordered exercise list rather than the execution order:
-    // "exercise 2 of 6" is about movements, not sets.
-    const exerciseProgress = useMemo(() => {
-        if (!runningWorkoutActiveExercise) return null;
-        const index = orderedExercises.findIndex((ex) => ex.id === runningWorkoutActiveExercise.id);
-        if (index === -1) return null;
-        return { current: index + 1, total: orderedExercises.length };
-    }, [orderedExercises, runningWorkoutActiveExercise]);
+    /**
+     * Exercise, set and elapsed collapsed onto one line.
+     *
+     * Exercise position is counted over the workout's exercises rather than the
+     * execution order: "exercise 2 of 6" is about movements, not sets.
+     */
+    const metaLine = useMemo(() => {
+        const parts: string[] = [];
+        const exercises = workoutDetails?.exercises ?? [];
 
-    const setProgress = useMemo(() => {
-        const sets = runningWorkoutActiveExercise?.sets;
-        if (!currentSet || !sets?.length) return null;
-        const index = sets.findIndex((set) => set.id === currentSet.id);
-        if (index === -1) return null;
-        return { current: index + 1, total: sets.length };
-    }, [currentSet, runningWorkoutActiveExercise]);
+        const exerciseIndex = runningWorkoutActiveExercise
+            ? exercises.findIndex(
+                  (entry) => entry.workoutExercise.id === runningWorkoutActiveExercise.id,
+              )
+            : -1;
+
+        if (exerciseIndex !== -1) {
+            parts.push(
+                t('timer.exerciseProgress', {
+                    ns: 'screens',
+                    current: exerciseIndex + 1,
+                    total: exercises.length,
+                }),
+            );
+        }
+
+        const sets = runningWorkoutActiveExercise?.sets ?? [];
+        const setIndex = currentSet ? sets.findIndex((set) => set.id === currentSet.id) : -1;
+
+        if (setIndex !== -1) {
+            parts.push(
+                t('timer.setProgress', {
+                    ns: 'screens',
+                    current: setIndex + 1,
+                    total: sets.length,
+                }),
+            );
+        }
+
+        parts.push(elapsedFormated);
+
+        return parts.join(' · ');
+    }, [currentSet, elapsedFormated, runningWorkoutActiveExercise, t, workoutDetails]);
 
     /** What the set asks for — "60 kg x 10". Empty when there is nothing to say. */
     const setSummary = useMemo(
@@ -464,6 +473,32 @@ const TimerScreen: FC = () => {
         workoutDetails,
     ]);
 
+    /**
+     * Leaves with the session it was showing.
+     *
+     * Ending a workout clears `runningWorkout`, which would otherwise strand
+     * the user on this screen's "nothing running" state at the exact moment
+     * they finished — and it is now the screen every session is driven from, so
+     * that is the last thing seen every time. The feedback sheet is presented
+     * above whatever this returns to, so it survives the dismissal.
+     *
+     * Gated on having actually held a workout, so the empty state still renders
+     * for someone who opens the timer with nothing running.
+     */
+    const hasHeldWorkout = useRef(false);
+
+    useEffect(() => {
+        if (runningWorkout) {
+            hasHeldWorkout.current = true;
+            return;
+        }
+
+        if (!hasHeldWorkout.current) return;
+        hasHeldWorkout.current = false;
+
+        if (router.canGoBack()) router.back();
+    }, [runningWorkout]);
+
     const handleMinimize = useCallback(() => {
         // Back to the logging UI rather than out of the session entirely.
         if (runningWorkout?.id) {
@@ -475,7 +510,7 @@ const TimerScreen: FC = () => {
 
     if (!runningWorkout) {
         return (
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <VStack style={styles.container}>
                 <VStack style={styles.empty}>
                     <Title type="h3">{t('timer.emptyTitle', { ns: 'screens' })}</Title>
                     <Text style={styles.emptyText}>{t('timer.emptyHint', { ns: 'screens' })}</Text>
@@ -485,91 +520,73 @@ const TimerScreen: FC = () => {
                         onPress={() => router.back()}
                     />
                 </VStack>
-            </ScrollView>
+            </VStack>
         );
     }
 
     const isComplete = phase === 'complete';
     const controlsDisabled = isActionPending || isPendingCompleteWorkout;
-    const nextExercise = nextEntry ? exerciseById.get(nextEntry.exerciseId) : undefined;
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <VStack style={styles.header}>
-                <HStack style={styles.headerRow}>
-                    <Pressable
-                        onPress={handleMinimize}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('timer.a11y.minimize', { ns: 'screens' })}
-                    >
-                        <Box style={styles.minimize}>
-                            <ChevronDown
-                                size={theme.space(6)}
-                                color={theme.colors.typography}
-                                strokeWidth={2.5}
-                            />
-                        </Box>
-                    </Pressable>
+        <VStack style={styles.container}>
+            <HStack style={styles.headerRow}>
+                <Pressable
+                    onPress={handleMinimize}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('timer.a11y.minimize', { ns: 'screens' })}
+                >
+                    <Box style={styles.minimize}>
+                        <ChevronDown
+                            size={theme.space(6)}
+                            color={theme.colors.typography}
+                            strokeWidth={2.5}
+                        />
+                    </Box>
+                </Pressable>
 
-                    <Box
+                <Box
+                    style={[
+                        styles.phasePill,
+                        phase === 'work' ? styles.phasePillWork : styles.phasePillMuted,
+                    ]}
+                >
+                    <Text
                         style={[
-                            styles.phasePill,
-                            phase === 'work' ? styles.phasePillWork : styles.phasePillMuted,
+                            styles.phaseText,
+                            phase === 'work' ? styles.phaseTextOnCoral : styles.phaseTextOnMuted,
                         ]}
                     >
-                        <Text
-                            style={[
-                                styles.phaseText,
-                                phase === 'work'
-                                    ? styles.phaseTextOnCoral
-                                    : styles.phaseTextOnMuted,
-                            ]}
-                        >
-                            {t(`timer.phase.${phase}`, { ns: 'screens' })}
-                        </Text>
-                    </Box>
-                </HStack>
-
-                <VStack>
-                    <Text style={styles.eyebrow}>{runningWorkout.name}</Text>
-                    <Title type="h2">
-                        {runningWorkoutActiveExercise?.name ??
-                            t('timer.completedTitle', { ns: 'screens' })}
-                    </Title>
-                </VStack>
-
-                <HStack style={styles.progressRow}>
-                    {exerciseProgress ? (
-                        <Text fontSize="sm" style={styles.muted}>
-                            {t('timer.exerciseProgress', { ns: 'screens', ...exerciseProgress })}
-                        </Text>
-                    ) : null}
-                    {setProgress ? (
-                        <Text fontSize="sm" style={styles.muted}>
-                            {t('timer.setProgress', { ns: 'screens', ...setProgress })}
-                        </Text>
-                    ) : null}
-                    <Text fontSize="sm" style={styles.muted}>
-                        {elapsedFormated}
+                        {t(`timer.phase.${phase}`, { ns: 'screens' })}
                     </Text>
-                </HStack>
+                </Box>
+            </HStack>
+
+            <VStack>
+                <Title type="h2" numberOfLines={1}>
+                    {runningWorkoutActiveExercise?.name ??
+                        t('timer.completedTitle', { ns: 'screens' })}
+                </Title>
+                <Text fontSize="sm" style={styles.metaRow}>
+                    {metaLine}
+                </Text>
             </VStack>
 
             {gifUrl ? (
-                <VStack style={styles.mediaPanel}>
+                <Box style={styles.mediaPanel}>
                     <ExpoImage
                         source={{ uri: gifUrl }}
                         style={styles.media}
                         contentFit="contain"
                         autoplay
                     />
-                    <Text fontSize="2xs" style={styles.attribution}>
-                        {EXERCISE_MEDIA_ATTRIBUTION}
-                    </Text>
-                </VStack>
-            ) : null}
+                </Box>
+            ) : (
+                // Without media the slack is still taken here, so the controls
+                // stay pinned to the same place on every exercise.
+                <Box style={styles.mediaPlaceholder} />
+            )}
 
-            <VStack style={[styles.card, styles.timerPanel]}>
+            <VStack style={styles.timerPanel}>
                 {isComplete ? (
                     <>
                         <Title type="h3">{t('timer.completedTitle', { ns: 'screens' })}</Title>
@@ -587,7 +604,10 @@ const TimerScreen: FC = () => {
                         >
                             {readout.value}
                         </Title>
-                        <Text style={styles.eyebrow}>{readout.label}</Text>
+                        {/* What the set is actually asking for, under the clock
+                            rather than instead of it. Falls back to naming the
+                            phase when the set has nothing to state. */}
+                        <Text style={styles.setSummary}>{setSummary || readout.label}</Text>
                         {readout.fraction !== null ? (
                             <Box style={styles.track}>
                                 <Box
@@ -600,9 +620,6 @@ const TimerScreen: FC = () => {
                                 />
                             </Box>
                         ) : null}
-                        {/* What the set is actually asking for, under the clock
-                            rather than instead of it. */}
-                        {setSummary ? <Text style={styles.setSummary}>{setSummary}</Text> : null}
                     </>
                 ) : (
                     // No active set to time — between sets, or while the data is
@@ -616,25 +633,8 @@ const TimerScreen: FC = () => {
                 )}
             </VStack>
 
-            <VStack style={styles.card}>
-                <Text style={styles.eyebrow}>{t('timer.nextUp', { ns: 'screens' })}</Text>
-                {nextEntry ? (
-                    <VStack>
-                        <Text fontWeight="semibold">{nextExercise?.exercise.name ?? ''}</Text>
-                        <Text fontSize="sm" style={styles.muted}>
-                            {formatSet(nextExercise?.exercise, nextEntry.set) ||
-                                t('timer.inProgress', { ns: 'screens' })}
-                        </Text>
-                    </VStack>
-                ) : (
-                    <Text fontSize="sm" style={styles.muted}>
-                        {t('timer.noNextSet', { ns: 'screens' })}
-                    </Text>
-                )}
-            </VStack>
-
             {!isComplete ? (
-                <VStack style={styles.actions}>
+                <HStack style={styles.actionRow}>
                     <Button
                         title={
                             paused
@@ -658,7 +658,7 @@ const TimerScreen: FC = () => {
                         }
                         onPress={handleTogglePause}
                         disabled={controlsDisabled || !currentSet}
-                        containerStyle={styles.primaryAction}
+                        containerStyle={[styles.action, styles.primaryAction]}
                         textStyle={styles.primaryActionText}
                         accessibilityRole="button"
                         accessibilityLabel={t(paused ? 'timer.a11y.continue' : 'timer.a11y.stop', {
@@ -678,7 +678,7 @@ const TimerScreen: FC = () => {
                             }
                             onPress={handleSkipRest}
                             disabled={controlsDisabled}
-                            containerStyle={styles.secondaryAction}
+                            containerStyle={[styles.action, styles.secondaryAction]}
                             textStyle={styles.secondaryActionText}
                             accessibilityRole="button"
                             accessibilityLabel={t('timer.a11y.skipRest', { ns: 'screens' })}
@@ -689,7 +689,7 @@ const TimerScreen: FC = () => {
                         />
                     ) : (
                         <Button
-                            title={t('timer.completeSet', { ns: 'screens' })}
+                            title={t('timer.done', { ns: 'screens' })}
                             prefix={
                                 <Check
                                     size={theme.space(5)}
@@ -699,7 +699,7 @@ const TimerScreen: FC = () => {
                             }
                             onPress={handleCompleteSet}
                             disabled={controlsDisabled || !runningWorkoutActiveSet}
-                            containerStyle={styles.secondaryAction}
+                            containerStyle={[styles.action, styles.secondaryAction]}
                             textStyle={styles.secondaryActionText}
                             accessibilityRole="button"
                             accessibilityLabel={t('timer.a11y.completeSet', { ns: 'screens' })}
@@ -709,29 +709,25 @@ const TimerScreen: FC = () => {
                             }}
                         />
                     )}
-                </VStack>
+                </HStack>
             ) : null}
 
-            <Box style={styles.actions}>
-                <Button
-                    title={t('timer.endWorkout', { ns: 'screens' })}
-                    type="link"
-                    onPress={completeWorkout}
-                    loading={isPendingCompleteWorkout}
-                    disabled={isPendingCompleteWorkout}
-                    containerStyle={styles.endAction}
-                    textStyle={styles.endActionText}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
-                    accessibilityState={{
-                        disabled: isPendingCompleteWorkout,
-                        busy: isPendingCompleteWorkout,
-                    }}
-                />
-            </Box>
-
-            {currentExercise ? <Guide exercise={currentExercise} showHero={false} /> : null}
-        </ScrollView>
+            <Button
+                title={t('timer.endWorkout', { ns: 'screens' })}
+                type="link"
+                onPress={completeWorkout}
+                loading={isPendingCompleteWorkout}
+                disabled={isPendingCompleteWorkout}
+                containerStyle={styles.endAction}
+                textStyle={styles.endActionText}
+                accessibilityRole="button"
+                accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
+                accessibilityState={{
+                    disabled: isPendingCompleteWorkout,
+                    busy: isPendingCompleteWorkout,
+                }}
+            />
+        </VStack>
     );
 };
 

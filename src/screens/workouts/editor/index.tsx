@@ -229,11 +229,16 @@ const EditorForm: FC<EditorFormProps> = ({ existingWorkout }) => {
                     source: 'create',
                 });
             }
+            // A workout created as already running goes straight to the timer,
+            // the same place every other start lands. One created as planned
+            // still opens on its own screen, where it can be filled in.
             if (created && created.status === 'in_progress') {
                 runInBackground(
                     () => startWorkout(created.id, 'new'),
                     'Failed to auto-start newly created workout:',
                 );
+                router.replace('/timer');
+                return;
             }
             router.replace(`/workout/${created.id}`);
         },

@@ -165,7 +165,7 @@ const DietScreen: FC = () => {
     const { mutateAsync: toggleItem } = useToggleMealItem();
     const { mutateAsync: removeItem } = useDeleteMealItem();
 
-    // The same nutrition generation Tony already exposes — reused here rather
+    // The same nutrition generation Syn already exposes — reused here rather
     // than rebuilt, so a plan built from this screen lands in the one
     // conversation and applies through the one code path.
     const aiAvailable = useAiAvailable();
@@ -265,14 +265,14 @@ const DietScreen: FC = () => {
 
     /**
      * Builds a chart through the existing plan pipeline, then hands over to
-     * Tony, which is where a plan draft is reviewed and applied. Applying it
+     * Syn, which is where a plan draft is reviewed and applied. Applying it
      * writes real meals back into this screen.
      */
     const handleBuildPlan = useCallback(async () => {
         if (quotaExhausted) {
             Alert.alert(
-                t('tony.quota.title', { ns: 'screens' }),
-                t('tony.quota.message', { ns: 'screens', limit: quota.limit }),
+                t('syn.quota.title', { ns: 'screens' }),
+                t('syn.quota.message', { ns: 'screens', limit: quota.limit }),
             );
 
             return;
@@ -281,14 +281,14 @@ const DietScreen: FC = () => {
         try {
             await generatePlan({
                 kind: 'nutrition',
-                intent: t('tony.actions.nutritionIntent', { ns: 'screens' }),
+                intent: t('syn.actions.nutritionIntent', { ns: 'screens' }),
             });
         } catch {
             // The failure is written into the conversation as an assistant turn,
-            // so Tony is still the right place to land.
+            // so Syn is still the right place to land.
         }
 
-        router.navigate('/tony');
+        router.navigate('/syn');
     }, [generatePlan, quota.limit, quotaExhausted, t]);
 
     const planCta = aiAvailable ? (

@@ -8,7 +8,7 @@ import { useHomeTab } from '@/screens/home/hooks';
 import { useSettingsTab } from '@/screens/settings/settings/hooks';
 import { useResultsTab } from '@/screens/results/results/hooks';
 import { useWorkoutHubTab } from '@/screens/workouts/hub/hooks';
-import { useTonyTab } from '@/screens/tony/hooks';
+import { useSynTab } from '@/screens/syn/hooks';
 
 export default function TabLayout() {
     const { options } = useScreen();
@@ -18,7 +18,7 @@ export default function TabLayout() {
     const settings = useSettingsTab();
     const results = useResultsTab();
     const workout = useWorkoutHubTab();
-    const tony = useTonyTab();
+    const syn = useSynTab();
 
     return (
         <Tabs
@@ -33,7 +33,7 @@ export default function TabLayout() {
             <Tabs.Screen {...exercises} />
             <Tabs.Screen {...workout} />
             <Tabs.Screen {...results} />
-            <Tabs.Screen {...tony} />
+            <Tabs.Screen {...syn} />
             {/* Still a tab route so `/settings` keeps working and the settings
                 stack is unchanged — it simply has no button on the bar. */}
             <Tabs.Screen {...settings} />

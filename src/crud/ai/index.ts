@@ -427,6 +427,7 @@ const buildHistory = async (userId: string): Promise<AiHistoryEntry[]> => {
             id: workout.id,
             name: workout.name,
             completedAt: workout.completedAt,
+            difficulty: workout.difficulty,
         })
         .from(workout)
         .where(and(eq(workout.userId, userId), isNotNull(workout.completedAt)))
@@ -455,6 +456,7 @@ const buildHistory = async (userId: string): Promise<AiHistoryEntry[]> => {
         name: entry.name,
         completedAt: entry.completedAt!.getTime(),
         exerciseNames: byWorkout[entry.id] ?? [],
+        difficulty: entry.difficulty ?? null,
     }));
 };
 

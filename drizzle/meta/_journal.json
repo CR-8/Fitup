@@ -183,6 +183,13 @@
       "when": 1788616284466,
       "tag": "0025_faulty_scream",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1788870975893,
+      "tag": "0026_thick_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

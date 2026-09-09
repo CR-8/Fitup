@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '1';
+export const PROMPT_VERSION = '2';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -28,6 +28,7 @@ const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
           "exerciseId": string,
           "name": string,
           "sets": number,
+          "warmupSets": number | null,
           "reps": number | null,
           "weight": number | null,
           "timeSeconds": number | null,
@@ -99,6 +100,42 @@ Rules for the payload:
 - Only set fields that apply to the exercise's tracking configuration. A bodyweight
   movement should have a null weight; a timed hold should use timeSeconds, not reps.
 
+How to program the training. These are not stylistic preferences; a plan that
+ignores them is wrong:
+
+1. Linear progression. Repeat a small set of main movements rather than rotating
+   through new ones. Each time a movement recurs it goes up by one step and one
+   step only - about 2.5 kg for upper body, 5 kg for lower body, or one to two
+   reps where load cannot move. Never advance load and reps in the same session.
+   If RECENT TRAINING shows a movement was already trained, continue from where it
+   left off rather than restarting it.
+2. Read the difficulty the user reported on recent sessions and size the step:
+   - "easy": take the full step, and add a set to the main lift if the session
+     length allows it.
+   - "medium": take the full step. This is the plan working as intended.
+   - "hard": hold the load flat and repeat it, or drop about 10% and build back.
+     Do not add volume.
+   - no answer recorded: take the full step.
+   Two or more "hard" sessions in a row means the plan is too aggressive - cut one
+   working set per movement across the whole plan.
+3. Every set gets an explicit restSeconds. Never leave it null on a strength set.
+   Heavy compound lifts get 120-180s, accessory work 60-90s, conditioning 30-45s.
+4. Warm-up is part of the plan, not advice. Every training day opens with 5-10
+   minutes of general work - light cardio and mobility taken from the catalogue -
+   as its own first exercises. On top of that, every heavy compound lift carries
+   "warmupSets": 1-3 ramp-up sets at a lighter load. warmupSets counts INTO
+   "sets", never on top of it: two warm-up sets plus three working sets is
+   "sets": 5 with "warmupSets": 2. Accessory and bodyweight work uses 0 or null.
+5. Every training day closes with a cool-down: 2-4 stretching, mobility or
+   flexibility movements from the catalogue, written as timed holds using
+   timeSeconds, with low restSeconds and no load.
+6. Order each day: warm-up, then the heaviest compound movement while the user is
+   fresh, then accessories, then the cool-down.
+7. Respect the stated session length. Sets multiplied by rest is most of a
+   session's clock, so drop movements rather than cutting rest below the ranges
+   above. Leave at least one rest day between sessions training the same muscle
+   group.
+
 Fixed identifiers. These are machine values, not text for the reader. Write them in
 lowercase English exactly as listed, whatever language the rest of the plan is in:
 - "kind" is one of: workout, nutrition, combined
@@ -156,6 +193,13 @@ const formatCandidates = (context: AiRequestContext): string => {
         .join('\n');
 };
 
+/**
+ * Recent sessions, each tagged with how hard the user said it was.
+ *
+ * That answer is the point of this block for progression: it is the only signal
+ * the app has about whether the last step was too big, and the system rules
+ * above say what to do with each value.
+ */
 const formatHistory = (context: AiRequestContext): string => {
     if (context.history.length === 0) return 'No completed workouts yet.';
 
@@ -163,7 +207,8 @@ const formatHistory = (context: AiRequestContext): string => {
         .map((entry) => {
             const date = new Date(entry.completedAt).toISOString().slice(0, 10);
             const exercises = entry.exerciseNames.slice(0, 6).join(', ');
-            return `- ${date} ${entry.name}: ${exercises}`;
+            const felt = entry.difficulty ? ` [felt: ${entry.difficulty}]` : '';
+            return `- ${date} ${entry.name}: ${exercises}${felt}`;
         })
         .join('\n');
 };

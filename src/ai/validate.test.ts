@@ -242,6 +242,59 @@ describe('validatePlanPayload', () => {
         expect(payload.workouts[0].exercises[0].sets).toBe(3);
     });
 
+    test('keeps warm-up sets inside the set count the model asked for', () => {
+        const plan = workoutPlan({
+            workouts: [
+                {
+                    name: 'Upper body',
+                    dayOffset: 0,
+                    exercises: [
+                        {
+                            exerciseId: 'exerciseAlpha00000001',
+                            sets: 5,
+                            warmupSets: 2,
+                            reps: 5,
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const { payload } = validatePlanPayload(plan, 'workout', candidates);
+
+        expect(payload.workouts[0].exercises[0].sets).toBe(5);
+        expect(payload.workouts[0].exercises[0].warmupSets).toBe(2);
+    });
+
+    test('leaves at least one working set when every set is called a warm-up', () => {
+        const plan = workoutPlan({
+            workouts: [
+                {
+                    name: 'Upper body',
+                    dayOffset: 0,
+                    exercises: [
+                        {
+                            exerciseId: 'exerciseAlpha00000001',
+                            sets: 3,
+                            warmupSets: 9,
+                            reps: 5,
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const { payload } = validatePlanPayload(plan, 'workout', candidates);
+
+        expect(payload.workouts[0].exercises[0].warmupSets).toBe(2);
+    });
+
+    test('treats a missing warm-up count as none rather than NaN', () => {
+        const { payload } = validatePlanPayload(workoutPlan(), 'workout', candidates);
+
+        expect(payload.workouts[0].exercises[0].warmupSets).toBe(0);
+    });
+
     test('forces the returned kind to the requested kind', () => {
         const { payload, repairs } = validatePlanPayload(
             workoutPlan({ kind: 'combined' }),

@@ -97,6 +97,9 @@ const DaySummaryScreen: FC = () => {
             startedAt,
             completedAt,
             duration,
+            // Synthetic roll-up of a day's sessions, not a session anyone did,
+            // so there is nobody to have rated it.
+            difficulty: null,
             remind: null,
             userId: user?.id || 'day-summary',
             createdAt: startAt,

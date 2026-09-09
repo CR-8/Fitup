@@ -28,6 +28,7 @@ import {
 import { resolveMhrFromProfile } from '@/helpers/heart-rate-zones';
 import { normalizeSetType } from '@/helpers/set-type';
 import { WorkoutItem } from '@/screens/workouts/workout/types';
+import { useActionsStore } from '@/stores/actions';
 
 import { useAudio } from './use-audio';
 import {
@@ -255,6 +256,10 @@ const useRunningWorkoutProvider = () => {
     const start = useStartWorkout();
 
     const complete = useCompleteWorkout();
+    // Selected as a bare function, not through `useShallow`: `open` is stable
+    // for the life of the store, so this never re-renders the provider that
+    // every running-workout consumer sits under.
+    const openActions = useActionsStore((state) => state.open);
     const { mutateAsync: completeExerciseSet } = useCompleteExerciseSet();
     const { track } = useAnalytics();
 
@@ -1636,6 +1641,17 @@ const useRunningWorkoutProvider = () => {
                                         () => watchManagerRef.current.end(data.id),
                                         'Failed to end watch session after workout completion:',
                                     );
+                                    // Asked here rather than on the screen the
+                                    // tap came from, so that every way of
+                                    // ending a session gets the same question
+                                    // and generation is not left guessing for
+                                    // workouts finished from the other one.
+                                    openActions({
+                                        type: 'workout__feedback',
+                                        title: t('workoutFeedback', { ns: 'common' }),
+                                        showCloseButton: true,
+                                        payload: { workoutId: data.id },
+                                    });
                                     runInBackground(
                                         () => maybeShowAppReviewPrompt(data, 'phone'),
                                         'Failed to show post-workout app review prompt:',
@@ -1653,6 +1669,7 @@ const useRunningWorkoutProvider = () => {
     }, [
         complete,
         maybeShowAppReviewPrompt,
+        openActions,
         playWorkoutStop,
         runningWorkout,
         syncCompletedWorkoutHealth,

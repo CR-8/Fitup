@@ -11,6 +11,7 @@ import { Handle } from '../handle';
 
 import { WorkoutMenu } from './menus/workout';
 import { WorkoutRepeat } from './menus/workout-repeat';
+import { WorkoutFeedback } from './menus/workout-feedback';
 import { ExerciseMenu } from './menus/exercise';
 import { WorkoutExerciseMenu } from './menus/workout-exercise';
 import { SetMenu } from './menus/set';
@@ -79,6 +80,8 @@ const ActionsSheet: FC = () => {
                 return <WorkoutMenu />;
             case 'workout__repeat':
                 return <WorkoutRepeat />;
+            case 'workout__feedback':
+                return <WorkoutFeedback />;
             case 'exercise__menu':
                 return <ExerciseMenu />;
             case 'workout_exercise__menu':

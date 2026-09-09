@@ -101,7 +101,10 @@ export const Actions: FC<ActionsProps> = ({ workout }) => {
             return;
         }
         if (workout.status === 'planned') {
-            startWorkout(workout.id);
+            // Starting hands the session over to the timer, which is where a
+            // running workout is driven from. This screen stays behind it for
+            // editing and for reading back what was logged.
+            void startWorkout(workout.id).then(() => router.navigate('/timer'));
             return;
         }
         if (workout.status === 'completed') {

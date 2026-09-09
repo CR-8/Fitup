@@ -266,6 +266,7 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             startedAt: 'started_at',
             completedAt: 'completed_at',
             duration: 'duration',
+            difficulty: 'difficulty',
             remind: 'remind',
             userId: 'user_id',
             createdAt: 'created_at',

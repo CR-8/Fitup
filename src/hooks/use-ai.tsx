@@ -139,27 +139,27 @@ const resolveErrorKey = (error: unknown): string => {
     if (error instanceof AiError) {
         switch (error.code) {
             case 'DISABLED':
-                return 'tony.errors.disabled';
+                return 'syn.errors.disabled';
             case 'NO_INTERNET':
-                return 'tony.errors.offline';
+                return 'syn.errors.offline';
             case 'TIMEOUT':
-                return 'tony.errors.timeout';
+                return 'syn.errors.timeout';
             case 'RATE_LIMIT':
-                return 'tony.errors.rateLimit';
+                return 'syn.errors.rateLimit';
             case 'QUOTA':
-                return 'tony.errors.quota';
+                return 'syn.errors.quota';
             case 'AUTH':
-                return 'tony.errors.auth';
+                return 'syn.errors.auth';
             case 'INVALID_RESPONSE':
-                return 'tony.errors.invalid';
+                return 'syn.errors.invalid';
             case 'TRUNCATED':
-                return 'tony.errors.truncated';
+                return 'syn.errors.truncated';
             default:
-                return 'tony.errors.provider';
+                return 'syn.errors.provider';
         }
     }
 
-    return 'tony.errors.provider';
+    return 'syn.errors.provider';
 };
 
 export const useAiChat = (conversationId: string | undefined) => {

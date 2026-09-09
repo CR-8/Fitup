@@ -77,7 +77,7 @@ export const Composer: FC<ComposerProps> = ({ onSend, disabled = false, busy = f
                 style={styles.input}
                 value={value}
                 onChangeText={setValue}
-                placeholder={t('tony.composer.placeholder')}
+                placeholder={t('syn.composer.placeholder')}
                 multiline
                 editable={!disabled}
             />
@@ -86,7 +86,7 @@ export const Composer: FC<ComposerProps> = ({ onSend, disabled = false, busy = f
                 onPress={handleSend}
                 disabled={!canSend}
                 accessibilityRole="button"
-                accessibilityLabel={t('tony.composer.send')}
+                accessibilityLabel={t('syn.composer.send')}
             >
                 <Box style={[styles.send, !canSend && styles.sendDisabled]}>
                     {busy ? (

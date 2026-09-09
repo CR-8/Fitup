@@ -153,7 +153,7 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
         // timer's own minimize control goes to `/workout/<id>`, so the logging
         // UI stays one tap away in the other direction.
         if (state.kind === 'resume') {
-            router.navigate(`/workout/${state.workout.id}`);
+            router.navigate('/timer');
 
             return;
         }
@@ -163,11 +163,11 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
             // records what kind of start this is, and this is still a planned
             // workout being started. Where the tap happened is a different axis.
             await startWorkout({ workoutId: state.workout.id, source: 'planned' });
-            // Both start and resume land on the workout screen. It is the
-            // execution surface — exercises, sets, progress — and the timer is
-            // one tap from it. Sending "start" somewhere different from every
-            // workout card is what made the entry points feel arbitrary.
-            router.navigate(`/workout/${state.workout.id}`);
+            // Both start and resume land on the timer. It is the execution
+            // surface for a session that is under way — one screenful of what
+            // to do now and the controls for it — and the logging UI is one tap
+            // away behind its minimize control.
+            router.navigate('/timer');
         } catch (error) {
             reportError(error, 'Failed to start a workout from the home card');
             Alert.alert(t('home.upNext.startFailed', { ns: 'screens' }));

@@ -19,6 +19,16 @@ type Workoutrepeat = {
     };
 };
 
+/** Asked once, right after a workout is ended. */
+type WorkoutFeedback = {
+    type: 'workout__feedback';
+    title?: string;
+    showCloseButton?: boolean;
+    payload: {
+        workoutId: string;
+    };
+};
+
 type ExerciseMenu = {
     type: 'exercise__menu';
     title?: string;
@@ -58,11 +68,13 @@ type State =
       }
     | WorkoutMenu
     | Workoutrepeat
+    | WorkoutFeedback
     | ExerciseMenu
     | WorkoutExerciseMenu
     | SetMenu;
 
-type OpenPropsType = WorkoutMenu | Workoutrepeat | ExerciseMenu | WorkoutExerciseMenu | SetMenu;
+type OpenPropsType =
+    WorkoutMenu | Workoutrepeat | WorkoutFeedback | ExerciseMenu | WorkoutExerciseMenu | SetMenu;
 
 type Actions = {
     open: (props: OpenPropsType) => void;

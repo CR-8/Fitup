@@ -62,13 +62,24 @@ const applyWorkout = async (
             orderInGroup: 0,
         });
 
+        // Ramp-up sets come out of the front of the exercise's own set count
+        // rather than being appended, so the number of sets the plan showed is
+        // the number that gets created. `warmup` is a type the schema already
+        // has and that working-volume stats already exclude.
+        const warmupSets = Math.min(Math.max(planExercise.warmupSets ?? 0, 0), planExercise.sets);
+
         for (let setIndex = 0; setIndex < planExercise.sets; setIndex += 1) {
+            const isWarmup = setIndex < warmupSets;
+
             await createExerciseSet({
                 workoutExerciseId: link.id,
                 order: setIndex,
-                type: 'working',
+                type: isWarmup ? 'warmup' : 'working',
                 reps: planExercise.reps ?? null,
-                weight: planExercise.weight ?? null,
+                // A ramp-up set is the same movement at a lighter load. There is
+                // no prescribed number for that, and carrying the working weight
+                // over would tell the user to warm up with their top set.
+                weight: isWarmup ? null : (planExercise.weight ?? null),
                 time: planExercise.timeSeconds ?? null,
                 distance: planExercise.distance ?? null,
                 restTime: planExercise.restSeconds ?? null,

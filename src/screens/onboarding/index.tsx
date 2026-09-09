@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Dumbbell, Scale, Target, User } from 'lucide-react-native';
 
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
@@ -30,6 +31,41 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 type OnboardingForm = ProfileFormData;
+
+/**
+ * What the form starts as.
+ *
+ * Split deliberately, because "sensible default" and "sensible hint" are not the
+ * same thing here — a default is saved, a hint is not:
+ *
+ *   - `goal`, `activityLevel` and `sessionsPerWeek` are plain profile settings
+ *     with a defensible middle, and they are what the plan generator reads. A
+ *     user who taps straight through now arrives with a usable profile instead
+ *     of three nulls.
+ *   - `bodyWeightKg` and `heightCm` are NOT defaulted. They are written as
+ *     `measurement` rows, which are a time series, so a number nobody typed
+ *     would show up on the weight chart as a real weigh-in.
+ *   - `age` is NOT defaulted either. It is saved as a birthday, and the birthday
+ *     is what heart-rate zones are derived from — a guessed age silently
+ *     produces wrong zones, which is worse than having none.
+ *   - `biologicalSex` and `somatotype` are self-descriptions. There is no
+ *     neutral value to pick on someone's behalf.
+ *
+ * Passing this object also stops every field starting as `undefined`, which is
+ * what left the inputs switching from uncontrolled to controlled on first edit.
+ */
+const DEFAULT_VALUES: OnboardingForm = {
+    displayName: null,
+    age: null,
+    biologicalSex: null,
+    bodyWeightKg: null,
+    heightCm: null,
+    targetWeightKg: null,
+    goal: 'maintain',
+    somatotype: null,
+    activityLevel: 'moderate',
+    sessionsPerWeek: GUIDELINE_SESSIONS_PER_WEEK,
+};
 
 /**
  * Which step each field is asked on.
@@ -67,7 +103,10 @@ const OnboardingScreen = () => {
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<OnboardingForm>({ resolver: zodResolver(profileSchema) });
+    } = useForm<OnboardingForm>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: DEFAULT_VALUES,
+    });
 
     /**
      * Hints, not values. Nothing here is ever saved — body weight and height are
@@ -80,6 +119,14 @@ const OnboardingScreen = () => {
      */
     const biologicalSex = useWatch({ control, name: 'biologicalSex' });
     const averages = worldAverages(biologicalSex);
+
+    /**
+     * A target weight is only meaningful next to the current one, so the hint
+     * follows what was entered on the previous step and falls back to the
+     * average only while that is still blank.
+     */
+    const bodyWeightKg = useWatch({ control, name: 'bodyWeightKg' });
+    const targetWeightHint = bodyWeightKg ?? averages.bodyWeightKg;
 
     const choices = useCallback(
         (group: string, values: readonly string[]) =>
@@ -163,6 +210,8 @@ const OnboardingScreen = () => {
             {
                 title: t('onboarding.steps.about.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.about.subtitle', { ns: 'screens' }),
+                motivation: t('onboarding.steps.about.motivation', { ns: 'screens' }),
+                icon: User,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -201,6 +250,8 @@ const OnboardingScreen = () => {
             {
                 title: t('onboarding.steps.body.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.body.subtitle', { ns: 'screens' }),
+                motivation: t('onboarding.steps.body.motivation', { ns: 'screens' }),
+                icon: Scale,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -247,6 +298,8 @@ const OnboardingScreen = () => {
             {
                 title: t('onboarding.steps.goal.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.goal.subtitle', { ns: 'screens' }),
+                motivation: t('onboarding.steps.goal.motivation', { ns: 'screens' }),
+                icon: Target,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -265,6 +318,7 @@ const OnboardingScreen = () => {
                                 control={control}
                                 name="targetWeightKg"
                                 valueType="decimal"
+                                placeholder={String(targetWeightHint)}
                                 error={errors.targetWeightKg}
                             />
                         </VStack>
@@ -274,6 +328,8 @@ const OnboardingScreen = () => {
             {
                 title: t('onboarding.steps.training.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.training.subtitle', { ns: 'screens' }),
+                motivation: t('onboarding.steps.training.motivation', { ns: 'screens' }),
+                icon: Dumbbell,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -306,7 +362,7 @@ const OnboardingScreen = () => {
                 ),
             },
         ],
-        [averages, choices, control, errors, t],
+        [averages, choices, control, errors, t, targetWeightHint],
     );
 
     const step = steps[stepIndex];
@@ -318,6 +374,8 @@ const OnboardingScreen = () => {
             stepCount={STEP_COUNT}
             title={step.title}
             subtitle={step.subtitle}
+            motivation={step.motivation}
+            icon={step.icon}
             onNext={goNext}
             onBack={stepIndex > 0 ? goBack : undefined}
             onSkip={handleSkip}

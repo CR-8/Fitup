@@ -101,7 +101,7 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
-        // Home, Exercises, Workout, Results, Tony — in the order the product
+        // Home, Exercises, Workout, Results, Syn — in the order the product
         // is used. Settings left the bar because it is configuration rather
         // than a daily destination; it is reached from the home header.
         const items = [
@@ -126,8 +126,8 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 icon: ChartNoAxesColumn,
             },
             {
-                screen: 'tony',
-                title: 'tony.title',
+                screen: 'syn',
+                title: 'syn.title',
                 icon: MessageCircle,
             },
         ];

@@ -47,3 +47,6 @@ yarn-error.*
 
 # Local build guide — generated, not tracked
 FitSync-Build-Guide.pdf
+
+# Supabase CLI link state (project ref, pooler config) — machine-local.
+supabase/.temp/

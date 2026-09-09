@@ -1,13 +1,9 @@
-import { Platform } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
-import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import type { Session } from '@supabase/supabase-js';
 
 import { AUTH_CONFIG, isAuthConfigured } from '@/constants/auth';
 import { requireSupabase, supabase } from '@/services/supabase';
-import { clearAuthSession } from '@/services/auth';
 import { reportError } from '@/services/error-reporting';
 
 /**
@@ -17,7 +13,7 @@ import { reportError } from '@/services/error-reporting';
  * set, or read history — those paths never touch this module.
  */
 
-export type AuthProvider = 'google' | 'apple' | 'email';
+export type AuthProvider = 'google' | 'email';
 
 export type AuthFailureCode =
     | 'DISABLED'
@@ -109,8 +105,7 @@ export const accountIdentityFromSession = (session: Session): AccountIdentity =>
     return {
         accountId: session.user.id,
         accountEmail: session.user.email ?? null,
-        accountProvider:
-            provider === 'google' || provider === 'apple' || provider === 'email' ? provider : null,
+        accountProvider: provider === 'google' || provider === 'email' ? provider : null,
     };
 };
 
@@ -233,6 +228,37 @@ export const signUpWithEmail = async (email: string, password: string): Promise<
         });
 
         if (error) throw error;
+
+        /**
+         * An address that already has a *confirmed* account, reported without
+         * saying so.
+         *
+         * Supabase will not tell a client that an address is taken — that would
+         * turn this form into a way to ask whether a given person uses the app —
+         * so it answers with an ordinary-looking success and sends no email at
+         * all. `session` is null, `confirmation_sent_at` is even populated, and
+         * none of that is true: all of it is the obfuscation.
+         *
+         * `identities` is the only field that gives it away, and the rule is
+         * narrower than it first looks. Measured against the live project:
+         *
+         *   - address is new             -> identities populated, mail sent
+         *   - exists but NOT confirmed   -> identities populated, mail RESENT
+         *   - exists and IS confirmed    -> identities [], nothing sent
+         *
+         * The middle case is why this only rejects an empty array. Someone who
+         * signed up and never received the mail should be able to ask again, and
+         * Supabase genuinely does resend for them — so "check your email" is the
+         * right screen there. Only the third case is a dead end, and without
+         * this check it looked identical to mail that was merely slow.
+         *
+         * Never tested as falsy: the field is absent from some responses, and
+         * reading "not told" as "taken" would refuse sign-ups that should have
+         * gone through.
+         */
+        if (Array.isArray(data.user?.identities) && data.user.identities.length === 0) {
+            throw new AuthError('EMAIL_IN_USE');
+        }
 
         return { session: data.session, needsEmailConfirmation: data.session === null };
     } catch (error) {
@@ -441,84 +467,17 @@ export const signInWithGoogle = async (): Promise<Session> => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* Apple                                                                      */
-/* -------------------------------------------------------------------------- */
-
-export const isAppleAvailable = async (): Promise<boolean> => {
-    if (!isAuthConfigured() || !AUTH_CONFIG.appleEnabled) return false;
-    if (Platform.OS !== 'ios') return false;
-
-    return await AppleAuthentication.isAvailableAsync();
-};
-
-/**
- * Apple's native flow returns an identity token that Supabase verifies directly,
- * so there is no browser round trip. A nonce is generated and its SHA-256 sent to
- * Apple, which binds the returned token to this request.
- */
-export const signInWithApple = async (): Promise<Session> => {
-    if (!(await isAppleAvailable())) throw new AuthError('UNSUPPORTED');
-
-    // Apple returns its token inline with no redirect, so nothing races it — but the
-    // claim still has to be reopened, or a previous Google attempt would hold it and
-    // this sign-in would complete without ever moving the user on.
-    beginOAuthAttempt();
-
-    try {
-        const rawNonce = Crypto.randomUUID();
-        const hashedNonce = await Crypto.digestStringAsync(
-            Crypto.CryptoDigestAlgorithm.SHA256,
-            rawNonce,
-        );
-
-        const credential = await AppleAuthentication.signInAsync({
-            requestedScopes: [
-                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                AppleAuthentication.AppleAuthenticationScope.EMAIL,
-            ],
-            nonce: hashedNonce,
-        });
-
-        if (!credential.identityToken) throw new AuthError('UNKNOWN');
-
-        const { data, error } = await requireSupabase().auth.signInWithIdToken({
-            provider: 'apple',
-            token: credential.identityToken,
-            nonce: rawNonce,
-        });
-
-        if (error) throw error;
-        if (!data.session) throw new AuthError('UNKNOWN');
-
-        return data.session;
-    } catch (error) {
-        if (
-            error instanceof Error &&
-            'code' in error &&
-            (error as { code?: string }).code === 'ERR_REQUEST_CANCELED'
-        ) {
-            throw new AuthError('CANCELLED');
-        }
-
-        throw classifyAuthError(error);
-    }
-};
-
-/* -------------------------------------------------------------------------- */
 /* Sign out                                                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Ends the session completely.
+ * Ends the session.
  *
- * Two credentials exist, not one: the Supabase session, and the sync service's
- * own JWT with the user id it re-bootstraps from. Clearing only the first left
- * the second usable, so `src/api`'s 401 interceptor could mint a fresh sync
- * token for the account that had just signed out.
- *
- * The sync credential is cleared even when Supabase is absent — the two are
- * configured independently, and "signed out" has to mean the same thing either
- * way.
+ * One credential now, where there used to be two: the Supabase session. The
+ * second was the retired SyncLayer's own JWT, which had to be cleared alongside
+ * it — clearing only the Supabase session left that one usable, so the sync
+ * client's 401 interceptor could mint a fresh token for the account that had
+ * just signed out. Both that layer and the trap are gone.
  *
  * Local training data is deliberately left in place: it was usable before any
  * account existed and stays usable after signing out.
@@ -528,7 +487,5 @@ export const signOut = async (): Promise<void> => {
         await supabase?.auth.signOut();
     } catch (error) {
         reportError(error, 'Failed to sign out cleanly');
-    } finally {
-        clearAuthSession();
     }
 };

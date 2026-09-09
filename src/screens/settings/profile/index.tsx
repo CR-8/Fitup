@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -20,6 +19,7 @@ import { useAccount } from '@/hooks/use-account';
 import { readProfileDetails, saveProfileDetails, type ProfileDetails } from '@/crud/onboarding';
 import { GUIDELINE_SESSIONS_PER_WEEK, MEDIAN_AGE_YEARS, worldAverages } from '@/constants/averages';
 import { queryClient } from '@/queries';
+import { profileSchema, type ProfileFormData } from '@/screens/onboarding/schema';
 import { reportError } from '@/services/error-reporting';
 
 /**
@@ -69,23 +69,7 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const schema = z.object({
-    displayName: z.string().trim().max(80).optional().nullable(),
-    age: z.number().int().min(13).max(100).optional().nullable(),
-    biologicalSex: z.enum(['female', 'male', 'other']).optional().nullable(),
-    bodyWeightKg: z.number().min(20).max(400).optional().nullable(),
-    heightCm: z.number().min(80).max(260).optional().nullable(),
-    targetWeightKg: z.number().min(20).max(400).optional().nullable(),
-    goal: z.enum(['lose', 'maintain', 'gain', 'recomp']).optional().nullable(),
-    somatotype: z.enum(['ectomorph', 'mesomorph', 'endomorph']).optional().nullable(),
-    activityLevel: z
-        .enum(['sedentary', 'light', 'moderate', 'active', 'very_active'])
-        .optional()
-        .nullable(),
-    sessionsPerWeek: z.number().int().min(0).max(14).optional().nullable(),
-});
-
-type ProfileForm = z.infer<typeof schema>;
+type ProfileForm = ProfileFormData;
 
 /** Age is friendlier to answer than a date, so it is converted on both sides. */
 const birthdayToAge = (birthday: Date | null): number | null => {
@@ -128,7 +112,7 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
         handleSubmit,
         formState: { errors, isSubmitting },
     } = useForm<ProfileForm>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(profileSchema),
         defaultValues: {
             displayName: details.displayName,
             age: birthdayToAge(details.birthday),

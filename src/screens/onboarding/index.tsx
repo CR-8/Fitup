@@ -5,7 +5,6 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
@@ -19,6 +18,7 @@ import { queryClient } from '@/queries';
 import { reportError } from '@/services/error-reporting';
 
 import { OnboardingStep } from './components/step';
+import { profileSchema, type ProfileFormData } from './schema';
 
 const styles = StyleSheet.create((theme) => ({
     fieldContainer: {
@@ -29,30 +29,7 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-/**
- * Every field is optional.
- *
- * The assistant produces a better plan with more context, but a blank profile
- * still yields a usable one under general-population assumptions — so nothing
- * here blocks a user from getting into the app.
- */
-const schema = z.object({
-    displayName: z.string().trim().max(80).optional().nullable(),
-    age: z.number().int().min(13).max(100).optional().nullable(),
-    biologicalSex: z.enum(['female', 'male', 'other']).optional().nullable(),
-    bodyWeightKg: z.number().min(20).max(400).optional().nullable(),
-    heightCm: z.number().min(80).max(260).optional().nullable(),
-    targetWeightKg: z.number().min(20).max(400).optional().nullable(),
-    goal: z.enum(['lose', 'maintain', 'gain', 'recomp']).optional().nullable(),
-    somatotype: z.enum(['ectomorph', 'mesomorph', 'endomorph']).optional().nullable(),
-    activityLevel: z
-        .enum(['sedentary', 'light', 'moderate', 'active', 'very_active'])
-        .optional()
-        .nullable(),
-    sessionsPerWeek: z.number().int().min(0).max(14).optional().nullable(),
-});
-
-type OnboardingForm = z.infer<typeof schema>;
+type OnboardingForm = ProfileFormData;
 
 /**
  * Which step each field is asked on.
@@ -90,7 +67,7 @@ const OnboardingScreen = () => {
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<OnboardingForm>({ resolver: zodResolver(schema) });
+    } = useForm<OnboardingForm>({ resolver: zodResolver(profileSchema) });
 
     /**
      * Hints, not values. Nothing here is ever saved — body weight and height are

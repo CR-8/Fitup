@@ -24,7 +24,6 @@ jest.mock('@/services/error-reporting', () => ({ reportError: jest.fn() }));
 
 // Reached only through `account`'s sign-out path, which these tests never call.
 // Stubbed because the real module pulls in nanoid, which ships as ESM.
-jest.mock('@/services/auth', () => ({ clearAuthSession: jest.fn() }));
 
 jest.mock('@/constants/auth', () => ({
     AUTH_CONFIG: { googleEnabled: true },

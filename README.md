@@ -13,7 +13,7 @@
 
 Fitup is a workout planner and training log built with React Native, Expo, SQLite, and native platform integrations. Its working database lives on the device, so planning a workout, logging sets, and reviewing history do not depend on a server connection.
 
-Sync is an optional layer over that local database. The App Store and Google Play builds use the Fitup-operated SyncLayer. A custom build can connect to another compatible provider or omit sync entirely.
+Signing in with an account adds backup and cross-device restore on top of that local database, through Supabase. Training, logging and history work without one.
 
 The repository contains the mobile client that ships through the stores. It is licensed under GPL-3.0.
 
@@ -23,7 +23,7 @@ The repository contains the mobile client that ships through the stores. It is l
 - Open source under GPL-3.0
 - Local-first SQLite storage
 - Works offline for the core workout flow
-- Optional sync through the Fitup provider or another compatible implementation
+- Optional account backup and restore through Supabase
 - Apple Watch workout control
 - Live Activities and Dynamic Island on supported iPhones
 - HealthKit on iOS and Health Connect on Android
@@ -52,41 +52,24 @@ on the release configuration, and the same client can be built without any of th
 - Light, dark, and system themes
 - Configurable units: kg or lb, km or mi, cm or in, and Celsius or Fahrenheit
 
-## Local-first data and optional sync
+## Local-first data and optional backup
 
-SQLite is the source of truth for the mobile app. Product writes complete locally first. If a sync provider is enabled, eligible changes are then added to `sync_queue` and sent in the background.
+SQLite is the source of truth for the mobile app. Product writes complete locally first.
+When an account is signed in, eligible changes are added to `sync_queue` and mirrored to
+Supabase in the background, so a reinstall or a second device can restore them.
 
-| Build mode            | Configuration                                        | Behaviour                                                              |
-| --------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------- |
-| Fitup store build    | Fitup provider configured at build time             | Local database plus optional cross-device sync                         |
-| Custom provider build | Set `EXPO_PUBLIC_SYNC_HOST` to a compatible provider | Local database plus sync through that provider                         |
-| Local-only build      | Leave `EXPO_PUBLIC_SYNC_HOST` unset                  | Local database with no authentication, push, or pull through SyncLayer |
+| Build mode  | Configuration                        | Behaviour                                              |
+| ----------- | ------------------------------------ | ------------------------------------------------------ |
+| With accounts | `EXPO_PUBLIC_SUPABASE_URL` set      | Local database, plus account backup and restore        |
+| Local-only  | Leave `EXPO_PUBLIC_SUPABASE_URL` unset | Local database only; no account, no backup, no catalogue |
 
-Provider selection is currently a build-time setting. The public app does not expose a server URL field in Settings.
+The backup is separate from the other optional network integrations. PostHog and Sentry each
+have their own environment variable. Leave those unset when building without analytics or
+diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md).
 
-SyncLayer is separate from other optional network integrations. PostHog and Sentry each have their own environment variable. Leave those variables unset when building without analytics or diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md) for the exact configuration and current exercise-catalogue limitation.
-
-Fitup can copy authorised body measurements from HealthKit or Health Connect into its own `measurement` table. When SyncLayer is enabled, imported measurements follow the same optional sync path as measurements entered by hand. Fitup does not copy or upload the complete contents of either health store.
-
-## SyncLayer
-
-The mobile client talks to a provider through a small HTTP contract:
-
-```text
-POST /auth/token
-GET  /sync
-POST /sync
-```
-
-`POST /sync` sends compacted local changes. `GET /sync` pulls records changed after the last stored timestamp. The same pull route also distributes the maintained Fitup exercise catalogue under a separate scope.
-
-The Fitup-operated service is one implementation. Anyone can implement a compatible server and point a custom build at it with:
-
-```dotenv
-EXPO_PUBLIC_SYNC_HOST=https://sync.example.com
-```
-
-The current request and response shapes are documented in [Sync provider protocol](docs/SYNC_PROTOCOL.md).
+Fitup can copy authorised body measurements from HealthKit or Health Connect into its own
+`measurement` table. Those rows follow the same optional backup path as measurements entered
+by hand. Fitup does not copy or upload the complete contents of either health store.
 
 ## Roadmap
 
@@ -123,7 +106,7 @@ screens, hooks, and native targets
                 |
                 +------ local queries ------> history, charts, next workout
                 |
-                +------ optional queue -----> SyncLayer provider
+                +------ optional queue -----> Supabase account backup
 ```
 
 The main implementation areas are:
@@ -134,7 +117,7 @@ The main implementation areas are:
 | `src/screens/`             | Product screens                                                       |
 | `src/crud/`                | Local database operations and optional queue writes                   |
 | `src/db/` and `drizzle/`   | SQLite schema and migrations                                          |
-| `src/api/` and `src/sync/` | SyncLayer transport and sync engine                                   |
+| `src/services/backup/`     | Account backup and restore through Supabase                          |
 | `src/services/`            | Health, authentication, diagnostics, and product services             |
 | `modules/`                 | Native Expo modules, including Watch connectivity and Live Activities |
 | `targets/watch/`           | SwiftUI watchOS application                                           |
@@ -234,10 +217,15 @@ please run `bun run verify` before submitting a change.
 
 ## Exercise catalogue
 
-The bundled catalogue of 1,324 exercises — names, body parts, equipment, muscle groups, and
-step-by-step instructions in five languages — is derived from
+The catalogue of 1,324 exercises — names, body parts, equipment, muscle groups, and
+step-by-step instructions — is derived from
 [exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset) (© Hasan Emir Yıldırım),
-used under the MIT License. Regenerate it with `bun run exercises`.
+used under the MIT License.
+
+It is not bundled with the app. It lives in Supabase, in `catalogue_exercises` and
+`catalogue_instructions`, and the client fetches it on first launch through the
+`catalogue_page` function. Reading it needs no account. Regenerate it from the upstream
+dataset with `bun run seed`.
 
 **Animations are not included.** The GIFs that accompany that dataset are © Gym visual, not
 MIT, and its NOTICE states that cloning the repository grants no rights to the media. To show

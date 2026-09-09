@@ -674,8 +674,8 @@
         "needAccount": "New here? Create an account",
         "haveAccount": "Already have an account? Sign in",
         "errors": {
-            "invalidCredentials": "That email and password do not match.",
-            "emailInUse": "That email is already registered. Try signing in.",
+            "invalidCredentials": "That email and password do not match. If you signed up with Google, use the Google button instead.",
+            "emailInUse": "That email is already registered. Sign in instead — or use Google if that is how you signed up.",
             "weakPassword": "Pick a longer password.",
             "emailNotConfirmed": "Confirm your email address first.",
             "network": "No connection. Try again when you are back online.",

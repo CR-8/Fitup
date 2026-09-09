@@ -19,10 +19,9 @@
         "release:android": "eas build --platform android --profile production --clear-cache --auto-submit",
         "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
         "locale": "tsx ./scripts/translations.ts",
-        "db:push": "tsx ./scripts/db-push.ts",
-        "d1:add-instruction-name": "tsx ./scripts/d1-add-instruction-name.ts",
-        "d1:add-is-active": "tsx ./scripts/d1-add-is-active.ts",
-        "seed": "tsx ./scripts/seed-catalogue.ts"
+        "seed": "tsx ./scripts/seed-catalogue.ts",
+        "migrate:catalogue": "tsx ./scripts/migrate-d1-to-supabase.ts",
+        "reset:accounts": "tsx ./scripts/reset-accounts.ts"
     },
     "jest": {
         "preset": "jest-expo",
@@ -70,14 +69,12 @@
         "drizzle-zod": "^0.8.3",
         "dset": "^3.1.4",
         "expo": "^57.0.4",
-        "expo-apple-authentication": "~57.0.1",
         "expo-application": "~57.0.0",
         "expo-asset": "~57.0.3",
         "expo-audio": "~57.0.0",
         "expo-auth-session": "~57.0.6",
         "expo-background-task": "~57.0.2",
         "expo-constants": "~57.0.3",
-        "expo-crypto": "~57.0.1",
         "expo-dev-client": "~57.0.5",
         "expo-device": "~57.0.0",
         "expo-file-system": "~57.0.0",

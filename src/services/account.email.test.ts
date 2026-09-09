@@ -17,11 +17,23 @@ import { describe, expect, jest, test } from '@jest/globals';
 
 const captured: { table: string; args: unknown[] }[] = [];
 
+const DEFAULT_REPLY = { data: { session: null, user: null }, error: null };
+
+/**
+ * What the mocked Supabase answers a sign-up with.
+ *
+ * A fixed reply was enough while every test only cared what was *sent*. The
+ * sign-up tests below care what comes *back*: `identities` is the only thing
+ * separating a new account from an address that already has one, and Supabase
+ * returns an identical `session: null` for both.
+ */
+let signUpReply: { data: unknown; error: unknown } = DEFAULT_REPLY;
+
 const record =
     (name: string) =>
     async (...args: unknown[]) => {
         captured.push({ table: name, args });
-        return { data: { session: null, user: null }, error: null };
+        return name === 'signUp' ? signUpReply : DEFAULT_REPLY;
     };
 
 jest.mock('@/services/supabase', () => ({
@@ -46,7 +58,6 @@ jest.mock('expo-auth-session', () => ({
 }));
 
 jest.mock('@/services/error-reporting', () => ({ reportError: jest.fn() }));
-jest.mock('@/services/auth', () => ({ clearAuthSession: jest.fn() }));
 jest.mock('@/constants/auth', () => ({
     AUTH_CONFIG: { googleEnabled: true },
     isAuthConfigured: () => true,
@@ -109,6 +120,71 @@ describe('the address every email link comes back to', () => {
         const [email] = argsFor('resetPasswordForEmail') as unknown as string[];
 
         expect(email).toBe('someone@example.com');
+    });
+});
+
+/**
+ * Supabase answers a sign-up for an address that already has a *confirmed*
+ * account with a success, not an error, and sends no email — it will not
+ * confirm that an address is taken, because the form would then be a way to ask
+ * whether a given person uses the app.
+ *
+ * `identities` is the only signal, and the three cases below were measured
+ * against the live project rather than assumed:
+ *
+ *   new address           -> identities populated, mail sent
+ *   exists, unconfirmed   -> identities populated, mail RESENT
+ *   exists, confirmed     -> identities [], nothing sent
+ *
+ * Only the last is a dead end. Getting it wrong is invisible by hand — it looks
+ * exactly like an email that is slow to arrive — which is why it is pinned here.
+ */
+describe('signing up with an address that already has an account', () => {
+    test('a confirmed address is EMAIL_IN_USE, not "check your email"', async () => {
+        captured.length = 0;
+        signUpReply = {
+            data: { session: null, user: { id: 'existing', identities: [] } },
+            error: null,
+        };
+
+        await expect(
+            account.signUpWithEmail('taken@example.com', 'hunter22'),
+        ).rejects.toMatchObject({ code: 'EMAIL_IN_USE' });
+
+        signUpReply = DEFAULT_REPLY;
+    });
+
+    // Covers both populated cases: a new address, and an existing unconfirmed
+    // one that Supabase resends for. Neither may be turned into an error —
+    // an email really was sent, so "check your email" is the correct screen.
+    test('a populated identities list still asks the user to confirm', async () => {
+        captured.length = 0;
+        signUpReply = {
+            data: {
+                session: null,
+                user: { id: 'fresh', identities: [{ provider: 'email' }] },
+            },
+            error: null,
+        };
+
+        const result = await account.signUpWithEmail('fresh@example.com', 'hunter22');
+
+        expect(result.needsEmailConfirmation).toBe(true);
+
+        signUpReply = DEFAULT_REPLY;
+    });
+
+    test('a response that omits identities is not read as "taken"', async () => {
+        captured.length = 0;
+        // Absent, not empty. Treating "not told" as "taken" would refuse
+        // sign-ups that should have gone through.
+        signUpReply = { data: { session: null, user: { id: 'fresh' } }, error: null };
+
+        await expect(
+            account.signUpWithEmail('fresh@example.com', 'hunter22'),
+        ).resolves.toMatchObject({ needsEmailConfirmation: true });
+
+        signUpReply = DEFAULT_REPLY;
     });
 });
 

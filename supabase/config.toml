@@ -1,0 +1,45 @@
+# Supabase CLI configuration.
+#
+# Deliberately minimal. The project is managed through the dashboard and its SQL
+# editor — `supabase/migrations` is applied there, as `0001` and `0002` were —
+# so this file exists for one reason: to say how the CMS function is served.
+#
+# ---------------------------------------------------------------------------
+# DO NOT RUN `supabase config push` AGAINST THIS FILE
+# ---------------------------------------------------------------------------
+#
+# `push` does not merge. It reconciles the remote project with this file in
+# full, so every setting configured in the dashboard but absent here is reset to
+# the CLI's default. At the time of writing that is 22 settings, and the ones
+# that would break the product outright are:
+#
+#   auth.external.google.*     Google sign-in. Most accounts on this project have
+#                              no password at all — turning this off locks them
+#                              out permanently, with no reset path.
+#   auth.email.smtp.*          Custom SMTP. Losing it falls back to Supabase's
+#                              built-in mailer, which only delivers to members of
+#                              the organisation, so sign-up dies quietly.
+#   auth.site_url              `fitup://auth/callback`
+#   auth.additional_redirect_urls
+#                              The allow-list every confirmation and reset link is
+#                              checked against. Emptying it sends every link to
+#                              the site URL instead of into the app.
+#   auth.mfa.totp.*, auth.sms.twilio.*
+#
+# Change auth settings in the dashboard. To see what differs without touching
+# anything, `supabase config diff` is read-only and safe.
+#
+# Adding a section here is only safe once it mirrors the remote value exactly —
+# which `config diff` will tell you.
+
+project_id = "fitup"
+
+[functions.cms]
+# The CMS authenticates a browser with HTTP basic auth, not a Supabase JWT.
+#
+# Edge Functions verify a bearer token before the handler runs, so leaving this
+# on would reject every request with a 401 that Hono never sees, and the
+# dashboard would be unreachable while looking, from the outside, like a broken
+# login. The function's own `basicAuth` middleware is the access control, and it
+# guards every route including `/`.
+verify_jwt = false

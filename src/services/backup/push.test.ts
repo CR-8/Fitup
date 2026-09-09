@@ -52,7 +52,6 @@ jest.mock('@/crud/sync', () => ({
 }));
 
 jest.mock('@/crud/user', () => ({ getCurrentUser: async () => mockOwner }));
-jest.mock('@/sync/config', () => ({ isSyncEnabled: () => false }));
 
 jest.mock('@/services/supabase', () => ({
     supabase: {

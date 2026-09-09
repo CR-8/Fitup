@@ -170,3 +170,51 @@ describe('the up-next pill stays readable', () => {
         expect(contrastRatio(colors.white, colors.brand[500])).toBeLessThan(4.5);
     });
 });
+
+/**
+ * The field error state, which shipped painting its text in the same token as
+ * its own background — `red[100]` on `red[100]`, 1.00:1. The field looked empty
+ * while holding what had been typed into it, so it read as the app losing the
+ * input rather than as an error.
+ *
+ * `red[500]` is what every other field uses and would have been the obvious
+ * repair, but those sit on the ordinary surface; on this pink it is 3.08:1.
+ */
+describe('a field in its error state stays readable', () => {
+    test('the error text is not the error background', () => {
+        expect(colors.red[700]).not.toBe(colors.red[100]);
+    });
+
+    test('the error text clears AA on the error background', () => {
+        expect(contrastRatio(colors.red[700], colors.red[100])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test('the shade the other fields use would not have', () => {
+        expect(contrastRatio(colors.red[500], colors.red[100])).toBeLessThan(4.5);
+    });
+});
+
+/**
+ * A filled button inverts: near-black in light mode, white in dark. Its label
+ * has to invert with it, and the two empty-state buttons went out labelled
+ * `typography` instead — the colour of the page, which is the colour the button
+ * is painted. 1.10:1 in dark and 1.18:1 in light, so the button looked blank in
+ * both.
+ *
+ * `Button` gets this right for a string title; the screens had passed a node,
+ * which opts out of its styling entirely.
+ */
+describe('a filled button label stays readable', () => {
+    test('the dark-mode pairing clears AA', () => {
+        expect(contrastRatio(colors.neutral[950], colors.white)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test('the light-mode pairing clears AA', () => {
+        expect(contrastRatio(colors.neutral[50], colors.neutral[950])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test('labelling it with the page text colour would not have', () => {
+        expect(contrastRatio(darkTheme.colors.typography, colors.white)).toBeLessThan(4.5);
+        expect(contrastRatio(lightTheme.colors.typography, colors.neutral[950])).toBeLessThan(4.5);
+    });
+});

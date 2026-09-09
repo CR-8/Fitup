@@ -32,7 +32,7 @@ import {
 } from './lib/db';
 
 /**
- * Seeds the exercise catalogue: dataset -> Cloudinary -> Cloudflare D1.
+ * Seeds the exercise catalogue: dataset -> Cloudinary -> Supabase.
  *
  *   bun run seed -- --dry-run      plan only; uploads nothing, writes nothing
  *   bun run seed -- --limit 20     first 20 records, to sanity-check
@@ -117,7 +117,7 @@ const writeLedger = async (ledger: Ledger): Promise<void> => {
  * The dataset ships one English name per exercise and instructions per locale,
  * so a Hindi name has to be composed rather than read. `transliterateName`
  * throws on a word the map does not cover, which fails the seed run instead of
- * writing `डंबल frobnicate` to D1.
+ * writing `डंबल frobnicate` to the catalogue.
  */
 const localeName = (locale: Locale, record: DatasetRecord): string | undefined =>
     locale === 'hi' ? transliterateName(record.name, hindiNameTokens) : undefined;
@@ -132,9 +132,9 @@ const collectInstructions = (
         const perExercise = new Map<string, LocaleText>();
 
         for (const [index, record] of records.entries()) {
-            // English is the fallback the Worker's LEFT JOIN relies on, so a
-            // locale missing steps contributes an empty list rather than
-            // pretending to have translated them.
+            // English is the fallback `catalogue_page` relies on, so a locale
+            // missing steps contributes an empty list rather than pretending to
+            // have translated them.
             const steps = record.instruction_steps[locale as Locale] ?? [];
             const name = localeName(locale, record);
 
@@ -291,21 +291,21 @@ const seed = async () => {
             if (missing.length > 10) console.warn(`  … and ${missing.length - 10} more`);
         }
 
-        console.log(`\nWriting ${plural(rows.length, 'row')} to D1…`);
-        // No connection to open or close: D1 is reached over HTTP, so each
-        // statement is an independent request.
+        console.log(`\nWriting ${plural(rows.length, 'row')} to Supabase…`);
+        // No connection to open or close: PostgREST is HTTP, so each upsert is
+        // an independent request.
         const client = await connect();
 
         const written = await upsertExercises(client, rows);
-        console.log(`  exercise: ${written}`);
+        console.log(`  catalogue_exercises: ${written}`);
 
         const instructionCount = await upsertInstructions(
             client,
             collectInstructions(records, entries),
         );
-        console.log(`  exercise_instruction: ${instructionCount}`);
+        console.log(`  catalogue_instructions: ${instructionCount}`);
 
-        console.log(`\nexercise now holds ${await countExercises(client)} rows.`);
+        console.log(`\ncatalogue_exercises now holds ${await countExercises(client)} rows.`);
     }
 
     // 6. Report -------------------------------------------------------------

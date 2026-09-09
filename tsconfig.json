@@ -9,9 +9,15 @@
         },
     },
     "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-    // The Worker targets the Cloudflare runtime, not React Native. It has its
-    // own tsconfig and its own types; compiling it here would demand
-    // @cloudflare/workers-types as an app dependency to typecheck code that
-    // never ships in the app.
-    "exclude": ["workers"],
+    // Neither of these targets React Native, and compiling them here would
+    // demand their runtime's types as app dependencies to check code that never
+    // ships in the app.
+    //
+    // `supabase/functions` is the CMS, which runs on Deno: it reaches for
+    // `Deno.serve` and imports Hono through an `npm:` specifier, and both are
+    // errors under this config. It has its own `deno.json`; check it with
+    // `deno check`.
+    //
+    // `workers` is the retired Cloudflare pair, kept until the cutover is done.
+    "exclude": ["workers", "supabase/functions"],
 }

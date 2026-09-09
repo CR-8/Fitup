@@ -19,7 +19,6 @@ import { db, dbConnection } from '@/db';
 import i18n from '@/locale/i18n';
 import { useUser, UserProvider } from '@/hooks/use-user';
 import { queryClient } from '@/queries';
-import { SyncProvider } from '@/hooks/use-sync';
 import { Stack } from '@/navigators/stack';
 import { useScreen } from '@/hooks/use-screen';
 import { NotificationsProvider } from '@/hooks/use-notifications';
@@ -115,18 +114,17 @@ const App: FC = () => {
     if (!ready) return null;
 
     return (
-        <SyncProvider>
-            <RunningWorkoutProvider>
-                <StoreReviewGateProvider>
-                    <PendingStoreReviewCoordinator />
-                    <BottomSheetModalProvider>
-                        <Stack
-                            screenOptions={{
-                                ...options,
-                                headerShown: false,
-                            }}
-                        >
-                            {/* Reachable without a session: sign-in itself, the
+        <RunningWorkoutProvider>
+            <StoreReviewGateProvider>
+                <PendingStoreReviewCoordinator />
+                <BottomSheetModalProvider>
+                    <Stack
+                        screenOptions={{
+                            ...options,
+                            headerShown: false,
+                        }}
+                    >
+                        {/* Reachable without a session: sign-in itself, the
                                 redirect target — which by definition lands before
                                 one exists — and the three screens either side of an
                                 email link.
@@ -136,117 +134,138 @@ const App: FC = () => {
                                 so the guard would admit it, but the screen has to
                                 survive its own sign-out escape hatch, and it is
                                 pre-session in every sense that matters. */}
-                            <Stack.Screen name="sign-in" />
-                            <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
-                            <Stack.Screen name="auth/forgot-password" />
-                            <Stack.Screen name="auth/check-email" />
-                            <Stack.Screen name="auth/new-password" />
+                        <Stack.Screen name="sign-in" />
+                        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+                        <Stack.Screen name="auth/forgot-password" />
+                        <Stack.Screen name="auth/check-email" />
+                        <Stack.Screen name="auth/new-password" />
 
-                            {/* Removing these from the navigator — rather than
+                        {/* Removing these from the navigator — rather than
                                 redirecting away from them — is what makes signing out a
                                 real logout: their history entries go with them, so back
                                 cannot re-enter the app. */}
-                            <Stack.Protected guard={!authRequired || isSignedIn}>
-                                <Stack.Screen name="(tabs)" />
-                                <Stack.Screen name="onboarding" />
-                                <Stack.Screen
-                                    name="diet"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="timer"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen name="workout" />
-                                <Stack.Screen name="settings" />
-                                <Stack.Screen
-                                    name="editor"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="select"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="preview"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="guide"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="review"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="day"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name="filter"
-                                    options={{
-                                        presentation: 'card',
-                                        animationTypeForReplace: 'pop',
-                                        cardOverlayEnabled: false,
-                                        animation: 'slide_from_bottom',
-                                    }}
-                                />
-                            </Stack.Protected>
-                        </Stack>
-                        <Actions />
-                        <RestInput />
-                    </BottomSheetModalProvider>
-                </StoreReviewGateProvider>
-            </RunningWorkoutProvider>
-        </SyncProvider>
+                        <Stack.Protected guard={!authRequired || isSignedIn}>
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="onboarding" />
+                            <Stack.Screen
+                                name="diet"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="timer"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen name="workout" />
+                            <Stack.Screen name="settings" />
+                            <Stack.Screen
+                                name="editor"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="select"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="preview"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="guide"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="review"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="day"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="filter"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                        </Stack.Protected>
+                    </Stack>
+                    <Actions />
+                    <RestInput />
+                </BottomSheetModalProvider>
+            </StoreReviewGateProvider>
+        </RunningWorkoutProvider>
     );
 };
 
+/**
+ * Drizzle Studio's devtools bridge, isolated and opt-in.
+ *
+ * `useDrizzleStudio` calls `useDevToolsPluginClient` unconditionally, before it
+ * looks at the database handed to it — so passing `null` does not switch it off,
+ * it only stops the queries. When that websocket cannot be set up the hook
+ * throws, and called from `RootLayout` that turned a missing debug tool into
+ * "Render Error: Failed to setup client from useDevToolsPluginClient" for the
+ * entire app, with no way past it.
+ *
+ * A component rather than a hook so the call itself can be skipped — hooks
+ * cannot be conditional, components can. Off unless `EXPO_PUBLIC_DRIZZLE_STUDIO`
+ * is set, so inspecting the database is something you ask for rather than
+ * something that can cost you the app.
+ */
+const DrizzleStudio: FC = () => {
+    useDrizzleStudio(dbConnection);
+
+    return null;
+};
+
+const isDrizzleStudioEnabled =
+    process.env.NODE_ENV !== 'production' && process.env.EXPO_PUBLIC_DRIZZLE_STUDIO === '1';
+
 const RootLayout: FC = () => {
     const { success: dbSuccess, error: dbError } = useMigrations(db, migrations);
-
-    useDrizzleStudio(process.env.NODE_ENV !== 'production' ? dbConnection : null);
 
     // Keys are the strings `src/theme/fonts.ts` hands to `fontFamily`. The six
     // Inter faces this replaces were loaded and never used — nothing in the app
@@ -272,6 +291,7 @@ const RootLayout: FC = () => {
 
     return (
         <GestureHandlerRootView>
+            {isDrizzleStudioEnabled && <DrizzleStudio />}
             <KeyboardProvider>
                 <QueryClientProvider client={queryClient}>
                     {/* Above `UserProvider`, which is what stops the local user

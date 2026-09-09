@@ -20,7 +20,6 @@ import {
     IAnalyticsProvider,
 } from '@/analytics';
 import { reportError, runInBackground } from '@/services/error-reporting';
-import { isSyncEnabled } from '@/sync/config';
 import { useUser } from './use-user';
 
 type AnalyticsContextType = {
@@ -67,7 +66,6 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
                     Constants.expoConfig?.version ??
                     'unknown',
                 buildNumber: Application.nativeBuildVersion ?? 'unknown',
-                syncEnabled: isSyncEnabled(),
             },
         });
     });
@@ -106,7 +104,6 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
                 lng: user.lng,
                 theme: user.theme,
                 environment: String(Constants.expoConfig?.extra?.appVariant ?? 'development'),
-                syncEnabled: isSyncEnabled(),
             });
         }
     }, [analytics, user]);

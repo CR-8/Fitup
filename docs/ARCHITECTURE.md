@@ -15,10 +15,10 @@ screen, hook, or native target
              |
              +---- local queries ----> UI, history, charts
              |
-             +---- optional queue ---> SyncLayer provider
+             +---- optional queue ---> Supabase account backup
 ```
 
-Workout operations commit to SQLite before any optional network work. The normal workout flow does not require an account or a reachable sync provider.
+Workout operations commit to SQLite before any optional network work. The normal workout flow does not require an account or a network connection.
 
 ## Application layers
 
@@ -44,34 +44,34 @@ The main local domains include:
 - review-prompt state;
 - sync queue and cursor metadata.
 
-### Optional SyncLayer
+### Optional account backup
 
-`EXPO_PUBLIC_SYNC_HOST` selects a provider at build time. Without it, the app does not mount the active sync provider, authenticate with a provider, or add new CRUD operations to `sync_queue`.
+`EXPO_PUBLIC_SUPABASE_URL` enables accounts. Without it there is no sign-in, no backup, and no exercise catalogue; the local database still works in full.
 
-When the variable is present:
+With an account signed in:
 
-1. local create, update, and delete operations can add entries to `sync_queue`;
-2. the sync engine compacts compatible operations for each record;
-3. `POST /sync` sends the pending batch;
-4. `GET /sync` requests changes after the saved timestamp;
-5. returned records and deleted IDs are applied to SQLite;
-6. completed queue entries are removed.
+1. local create, update and delete operations append to `sync_queue`;
+2. `src/services/backup/push.ts` reads that queue to learn which rows changed, then re-reads those rows from SQLite — the queue's own JSON payload holds stringified dates and superseded edits, so the row is the source of truth, not the log entry;
+3. rows are upserted into the account's tables, mapped by `src/services/backup/tables.ts`;
+4. settled queue entries are cleaned up.
 
-Authentication uses `POST /auth/token` with the local user ID and a persistent device ID. The client stores the returned token in MMKV, with an in-memory fallback for the current launch.
-
-The HTTP contract works with any compatible implementation. Store builds can use the Fitup-operated provider, while a custom build can use another provider. See [SYNC_PROTOCOL.md](SYNC_PROTOCOL.md).
+Restore runs on the first sign-in on a new device, rebuilding the local user row with the id the backed-up rows reference. `supabase/migrations/0001_account_backup.sql` defines the remote schema, and row-level security scopes every row to `auth.uid()`.
 
 ### Exercise catalogue
 
-The maintained Fitup exercise catalogue uses the same provider host but a separate `fitup` pull scope and locale cursor. User-created exercises remain separate through their source and identifiers.
+The maintained Fitup exercise catalogue lives in Supabase, in `catalogue_exercises` and `catalogue_instructions`. The client reads it through the `catalogue_page` function, which applies the requested locale and falls back to English for anything untranslated. User-created exercises remain separate through their source and identifiers.
 
-The catalogue is not currently bundled with the client. A clean build without a provider starts without the maintained system catalogue, but users can create exercises and use the workout flow locally.
+The catalogue is public reference data: its row-level security policy grants `select` to `anon`, so a signed-out install can still fill its library. Nothing has a write policy, so only the seeder and the CMS — which authenticate with the service-role key — can change it.
+
+The catalogue is not bundled with the client. A clean build with no Supabase configured starts without the maintained system catalogue, but users can create exercises and use the workout flow locally.
+
+`src/services/exercise-catalogue.ts` owns the refresh. It writes each page as it arrives, never deletes on failure, and keeps a version marker so a change of shape or source forces exactly one refresh per install.
 
 ### Health integrations
 
 The iOS client reads authorised HealthKit data and can write completed workouts. Android uses Health Connect. Missing services or denied permissions must not break the local workout flow.
 
-Authorised body measurements copied into Fitup are stored in the local `measurement` table. Rows with `source: "health"` are currently eligible for optional SyncLayer in the same way as manual measurement rows.
+Authorised body measurements copied into Fitup are stored in the local `measurement` table. Rows with `source: "health"` are backed up in the same way as manual measurement rows.
 
 ### Apple Watch and Live Activities
 
@@ -83,7 +83,7 @@ Authorised body measurements copied into Fitup are stored in the local `measurem
 
 PostHog is initialised only when its public key and host are configured. Sentry uses `EXPO_PUBLIC_SENTRY_DSN`. Expo Updates uses the EAS project ID from the build configuration.
 
-These services are separate from SyncLayer. A local-first build can still use any service whose variable is configured.
+These services are separate from the account backup. A local-first build can still use any service whose variable is configured.
 
 ## State boundaries
 

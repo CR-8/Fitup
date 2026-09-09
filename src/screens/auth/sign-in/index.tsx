@@ -20,17 +20,14 @@ import { MIN_PASSWORD_LENGTH } from '@/constants/auth';
 import {
     AuthError,
     claimOAuthNavigation,
-    isAppleAvailable,
     isGoogleAvailable,
-    signInWithApple,
     signInWithEmail,
     signInWithGoogle,
     signUpWithEmail,
     setOAuthReturnTo,
 } from '@/services/account';
 import { resolveAuthDestination } from '@/services/auth-navigation';
-import { errorKey } from '@/screens/auth/errors';
-import { reportError } from '@/services/error-reporting';
+import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -75,9 +72,19 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
+// Messages are keys in the `common` namespace: `BaseInput` renders a field
+// error as `t(error.message, { ns: 'common' })`. Without them zod's own English
+// reached the screen — an untouched email field read "Invalid input: expected
+// string, received undefined".
 const schema = z.object({
-    email: z.string().trim().email(),
-    password: z.string().min(MIN_PASSWORD_LENGTH),
+    email: z
+        .string('errors.auth.email.required')
+        .trim()
+        .min(1, 'errors.auth.email.required')
+        .email('errors.auth.email.invalid'),
+    password: z
+        .string('errors.auth.password.required')
+        .min(MIN_PASSWORD_LENGTH, 'errors.auth.password.tooShort'),
 });
 
 type SignInForm = z.infer<typeof schema>;
@@ -88,8 +95,7 @@ const SignInScreen = () => {
     // Set when the screen is opened deliberately (from Settings) rather than by
     // the first-launch gate.
     const { returnTo, reason } = useLocalSearchParams<{ returnTo?: string; reason?: string }>();
-    const [appleAvailable, setAppleAvailable] = useState(false);
-    const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
+    const [pending, setPending] = useState<'google' | 'email' | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
 
     const {
@@ -97,12 +103,6 @@ const SignInScreen = () => {
         handleSubmit,
         formState: { errors },
     } = useForm<SignInForm>({ resolver: zodResolver(schema) });
-
-    useEffect(() => {
-        isAppleAvailable()
-            .then(setAppleAvailable)
-            .catch(() => setAppleAvailable(false));
-    }, []);
 
     /**
      * Said once, on arrival. The auth callback sends people here when a link has
@@ -129,7 +129,7 @@ const SignInScreen = () => {
     }, []);
 
     const runProvider = useCallback(
-        async (provider: 'google' | 'apple', signIn: () => Promise<unknown>) => {
+        async (provider: 'google', signIn: () => Promise<unknown>) => {
             setPending(provider);
 
             try {
@@ -142,7 +142,7 @@ const SignInScreen = () => {
                 // A user backing out of the provider sheet is not a failure.
                 if (error instanceof AuthError && error.code === 'CANCELLED') return;
 
-                reportError(error, `Sign-in with ${provider} failed`);
+                reportUnexpected(error, `Sign-in with ${provider} failed`);
                 Alert.alert(t(errorKey(error), { ns: 'screens' }));
             } finally {
                 setPending(null);
@@ -183,7 +183,7 @@ const SignInScreen = () => {
                 return goToCheckEmail(values.email);
             }
 
-            reportError(error, 'Email sign-in failed');
+            reportUnexpected(error, 'Email sign-in failed');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));
         } finally {
             setPending(null);
@@ -211,19 +211,6 @@ const SignInScreen = () => {
                         loading={pending === 'google'}
                         disabled={busy}
                         onPress={() => runProvider('google', signInWithGoogle)}
-                        containerStyle={styles.providerButton}
-                        textStyle={styles.providerButtonText}
-                        spinnerColor={theme.colors.typography}
-                    />
-                ) : null}
-
-                {appleAvailable ? (
-                    <Button
-                        size="sm"
-                        title={t('signIn.apple', { ns: 'screens' })}
-                        loading={pending === 'apple'}
-                        disabled={busy}
-                        onPress={() => runProvider('apple', signInWithApple)}
                         containerStyle={styles.providerButton}
                         textStyle={styles.providerButtonText}
                         spinnerColor={theme.colors.typography}

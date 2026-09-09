@@ -2,6 +2,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { exercise, type ExerciseInsert } from '@/db/schema';
+import { AUTH_CONFIG, isAuthConfigured } from '@/constants/auth';
 import { FITUP_EXERCISES_USER_ID } from '@/constants/fitup';
 import { storage } from '@/storage';
 import { reportError } from '@/services/error-reporting';
@@ -9,14 +10,23 @@ import { reportError } from '@/services/error-reporting';
 /**
  * Fetches the exercise catalogue and keeps it in SQLite.
  *
- * The catalogue used to ship inside the app as ~4.8 MB of JSON. It now comes
- * from the exercise API, which lets it be corrected and extended without a
- * store release, and lets each exercise carry the media URL for its animation.
+ * The catalogue used to ship inside the app as ~4.8 MB of JSON. It is fetched
+ * now, which lets it be corrected and extended without a store release.
  *
- * What that costs, stated plainly: a fresh install that has never reached the
- * API has no exercises. Everything below exists to make sure that is the *only*
- * case where the library is empty — an install that has synced once keeps its
- * catalogue permanently, offline, and a failed refresh never removes a row.
+ * It comes from Supabase, through the `catalogue_page` function defined in
+ * `supabase/migrations/0003`. That function is what applies the locale, falling
+ * back to English for anything untranslated — the same join a Cloudflare Worker
+ * used to run in front of D1, moved into the database it reads.
+ *
+ * Read with the publishable key and no session. `catalogue_page` is granted to
+ * `anon`, because the app's promise is that training works without an account
+ * and a signed-out install still has to be able to fill its library.
+ *
+ * What that costs, stated plainly: a fresh install that has never reached
+ * Supabase has no exercises, and a build with no Supabase configured never
+ * will. Everything below exists to make sure that is the *only* case where the
+ * library is empty — an install that has synced once keeps its catalogue
+ * permanently, offline, and a failed refresh never removes a row.
  *
  * Rows are written as system exercises under the reserved user id, so the
  * existing ownership rules apply unchanged: they cannot be edited or deleted in
@@ -25,12 +35,12 @@ import { reportError } from '@/services/error-reporting';
 
 interface RemoteExercise {
     id: string;
-    /** Localised where the API has a translation, English otherwise. */
+    /** Localised where the catalogue has a translation, English otherwise. */
     name: string;
     /**
-     * Always English, whatever locale was asked for. Optional: a Worker that
-     * has not been redeployed yet does not send it, and a page missing it is
-     * still a perfectly usable page.
+     * Always English, whatever locale was asked for. Optional: a project whose
+     * `catalogue_page` predates this column does not send it, and a page missing
+     * it is still a perfectly usable page.
      */
     nameEn?: string;
     category: 'strength' | 'cardio' | 'flexibility' | 'yoga' | 'pilates' | 'other';
@@ -55,24 +65,21 @@ interface RemotePage {
  * 3: rows carry `nameEn`, and `name` became localised. Existing rows have a
  *    null `nameEn` and an English `name`, so one forced refresh is what makes
  *    Hindi names appear and keeps search working in both scripts.
+ * 4: source moved from the Cloudflare Worker to Supabase. The rows are
+ *    identical — the data was migrated across unchanged — but the old host is
+ *    being switched off, so every install has to be pulled onto the new one
+ *    exactly once rather than waiting out its five-minute refresh window.
  */
-const CATALOGUE_VERSION = 3;
+const CATALOGUE_VERSION = 4;
 
 const VERSION_KEY = 'catalogue.version';
 const LOCALE_KEY = 'catalogue.locale';
 const FETCHED_AT_KEY = 'catalogue.fetchedAt';
 
-/**
- * Written so a future SyncLayer deployment sees the catalogue as current and
- * does not seed the same rows a second time through `pullFitupChanges`.
- */
-const SYNC_DATASET_VERSION = 1;
-const syncDatasetVersionKey = (locale: string) => `fitup.dataset.exercise.version.${locale}`;
-
 /** How long a completed refresh is trusted before another is attempted. */
 const REFRESH_TTL_MS = 5 * 60 * 1000;
 
-/** Rows requested per page. The API clamps anything above 100. */
+/** Rows requested per page. `catalogue_page` clamps anything above 100. */
 const PAGE_SIZE = 100;
 
 /**
@@ -85,9 +92,19 @@ const MAX_PAGES = 200;
 /** SQLite caps bound parameters per statement; each row binds ~14 columns. */
 const INSERT_BATCH_SIZE = 60;
 
-const API_BASE_URL = (process.env.EXPO_PUBLIC_EXERCISE_API_URL ?? '').trim().replace(/\/+$/, '');
+const SUPABASE_URL = (AUTH_CONFIG.supabaseUrl ?? '').replace(/\/+$/, '');
+const SUPABASE_KEY = AUTH_CONFIG.supabaseAnonKey ?? '';
 
-export const isExerciseApiConfigured = (): boolean => API_BASE_URL.length > 0;
+/**
+ * Whether this build has anywhere to fetch a catalogue from.
+ *
+ * The catalogue is served by the same project that holds accounts, so this is
+ * `isAuthConfigured()` rather than a flag of its own. A build with no Supabase
+ * has no catalogue — which is the state `docs/LOCAL_ONLY.md` already describes,
+ * and which the exercises screen renders as "unavailable" rather than as an
+ * empty library.
+ */
+export const isExerciseApiConfigured = (): boolean => isAuthConfigured();
 
 const normalizeLocale = (locale: string): string => locale.toLowerCase().split(/[-_]/)[0];
 
@@ -117,8 +134,8 @@ const isValidExercise = (value: unknown): value is RemoteExercise => {
         candidate.name.trim().length > 0 &&
         // Deliberately not required. Rejecting a page for a missing `nameEn`
         // would mean an app update could only refresh its catalogue after the
-        // Worker was redeployed — an ordering trap whose failure mode is a
-        // library that silently stops updating.
+        // database migration had been applied — an ordering trap whose failure
+        // mode is a library that silently stops updating.
         (candidate.nameEn === undefined || typeof candidate.nameEn === 'string') &&
         typeof candidate.category === 'string' &&
         CATEGORIES.has(candidate.category) &&
@@ -157,12 +174,21 @@ const parsePage = (value: unknown): RemotePage => {
 };
 
 const fetchPage = async (locale: string, cursor: string | null): Promise<RemotePage> => {
-    const url = new URL(`${API_BASE_URL}/v1/exercises`);
-    url.searchParams.set('limit', String(PAGE_SIZE));
-    url.searchParams.set('locale', locale);
-    if (cursor) url.searchParams.set('cursor', cursor);
+    const url = new URL(`${SUPABASE_URL}/rest/v1/rpc/catalogue_page`);
+    url.searchParams.set('p_locale', locale);
+    url.searchParams.set('p_limit', String(PAGE_SIZE));
+    if (cursor) url.searchParams.set('p_cursor', cursor);
 
-    const response = await fetch(url.toString());
+    // GET rather than POST: `catalogue_page` is declared `stable`, which is what
+    // lets PostgREST expose it this way, and a GET is cacheable and safe to
+    // retry. No session is attached — the publishable key alone is enough,
+    // because the read policy admits `anon`.
+    const response = await fetch(url.toString(), {
+        headers: {
+            apikey: SUPABASE_KEY,
+            authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+    });
 
     if (!response.ok) {
         throw new Error(`Catalogue request failed: ${response.status} ${response.statusText}`);
@@ -312,7 +338,6 @@ export const ensureExerciseCatalogue = async (locale: string): Promise<void> => 
         storage.set(VERSION_KEY, CATALOGUE_VERSION);
         storage.set(LOCALE_KEY, normalized);
         storage.set(FETCHED_AT_KEY, Date.now());
-        storage.set(syncDatasetVersionKey(normalized), SYNC_DATASET_VERSION);
     } catch (error) {
         // A catalogue that fails to refresh must not stop the app from opening,
         // and must not disturb what is already stored; the user can still train

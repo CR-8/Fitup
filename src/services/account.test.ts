@@ -8,7 +8,6 @@ import {
     signInWithGoogle,
     signOut,
 } from '@/services/account';
-import { clearAuthSession } from '@/services/auth';
 
 /**
  * Guards the question "is this URL the OAuth callback?".
@@ -26,8 +25,6 @@ jest.mock('@/services/supabase', () => ({
 }));
 
 jest.mock('@/services/error-reporting', () => ({ reportError: jest.fn() }));
-
-jest.mock('@/services/auth', () => ({ clearAuthSession: jest.fn() }));
 
 // Only what these tests actually reach for. Mirroring the whole of AUTH_CONFIG here
 // would just rot quietly as the real one grows.
@@ -193,18 +190,17 @@ describe('an expired email link', () => {
 
 describe('signOut', () => {
     /**
-     * The app holds two credentials, and only one of them is Supabase's. The sync
-     * service keeps its own JWT plus the user id it re-bootstraps from, and
-     * `src/api`'s 401 interceptor will happily mint a fresh token from that id — so
-     * a sign-out that clears only the session leaves the previous account able to
-     * sync. Supabase is mocked as absent here, which is also the configuration that
-     * proves the point: the sync credential must go either way.
+     * There is one credential now. The app used to hold a second — the retired
+     * SyncLayer's own JWT, plus the user id it re-bootstrapped from — and a
+     * sign-out that cleared only the Supabase session left the previous account
+     * able to sync. Both that layer and the trap are gone.
+     *
+     * What is left worth pinning is that sign-out is safe when no account
+     * backend is configured at all. `supabase` is null in that build, and this
+     * is the configuration where an unguarded call would throw rather than
+     * resolve — leaving someone stuck on a screen with a dead button.
      */
-    test('clears the sync credential even when no account backend is configured', async () => {
-        (clearAuthSession as jest.Mock).mockClear();
-
+    test('resolves even when no account backend is configured', async () => {
         await expect(signOut()).resolves.toBeUndefined();
-
-        expect(clearAuthSession).toHaveBeenCalledTimes(1);
     });
 });

@@ -70,7 +70,12 @@ const styles = StyleSheet.create((theme) => ({
     input: (error: boolean) => ({
         height: '100%',
         width: '100%',
-        color: error ? theme.colors.red[100] : theme.colors.typography,
+        // Was `red[100]` — the same token as the container's error background
+        // two blocks up, so typing into a rejected field produced pink on pink
+        // at 1.00:1 and the field read as empty. `red[700]` rather than the
+        // `red[500]` the other fields use, because those sit on the ordinary
+        // surface; on this pink ground `red[500]` is only 3.08:1.
+        color: error ? theme.colors.red[700] : theme.colors.typography,
         variants: {
             size: {
                 xs: {

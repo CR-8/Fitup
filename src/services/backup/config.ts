@@ -7,10 +7,6 @@ import { isAuthConfigured } from '@/constants/auth';
  * Supabase as the signed-in user and authorized by row-level security, so a
  * build with no account backend has nowhere to put it and no identity to put it
  * under. There is nothing to configure separately.
- *
- * This is deliberately not `isSyncEnabled()`. That one gates the older
- * device-to-server sync in `src/sync`, which needs a REST host that was never
- * deployed; the two paths are independent and only share the change queue.
  */
 export const isBackupEnabled = (): boolean => isAuthConfigured();
 

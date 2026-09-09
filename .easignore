@@ -7,15 +7,16 @@
 
 # --- server-side code, never part of the app bundle -------------------------
 #
-# `workers/` is Cloudflare: `exercise-media` serves the catalogue and `cms` is
-# the admin dashboard. Both target the Workers runtime, both have their own
-# package.json, lockfile and tsconfig, and neither is imported from `src/`. The
-# root tsconfig already excludes `workers` from typecheck for the same reason;
-# this keeps them out of the build upload too, so the CMS and its dependencies
-# can never be compiled into the app.
+# `workers/` is the retired Cloudflare pair — `exercise-media` served the
+# catalogue and `cms` was the admin dashboard. Both target the Workers runtime,
+# both have their own package.json, lockfile and tsconfig, and neither is
+# imported from `src/`. Kept only until the cutover to Supabase is complete.
 workers/
 
-# Postgres migrations, applied by hand in the Supabase SQL editor.
+# Postgres migrations, applied by hand in the Supabase SQL editor, and the CMS —
+# which is a Deno Edge Function now, with its own `deno.json`. The root tsconfig
+# excludes both from typecheck for the same reason this excludes them from the
+# upload: neither is React Native, and neither may reach the app bundle.
 supabase/
 
 # --- everything from .gitignore ---------------------------------------------
@@ -67,3 +68,6 @@ yarn-error.*
 
 # Local build guide — generated, not tracked
 FitSync-Build-Guide.pdf
+
+# Supabase CLI link state — machine-local, never part of a build.
+supabase/.temp/

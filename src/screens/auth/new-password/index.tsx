@@ -20,7 +20,7 @@ import { useAccount } from '@/hooks/use-account';
 import { updatePassword } from '@/services/account';
 import { resolveAuthDestination } from '@/services/auth-navigation';
 import { endPasswordRecovery } from '@/services/password-recovery';
-import { errorKey } from '@/screens/auth/errors';
+import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 import { reportError } from '@/services/error-reporting';
 
 /**
@@ -120,7 +120,7 @@ const NewPasswordScreen = () => {
             // never answered it, training if they have.
             router.replace(await resolveAuthDestination());
         } catch (error) {
-            reportError(error, 'Could not set a new password');
+            reportUnexpected(error, 'Could not set a new password');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));
             setPending(false);
         }

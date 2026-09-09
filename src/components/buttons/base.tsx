@@ -24,6 +24,13 @@ type ButtonAccessibilityProps = Pick<
 >;
 
 export type ButtonProps = {
+    /**
+     * A string is styled by the button — including the inverted colour that
+     * makes it readable on the button's ground. A node is rendered as given, so
+     * it inherits `theme.colors.typography`, which is the colour of the ground
+     * itself: whoever passes one owns the contrast. Prefer a string plus
+     * `textStyle`.
+     */
     title?: ReactNode;
     disabled?: boolean;
     loading?: boolean;
@@ -95,6 +102,9 @@ const styles = StyleSheet.create((theme, rt) => ({
                 },
                 sm: {
                     fontSize: theme.fontSize.sm.fontSize,
+                },
+                lg: {
+                    fontSize: theme.fontSize.lg.fontSize,
                 },
             },
         },

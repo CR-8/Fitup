@@ -16,7 +16,7 @@ import {
 import { resolveAuthDestination } from '@/services/auth-navigation';
 import { clearAuthRedirect } from '@/services/auth-redirect';
 import { beginPasswordRecovery, endPasswordRecovery } from '@/services/password-recovery';
-import { reportError } from '@/services/error-reporting';
+import { reportUnexpected } from '@/screens/auth/errors';
 
 /**
  * Lands the OAuth redirect when Android delivers it as a deep link instead of letting
@@ -122,9 +122,9 @@ const AuthCallbackScreen = () => {
 
                 // Backing out of the provider is a choice, and a link that has
                 // expired is the ordinary fate of a link — neither is a fault.
-                if (code !== 'CANCELLED' && code !== 'LINK_EXPIRED') {
-                    reportError(error, 'OAuth redirect could not be completed');
-                }
+                // `reportUnexpected` knows both, and the rest of the codes the
+                // other auth screens agreed on.
+                reportUnexpected(error, 'OAuth redirect could not be completed');
 
                 // Expiry is the one failure worth explaining. Being returned to
                 // sign-in with no word looks like the app simply lost the tap,

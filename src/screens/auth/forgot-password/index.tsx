@@ -14,8 +14,7 @@ import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { sendPasswordReset } from '@/services/account';
-import { errorKey } from '@/screens/auth/errors';
-import { reportError } from '@/services/error-reporting';
+import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 
 /**
  * Asks where to send a password-reset link.
@@ -56,7 +55,15 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const schema = z.object({ email: z.string().trim().email() });
+// Keys, not sentences — see `BaseInput`, which looks the message up in the
+// `common` namespace before rendering it.
+const schema = z.object({
+    email: z
+        .string('errors.auth.email.required')
+        .trim()
+        .min(1, 'errors.auth.email.required')
+        .email('errors.auth.email.invalid'),
+});
 
 type ForgotPasswordForm = z.infer<typeof schema>;
 
@@ -76,7 +83,7 @@ const ForgotPasswordScreen = () => {
         } catch (error) {
             // A rate limit is the one failure worth stopping for: sending them
             // to wait for an email that was never sent is worse than saying so.
-            reportError(error, 'Password reset could not be requested');
+            reportUnexpected(error, 'Password reset could not be requested');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));
 
             return;

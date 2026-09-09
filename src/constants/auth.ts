@@ -41,13 +41,6 @@ export const AUTH_CONFIG = {
     /** Google is offered when a client id is configured for the platform. */
     googleEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_GOOGLE_ENABLED, true),
 
-    /**
-     * Apple is required by App Review guideline 4.8 on iOS whenever another
-     * social login is offered, so it defaults on and is only disabled for
-     * builds that ship no social login at all.
-     */
-    appleEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_APPLE_ENABLED, true),
-
     emailEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_EMAIL_ENABLED, true),
 } as const;
 

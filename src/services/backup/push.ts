@@ -5,7 +5,6 @@ import { db } from '@/db';
 import type { SyncQueueSelect } from '@/db/schema';
 import { getPendingSyncOperations, markSyncOperationsAsDone } from '@/crud/sync';
 import { getCurrentUser } from '@/crud/user';
-import { isSyncEnabled } from '@/sync/config';
 import { supabase } from '@/services/supabase';
 import { reportError } from '@/services/error-reporting';
 
@@ -210,7 +209,7 @@ export const pushBackup = async (): Promise<boolean> => {
     // The older sync owns the queue wherever it is configured. Two consumers
     // settling the same rows would race, and a host that syncs everything makes
     // this path redundant anyway.
-    if (!isBackupEnabled() || isSyncEnabled() || isBackupSchemaMissing()) return false;
+    if (!isBackupEnabled() || isBackupSchemaMissing()) return false;
 
     const client = supabase;
     if (!client) return false;

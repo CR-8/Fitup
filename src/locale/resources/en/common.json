@@ -359,6 +359,16 @@
         "all_intervals": "All intervals"
     },
     "errors": {
+        "auth": {
+            "email": {
+                "required": "Enter your email address",
+                "invalid": "That does not look like an email address"
+            },
+            "password": {
+                "required": "Enter your password",
+                "tooShort": "Password must be at least 6 characters"
+            }
+        },
         "exercise": {
             "name": {
                 "required": "Exercise name is required"
@@ -399,6 +409,26 @@
             "secondaryMuscleGroups": {
                 "invalidSelection": "Secondary muscles cannot include duplicates or overlapping parent and child groups",
                 "overlapPrimary": "Secondary muscles cannot overlap with primary muscles"
+            }
+        },
+        "profile": {
+            "displayName": {
+                "tooLong": "Name must be 80 characters or fewer"
+            },
+            "age": {
+                "range": "Age must be a whole number between 13 and 100"
+            },
+            "bodyWeightKg": {
+                "range": "Weight must be between 20 and 400 kg"
+            },
+            "heightCm": {
+                "range": "Height must be between 80 and 260 cm"
+            },
+            "targetWeightKg": {
+                "range": "Target weight must be between 20 and 400 kg"
+            },
+            "sessionsPerWeek": {
+                "range": "Training days must be a whole number between 0 and 14"
             }
         }
     },

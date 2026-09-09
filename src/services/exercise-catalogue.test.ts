@@ -57,13 +57,22 @@ jest.mock('@/storage', () => ({
     },
 }));
 
-const API = 'https://exercises.example.test';
+const SUPABASE_URL = 'https://project.supabase.test';
+const SUPABASE_KEY = 'sb_publishable_test';
 
-const loadModule = (apiUrl: string | undefined = API) => {
+/**
+ * The catalogue is read from the same Supabase project that holds accounts, so
+ * "configured" means those two variables — there is no catalogue-specific host
+ * any more. `AUTH_CONFIG` reads them at module scope, which is why every load
+ * goes through `resetModules`.
+ */
+const loadModule = (supabaseUrl: string | undefined = SUPABASE_URL) => {
     jest.resetModules();
 
-    if (apiUrl === undefined) delete process.env.EXPO_PUBLIC_EXERCISE_API_URL;
-    else process.env.EXPO_PUBLIC_EXERCISE_API_URL = apiUrl;
+    if (supabaseUrl === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    else process.env.EXPO_PUBLIC_SUPABASE_URL = supabaseUrl;
+
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = SUPABASE_KEY;
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('./exercise-catalogue') as typeof import('./exercise-catalogue');
@@ -114,11 +123,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    delete process.env.EXPO_PUBLIC_EXERCISE_API_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 });
 
 describe('configuration', () => {
-    test('does nothing at all when no API url is set', async () => {
+    test('does nothing at all when Supabase is not configured', async () => {
         const fetchMock = respondWith(page([entry(id('a'))], null));
         const { ensureExerciseCatalogue, isExerciseApiConfigured } = loadModule('');
 
@@ -126,7 +136,7 @@ describe('configuration', () => {
 
         await ensureExerciseCatalogue('en');
 
-        // A build shipped without the API configured should not be making
+        // A build shipped without Supabase configured should not be making
         // requests to an empty host on every launch.
         expect(fetchMock).not.toHaveBeenCalled();
         expect(written).toHaveLength(0);
@@ -144,8 +154,10 @@ describe('pagination', () => {
         await ensureExerciseCatalogue('en');
 
         expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('cursor')).toBeNull();
-        expect(new URL(fetchMock.mock.calls[1][0] as string).searchParams.get('cursor')).toBe(
+        expect(
+            new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('p_cursor'),
+        ).toBeNull();
+        expect(new URL(fetchMock.mock.calls[1][0] as string).searchParams.get('p_cursor')).toBe(
             id('b'),
         );
 
@@ -206,11 +218,11 @@ describe('rejecting bad data', () => {
         expect(mockReportError).toHaveBeenCalled();
     });
 
-    test('accepts a page from a Worker that does not send nameEn yet', async () => {
-        // The two deploy independently. If a missing `nameEn` were fatal, an app
-        // update would refuse every page until the Worker caught up — and the
-        // symptom would be a library that quietly stopped updating, which is
-        // exactly the failure this whole module exists to prevent.
+    test('accepts a page from a project whose catalogue_page predates nameEn', async () => {
+        // The app and the database migrate independently. If a missing `nameEn`
+        // were fatal, an app update would refuse every page until the migration
+        // had been applied — and the symptom would be a library that quietly
+        // stopped updating, which is exactly what this module exists to prevent.
         const { nameEn: _dropped, ...withoutNameEn } = entry(id('a'));
         respondWith(page([withoutNameEn], null));
         const { ensureExerciseCatalogue, isCatalogueSeeded } = loadModule();
@@ -287,7 +299,9 @@ describe('refresh throttling', () => {
         // Instructions are per-locale, so a language switch must not be
         // suppressed by a refresh that fetched a different language.
         expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(new URL(fetchMock.mock.calls[1][0] as string).searchParams.get('locale')).toBe('hi');
+        expect(new URL(fetchMock.mock.calls[1][0] as string).searchParams.get('p_locale')).toBe(
+            'hi',
+        );
     });
 
     test('normalises a regional tag to its base language', async () => {
@@ -296,7 +310,9 @@ describe('refresh throttling', () => {
 
         await ensureExerciseCatalogue('hi-IN');
 
-        expect(new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('locale')).toBe('hi');
+        expect(new URL(fetchMock.mock.calls[0][0] as string).searchParams.get('p_locale')).toBe(
+            'hi',
+        );
     });
 });
 

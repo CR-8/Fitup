@@ -1,167 +1,32 @@
 import { LOCALES, type CatalogueEntry, type Locale } from './dataset';
 import type { UploadedAsset } from './cloudinary';
-import { runPool } from './limiter';
+import { connectSupabase, type SupabaseClient } from './supabase';
 
 /**
- * Cloudflare D1 writes for the seed run, over the REST API.
+ * Catalogue writes for the seed run, against Supabase.
  *
- * The Worker reaches D1 through a binding, which only exists inside the Workers
- * runtime. A local script has to go through the HTTP API instead, which needs
- * an account id, a database id and a token rather than a connection string.
+ * This used to talk to Cloudflare D1 over its REST API, and most of what was
+ * here existed to work around that. D1 caps a query at 100 bound parameters, so
+ * the number of rows per statement was fixed by column count — 7 exercises or
+ * 25 instructions at a time — and the SQL was assembled by hand with a
+ * `placeholders()` helper to match. None of that survives the move: PostgREST
+ * takes an upsert as one JSON array, so batching is now only about keeping a
+ * request a sensible size, and lives in `lib/supabase.ts`.
  *
- * Batch sizes here are not a tuning choice. D1 caps a query at **100 bound
- * parameters**, so the number of rows per statement is fixed by how many columns
- * each row binds. Exceeding it fails at runtime, in the middle of a seed run.
- * https://developers.cloudflare.com/d1/platform/limits/
+ * The exported shape is unchanged, so `seed-catalogue.ts` did not have to move
+ * with it.
  */
 
-const D1_MAX_BOUND_PARAMS = 100;
-
-const EXERCISE_COLUMNS = 14;
-const INSTRUCTION_COLUMNS = 4;
-
-/** 7 rows x 14 columns = 98 parameters. */
-const EXERCISE_BATCH_SIZE = Math.floor(D1_MAX_BOUND_PARAMS / EXERCISE_COLUMNS);
-
-/** 25 rows x 4 columns = 100 parameters. */
-const INSTRUCTION_BATCH_SIZE = Math.floor(D1_MAX_BOUND_PARAMS / INSTRUCTION_COLUMNS);
+export type { SupabaseClient as CatalogueClient };
 
 /**
- * Statements in flight. The cap is small enough that a full seed is ~390
- * requests; without concurrency that is ~390 sequential round trips.
- */
-const REQUEST_CONCURRENCY = 8;
-
-export class DatabaseNotConfiguredError extends Error {
-    constructor(missing: string[]) {
-        super(
-            `Missing ${missing.join(', ')}. Copy .env.example to .env.local and fill them in.\n` +
-                'API token:   My Profile > API Tokens > Create Token > Custom, with\n' +
-                '             Account > D1 > Edit.\n' +
-                'Database id: printed by `wrangler d1 create fitup-exercises`.\n' +
-                'Account id:  optional — resolved from the token when only one account\n' +
-                '             is in scope. Otherwise take it from the dashboard URL:\n' +
-                '             https://dash.cloudflare.com/<account-id>/workers',
-        );
-        this.name = 'DatabaseNotConfiguredError';
-    }
-}
-
-/**
- * Resolves the account id from the token when it was not supplied.
+ * Opens the client.
  *
- * The account id is not a secret and not a choice — a token already belongs to
- * exactly one account in the common case, so asking someone to go and find a
- * 32-character hex string in a dashboard URL is a step that does not need to
- * exist. It is only ambiguous when a token spans several accounts, and then the
- * error names them rather than guessing.
+ * Async only because the call site awaits it and there is no reason to churn
+ * that. There is no connection to open: PostgREST is HTTP, so each request
+ * stands alone and there is nothing to close afterwards either.
  */
-const resolveAccountId = async (token: string): Promise<string> => {
-    const response = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-        headers: { authorization: `Bearer ${token}` },
-    });
-
-    const body = (await response.json()) as {
-        success: boolean;
-        errors?: { code: number; message: string }[];
-        result?: { id: string; name: string }[];
-    };
-
-    if (!response.ok || !body.success) {
-        const detail =
-            body.errors?.map((error) => `${error.code} ${error.message}`).join('; ') ??
-            `${response.status} ${response.statusText}`;
-
-        throw new Error(
-            `Could not resolve the account id from the token (${detail}).\n` +
-                'Set CLOUDFLARE_ACCOUNT_ID in .env.local instead — it is the hex segment in\n' +
-                'the dashboard URL: https://dash.cloudflare.com/<account-id>/workers',
-        );
-    }
-
-    const accounts = body.result ?? [];
-
-    if (accounts.length === 0) {
-        throw new Error('That token has no accounts in scope. Check it was created correctly.');
-    }
-
-    if (accounts.length > 1) {
-        const listed = accounts.map((a) => `  ${a.id}  ${a.name}`).join('\n');
-        throw new Error(
-            `The token spans ${accounts.length} accounts. Set CLOUDFLARE_ACCOUNT_ID to one of:\n${listed}`,
-        );
-    }
-
-    console.log(`  account: ${accounts[0].name} (${accounts[0].id})`);
-
-    return accounts[0].id;
-};
-
-interface D1Response {
-    success: boolean;
-    errors: { code: number; message: string }[];
-    result: { success: boolean; meta?: { rows_written?: number } }[];
-}
-
-export interface D1Client {
-    query: (sql: string, params: unknown[]) => Promise<D1Response>;
-}
-
-export const connect = async (): Promise<D1Client> => {
-    const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID?.trim();
-    const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
-
-    const missing = [
-        !databaseId && 'CLOUDFLARE_D1_DATABASE_ID',
-        !token && 'CLOUDFLARE_API_TOKEN',
-    ].filter((value): value is string => typeof value === 'string');
-
-    if (missing.length > 0) throw new DatabaseNotConfiguredError(missing);
-
-    const accountId =
-        process.env.CLOUDFLARE_ACCOUNT_ID?.trim() || (await resolveAccountId(token as string));
-
-    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
-
-    return {
-        query: async (sql, params) => {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    authorization: `Bearer ${token}`,
-                    'content-type': 'application/json',
-                },
-                body: JSON.stringify({ sql, params }),
-            });
-
-            const body = (await response.json()) as D1Response;
-
-            if (!response.ok || !body.success) {
-                const detail =
-                    body.errors?.map((error) => `${error.code} ${error.message}`).join('; ') ??
-                    `${response.status} ${response.statusText}`;
-
-                throw new Error(`D1 query failed: ${detail}`);
-            }
-
-            return body;
-        },
-    };
-};
-
-const chunk = <T>(values: T[], size: number): T[][] => {
-    const batches: T[][] = [];
-
-    for (let index = 0; index < values.length; index += size) {
-        batches.push(values.slice(index, index + size));
-    }
-
-    return batches;
-};
-
-/** `VALUES (?,?,…),(?,?,…)` for `rows` rows of `columns` columns. */
-const placeholders = (rows: number, columns: number): string =>
-    Array.from({ length: rows }, () => `(${Array(columns).fill('?').join(',')})`).join(',');
+export const connect = async (): Promise<SupabaseClient> => connectSupabase();
 
 export interface SeededExercise {
     entry: CatalogueEntry;
@@ -171,70 +36,53 @@ export interface SeededExercise {
 /**
  * Upserts catalogue rows.
  *
- * `ON CONFLICT DO UPDATE` rather than `INSERT OR REPLACE`: REPLACE deletes and
- * reinserts, which in SQLite fires delete triggers and would break any future
- * foreign key pointing at these ids.
+ * `is_active` is deliberately absent from the payload. PostgREST's
+ * `merge-duplicates` writes `on conflict do update set` for the columns it is
+ * given and no others, so leaving it out means a re-seed cannot resurrect an
+ * exercise somebody deactivated in the CMS — while a genuinely new row still
+ * picks up the column's `default true`. That is exactly how the D1 version
+ * behaved, for the same reason, and it is worth not losing by accident.
  */
 export const upsertExercises = async (
-    client: D1Client,
+    client: SupabaseClient,
     rows: SeededExercise[],
 ): Promise<number> => {
-    const now = Math.floor(Date.now() / 1000);
-    const batches = chunk(rows, EXERCISE_BATCH_SIZE);
+    // Milliseconds. D1 stored seconds because SQLite has no ON UPDATE and the
+    // seeder wrote the value itself; every `*_at` column in this Postgres schema
+    // is Unix milliseconds, as `supabase/migrations/0001` established.
+    const now = Date.now();
 
-    await runPool(batches, REQUEST_CONCURRENCY, async (batch) => {
-        const params = batch.flatMap(({ entry, asset }) => [
-            entry.id,
-            entry.gifFilename,
-            entry.name,
-            entry.category,
-            JSON.stringify(entry.equipment),
-            JSON.stringify(entry.primaryMuscleGroups),
-            JSON.stringify(entry.secondaryMuscleGroups),
-            asset.publicId,
-            asset.version,
-            asset.secureUrl,
-            asset.width,
-            asset.height,
-            asset.bytes,
-            now,
-        ]);
-
-        await client.query(
-            `INSERT INTO exercise (
-                id, gif_filename, name, category,
-                equipment, primary_muscle_groups, secondary_muscle_groups,
-                cloudinary_public_id, cloudinary_version, secure_url,
-                width, height, bytes, updated_at
-             ) VALUES ${placeholders(batch.length, EXERCISE_COLUMNS)}
-             ON CONFLICT(id) DO UPDATE SET
-                gif_filename = excluded.gif_filename,
-                name = excluded.name,
-                category = excluded.category,
-                equipment = excluded.equipment,
-                primary_muscle_groups = excluded.primary_muscle_groups,
-                secondary_muscle_groups = excluded.secondary_muscle_groups,
-                cloudinary_public_id = excluded.cloudinary_public_id,
-                cloudinary_version = excluded.cloudinary_version,
-                secure_url = excluded.secure_url,
-                width = excluded.width,
-                height = excluded.height,
-                bytes = excluded.bytes,
-                updated_at = excluded.updated_at`,
-            params,
-        );
-    });
-
-    return rows.length;
+    return client.upsert(
+        'catalogue_exercises',
+        rows.map(({ entry, asset }) => ({
+            id: entry.id,
+            gif_filename: entry.gifFilename,
+            name: entry.name,
+            category: entry.category,
+            // Real arrays now. D1 stored these as TEXT and the Worker parsed
+            // them back on every read.
+            equipment: entry.equipment,
+            primary_muscle_groups: entry.primaryMuscleGroups,
+            secondary_muscle_groups: entry.secondaryMuscleGroups,
+            cloudinary_public_id: asset.publicId,
+            cloudinary_version: asset.version,
+            secure_url: asset.secureUrl,
+            width: asset.width,
+            height: asset.height,
+            bytes: asset.bytes,
+            updated_at: now,
+        })),
+        'id',
+    );
 };
 
 /** Everything a locale can override for one exercise. */
 export interface LocaleText {
     steps: string[];
     /**
-     * The exercise's name in this locale. English leaves it null so the Worker
-     * falls through to `exercise.name`, which is the only name the dataset
-     * ships.
+     * The exercise's name in this locale. English leaves it undefined so
+     * `catalogue_page` falls through to `catalogue_exercises.name`, which is the
+     * only name the dataset ships.
      */
     name?: string;
 }
@@ -245,15 +93,15 @@ export type InstructionsByLocale = Map<Locale, Map<string, LocaleText>>;
  * Upserts per-locale text, one row per (exercise, locale).
  *
  * A locale with neither steps nor a name writes no row at all. One with a name
- * but no steps writes `[]`, which the Worker's `toItem` degrades to the English
- * steps exactly as a missing row would — so "not translated" and "translated to
+ * but no steps writes `[]`, which `catalogue_page` degrades to the English steps
+ * exactly as a missing row would — so "not translated" and "translated to
  * nothing" still behave the same, and a name can arrive without one.
  */
 export const upsertInstructions = async (
-    client: D1Client,
+    client: SupabaseClient,
     instructions: InstructionsByLocale,
 ): Promise<number> => {
-    const rows: [string, string, string, string | null][] = [];
+    const rows: Record<string, unknown>[] = [];
 
     for (const locale of LOCALES) {
         const perExercise = instructions.get(locale);
@@ -262,29 +110,17 @@ export const upsertInstructions = async (
         for (const [exerciseId, text] of perExercise) {
             if (text.steps.length === 0 && !text.name) continue;
 
-            rows.push([exerciseId, locale, JSON.stringify(text.steps), text.name ?? null]);
+            rows.push({
+                exercise_id: exerciseId,
+                locale,
+                steps: text.steps,
+                name: text.name ?? null,
+            });
         }
     }
 
-    const batches = chunk(rows, INSTRUCTION_BATCH_SIZE);
-
-    await runPool(batches, REQUEST_CONCURRENCY, async (batch) => {
-        await client.query(
-            `INSERT INTO exercise_instruction (exercise_id, locale, steps, name)
-             VALUES ${placeholders(batch.length, INSTRUCTION_COLUMNS)}
-             ON CONFLICT(exercise_id, locale) DO UPDATE SET
-                steps = excluded.steps,
-                name = excluded.name`,
-            batch.flat(),
-        );
-    });
-
-    return rows.length;
+    return client.upsert('catalogue_instructions', rows, 'exercise_id,locale');
 };
 
-export const countExercises = async (client: D1Client): Promise<number> => {
-    const body = await client.query('SELECT COUNT(*) AS total FROM exercise', []);
-    const results = (body.result[0] as { results?: { total?: number }[] })?.results;
-
-    return Number(results?.[0]?.total ?? 0);
-};
+export const countExercises = async (client: SupabaseClient): Promise<number> =>
+    client.count('catalogue_exercises');

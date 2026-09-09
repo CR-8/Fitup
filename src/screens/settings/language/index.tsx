@@ -9,8 +9,6 @@ import { localeNames, normalizeLanguage, supportedLanguages } from '@/locale/con
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
 import { markFormValuesSyncing, submitAutoSaveForm } from '../shared';
-import { performFitupSync } from '@/sync';
-import { queryClient } from '@/queries';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -53,29 +51,11 @@ const LanguageScreen = () => {
         async (data: EditUserFormData) => {
             try {
                 await updateUser(data);
-
-                if (data.lng && data.lng !== userLng) {
-                    const fullFitupReloadResult = await performFitupSync({
-                        locale: data.lng,
-                        full: true,
-                    });
-
-                    if (fullFitupReloadResult) {
-                        queryClient.invalidateQueries({ queryKey: ['exercises-list'] });
-                        queryClient.invalidateQueries({ queryKey: ['exercise'] });
-                        queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
-                        queryClient.invalidateQueries({ queryKey: ['workout-details'] });
-                        queryClient.invalidateQueries({ queryKey: ['workout-exercises'] });
-                        queryClient.invalidateQueries({
-                            queryKey: ['workout-exercises-with-exercise'],
-                        });
-                    }
-                }
             } catch (error) {
                 reportError(error, 'Failed to update user language:');
             }
         },
-        [updateUser, userLng],
+        [updateUser],
     );
 
     const submitCurrentValues = useCallback(() => {

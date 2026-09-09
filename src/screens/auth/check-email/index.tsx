@@ -11,8 +11,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { resendConfirmation, sendPasswordReset } from '@/services/account';
-import { errorKey } from '@/screens/auth/errors';
-import { reportError } from '@/services/error-reporting';
+import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 
 /**
  * The wait for an email, made into somewhere to be.
@@ -95,7 +94,7 @@ const CheckEmailScreen = () => {
             setCooldown(RESEND_COOLDOWN_SECONDS);
             Alert.alert(t('checkEmail.resent', { ns: 'screens' }));
         } catch (error) {
-            reportError(error, 'Could not resend the confirmation email');
+            reportUnexpected(error, 'Could not resend the confirmation email');
             Alert.alert(t(errorKey(error), { ns: 'screens' }));
         } finally {
             setPending(false);

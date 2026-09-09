@@ -19,7 +19,6 @@ import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Box } from '@/components/primitives/box';
-import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { Pressable } from '@/components/primitives/pressable';
 import Spinner from '@/components/feedback/spinner';
@@ -96,6 +95,8 @@ const styles = StyleSheet.create((theme) => ({
     emptyAction: {
         marginTop: theme.space(2),
     },
+    // No `color` on purpose — `Button` supplies one that inverts with the
+    // theme, and naming a colour here is how this label went missing.
     buttonTitle: {
         fontSize: theme.fontSize.default.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
@@ -236,14 +237,16 @@ const HomeScreen: FC = () => {
                         {t('home.recentEmpty.description', { ns: 'screens' })}
                     </Text>
                     <Box style={styles.emptyAction}>
+                        {/* A string, not a node: only then does `Button` apply
+                            its own inverted title colour. As a `<Title>` this
+                            inherited `theme.colors.typography` and rendered at
+                            1.10:1 on the button — the label was there, and
+                            invisible, in both themes. */}
                         <Button
                             size="sm"
                             onPress={handleCreateWorkout}
-                            title={
-                                <Title type="h6" style={styles.buttonTitle}>
-                                    {t('home.recentEmpty.action', { ns: 'screens' })}
-                                </Title>
-                            }
+                            title={t('home.recentEmpty.action', { ns: 'screens' })}
+                            textStyle={styles.buttonTitle}
                         />
                     </Box>
                 </VStack>

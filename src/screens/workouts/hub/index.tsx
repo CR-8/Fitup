@@ -68,10 +68,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         ...theme.fontSize.default,
         color: theme.colors.mutedTypography,
     },
+    // The inverted colour that used to be repeated here is `Button`'s own, and
+    // is applied as soon as the title is a string rather than a node. Restating
+    // it was the only thing keeping this label readable, and the same code on
+    // the home screen had drifted.
     buttonTitle: {
         fontSize: theme.fontSize.default.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
         textAlign: 'center',
     },
 }));
@@ -163,11 +166,8 @@ const WorkoutHubScreen: FC = () => {
                     <Button
                         size="lg"
                         onPress={handleCreateWorkout}
-                        title={
-                            <Text style={styles.buttonTitle}>
-                                {t('workoutHub.empty.action', { ns: 'screens' })}
-                            </Text>
-                        }
+                        title={t('workoutHub.empty.action', { ns: 'screens' })}
+                        textStyle={styles.buttonTitle}
                     />
                 </VStack>
             </VStack>

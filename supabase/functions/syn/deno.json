@@ -1,0 +1,6 @@
+{
+    "imports": {
+        "hono": "npm:hono@^4.10.3",
+        "hono/http-exception": "npm:hono@^4.10.3/http-exception"
+    }
+}

@@ -5,16 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { KeyRound } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
-import { Text } from '@/components/primitives/text';
-import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { sendPasswordReset } from '@/services/account';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
+import { AuthHero } from '@/screens/auth/components/hero';
 
 /**
  * Asks where to send a password-reset link.
@@ -37,12 +37,6 @@ const styles = StyleSheet.create((theme) => ({
     content: {
         ...theme.screenContentPadding('child'),
         gap: theme.space(5),
-    },
-    intro: {
-        gap: theme.space(2),
-    },
-    muted: {
-        color: theme.colors.neutral[400],
     },
     panel: {
         backgroundColor: theme.colors.background,
@@ -96,12 +90,12 @@ const ForgotPasswordScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <VStack style={styles.intro}>
-                <Title type="h1">{t('forgotPassword.title', { ns: 'screens' })}</Title>
-                <Text fontSize="sm" style={styles.muted}>
-                    {t('forgotPassword.subtitle', { ns: 'screens' })}
-                </Text>
-            </VStack>
+            <AuthHero
+                icon={KeyRound}
+                eyebrow={t('forgotPassword.eyebrow', { ns: 'screens' })}
+                title={t('forgotPassword.title', { ns: 'screens' })}
+                subtitle={t('forgotPassword.subtitle', { ns: 'screens' })}
+            />
 
             <VStack style={styles.panel}>
                 <VStack style={styles.fieldContainer}>

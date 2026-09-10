@@ -28,6 +28,7 @@ import m0023 from './0023_hard_screwball.sql';
 import m0024 from './0024_modern_proudstar.sql';
 import m0025 from './0025_faulty_scream.sql';
 import m0026 from './0026_thick_daimon_hellstrom.sql';
+import m0027 from './0027_worthless_runaways.sql';
 
   export default {
     journal,
@@ -58,7 +59,8 @@ m0022,
 m0023,
 m0024,
 m0025,
-m0026
+m0026,
+m0027
     }
   }
   

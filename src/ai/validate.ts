@@ -1,6 +1,7 @@
 import { AI_PLAN_KINDS, type AiPlanKind } from '@/constants/ai';
 import {
     AiError,
+    type AiAssessment,
     type AiExerciseCandidate,
     type AiPlanDayTargets,
     type AiPlanExercise,
@@ -29,6 +30,8 @@ const MAX_HORIZON_DAYS = 28;
 const MAX_WORKOUTS = 28;
 const MAX_EXERCISES_PER_WORKOUT = 20;
 const MAX_MEAL_ITEMS = 20;
+/** More than this stops reading as "what I actually need" and starts reading as a form. */
+const MAX_INTAKE_QUESTIONS = 3;
 
 const MEAL_SLOTS = new Set(['breakfast', 'lunch', 'dinner', 'snack']);
 
@@ -350,6 +353,59 @@ const validateTargets = (value: unknown): AiPlanDayTargets | null => {
         carbsG: asFiniteNumber(raw.carbsG),
         fatG: asFiniteNumber(raw.fatG),
     };
+};
+
+/**
+ * The entry point for a plan request's response, now that it can answer with
+ * three different shapes instead of always being a plan — see
+ * `ASSESSMENT_SCHEMA_HINT` in src/ai/prompt.ts for what asks for each one.
+ *
+ * `status` is checked before anything else touches the object, and on
+ * purpose: a `need_info` or `stop` reply has none of `workouts`/`meals`, and
+ * routing it into `validatePlanPayload` first would fail it as "a plan with
+ * no usable workouts" rather than recognising it for what it is. Anything
+ * that is not one of the two special shapes — including a model that ignored
+ * the instruction and returned a plan directly — falls through to
+ * `validatePlanPayload` exactly as it did before this existed, which is what
+ * keeps this backward compatible with a model that never learns the new
+ * protocol.
+ */
+export const parseAssessment = (
+    input: unknown,
+    expectedKind: AiPlanKind,
+    candidates: AiExerciseCandidate[],
+): AiAssessment => {
+    if (input && typeof input === 'object' && !Array.isArray(input)) {
+        const raw = input as Record<string, unknown>;
+        const status = asTrimmedString(raw.status);
+
+        if (status === 'need_info') {
+            const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
+            const questions = questionsRaw
+                .map((entry) => asTrimmedString(entry))
+                .filter((entry): entry is string => entry !== null)
+                .slice(0, MAX_INTAKE_QUESTIONS);
+
+            if (questions.length === 0) {
+                throw new AiError('INVALID_RESPONSE', 'need_info response carried no questions');
+            }
+
+            return { status: 'need_info', questions };
+        }
+
+        if (status === 'stop') {
+            const message = asTrimmedString(raw.message);
+
+            if (!message) {
+                throw new AiError('INVALID_RESPONSE', 'stop response carried no message');
+            }
+
+            return { status: 'stop', message };
+        }
+    }
+
+    const { payload, repairs } = validatePlanPayload(input, expectedKind, candidates);
+    return { status: 'ready', payload, repairs };
 };
 
 export const validatePlanPayload = (

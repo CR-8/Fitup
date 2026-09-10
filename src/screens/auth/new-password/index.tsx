@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Lock } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
-import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
@@ -22,6 +22,7 @@ import { resolveAuthDestination } from '@/services/auth-navigation';
 import { endPasswordRecovery } from '@/services/password-recovery';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 import { reportError } from '@/services/error-reporting';
+import { AuthHero } from '@/screens/auth/components/hero';
 
 /**
  * Sets a password on the session that is already open.
@@ -45,9 +46,6 @@ const styles = StyleSheet.create((theme) => ({
     content: {
         ...theme.screenContentPadding('child'),
         gap: theme.space(5),
-    },
-    intro: {
-        gap: theme.space(2),
     },
     muted: {
         color: theme.colors.neutral[400],
@@ -141,16 +139,14 @@ const NewPasswordScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <VStack style={styles.intro}>
-                <Title type="h1">
-                    {t(isRecovery ? 'newPassword.title' : 'newPassword.titleChange', {
-                        ns: 'screens',
-                    })}
-                </Title>
-                <Text fontSize="sm" style={styles.muted}>
-                    {t('newPassword.subtitle', { ns: 'screens', min: MIN_PASSWORD_LENGTH })}
-                </Text>
-            </VStack>
+            <AuthHero
+                icon={Lock}
+                eyebrow={t('newPassword.eyebrow', { ns: 'screens' })}
+                title={t(isRecovery ? 'newPassword.title' : 'newPassword.titleChange', {
+                    ns: 'screens',
+                })}
+                subtitle={t('newPassword.subtitle', { ns: 'screens', min: MIN_PASSWORD_LENGTH })}
+            />
 
             <VStack style={styles.panel}>
                 <VStack style={styles.fieldContainer}>

@@ -44,6 +44,19 @@ export const aiMessage = sqliteTable(
         planId: text('plan_id', { length: 21 }),
         // Populated on failure so a turn can be retried or explained without guessing.
         errorCode: text('error_code'),
+        /**
+         * True for an assistant turn that asked the user something instead of
+         * generating a plan — see `parseAssessment` in src/ai/validate.ts.
+         *
+         * The only reason this exists: `useAiChat`'s `generatePlan` needs to
+         * know how many times this conversation has already asked before it
+         * forces a plan out under conservative assumptions rather than asking
+         * again (`INTAKE_QUESTION_LIMIT` in src/hooks/use-ai.tsx). Content
+         * alone cannot answer that — an ordinary chat reply and an intake
+         * question are both just assistant prose with no planId — so this is
+         * the one bit that distinguishes them without re-parsing history.
+         */
+        isIntake: integer('is_intake', { mode: 'boolean' }),
         createdAt: integer('created_at', { mode: 'timestamp_ms' })
             .notNull()
             .default(sql`(strftime('%s','now') * 1000)`),

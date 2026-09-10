@@ -1,0 +1,1 @@
+ALTER TABLE `ai_message` ADD `is_intake` integer;

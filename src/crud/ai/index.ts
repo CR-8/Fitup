@@ -17,6 +17,8 @@ import {
     workoutExercise,
 } from '@/db/schema';
 import { nanoid } from '@/helpers/nanoid';
+import { resolveFitnessLevel } from '@/helpers/fitness-level';
+import { fetchWorkoutStats } from '@/crud/workout';
 import {
     AI_CONTEXT_MESSAGE_LIMIT,
     AI_EXERCISE_CANDIDATE_LIMIT,
@@ -31,6 +33,7 @@ import type {
     AiProfileContext,
     AiRequestContext,
 } from '@/types/ai';
+import { retrieveForPlan } from '@/services/syn-retrieval';
 
 import { queueSyncOperations } from '../sync';
 
@@ -127,6 +130,8 @@ export interface CreateMessageInput {
     content: string;
     planId?: string | null;
     errorCode?: string | null;
+    /** True for an assistant turn that asked the user something instead of generating a plan. */
+    isIntake?: boolean;
 }
 
 export const createMessage = async (input: CreateMessageInput): Promise<AiMessageSelect> => {
@@ -137,6 +142,7 @@ export const createMessage = async (input: CreateMessageInput): Promise<AiMessag
         content: input.content,
         planId: input.planId ?? null,
         errorCode: input.errorCode ?? null,
+        isIntake: input.isIntake ?? null,
         createdAt: now(),
         updatedAt: now(),
     };
@@ -351,11 +357,25 @@ const getLatestMeasurement = async (userId: string, metric: string): Promise<num
 };
 
 const buildProfileContext = async (userId: string): Promise<AiProfileContext> => {
-    const [profile, bodyWeightKg, heightCm] = await Promise.all([
+    const [profile, bodyWeightKg, heightCm, workoutStats] = await Promise.all([
         getProfile(userId),
         getLatestMeasurement(userId, 'body_weight'),
         getLatestMeasurement(userId, 'height'),
+        // Real training history, not a self-report — see src/helpers/fitness-level.ts
+        // for why this is computed rather than asked for. `fetchWorkoutStats`
+        // is already the app's own source for these two figures (the Results
+        // screen reads it through `useWorkoutStats`), so this adds no new query
+        // shape, only a second reader of one that already exists.
+        fetchWorkoutStats(null),
     ]);
+
+    const fitnessLevel =
+        workoutStats.workoutsCount && workoutStats.trainingWeeks
+            ? resolveFitnessLevel({
+                  workoutsCount: workoutStats.workoutsCount,
+                  trainingWeeks: workoutStats.trainingWeeks,
+              })
+            : null;
 
     return {
         goal: profile?.goal ?? null,
@@ -370,6 +390,7 @@ const buildProfileContext = async (userId: string): Promise<AiProfileContext> =>
         bodyWeightKg,
         heightCm,
         notes: profile?.notes ?? null,
+        fitnessLevel,
     };
 };
 
@@ -380,10 +401,24 @@ const buildProfileContext = async (userId: string): Promise<AiProfileContext> =>
  * built, rather than being described as a rule in the prompt. A model cannot select
  * what it was never shown, which makes this the load-bearing constraint rather than
  * the prompt wording.
+ *
+ * `retrievedIds` reorders and narrows this same local list rather than
+ * replacing it with whatever the retrieval call returned: the app needs
+ * `tracking` (weight/reps/time/distance) to validate the model's response,
+ * and retrieval's response — see `src/services/syn-retrieval.ts` — only ever
+ * carries id, name, category and a similarity score. Retrieval decides
+ * *which* exercises and *what order*; the local row is still what supplies
+ * every field the rest of the pipeline needs.
+ *
+ * An id retrieval returned that is not in the local catalogue is dropped
+ * silently rather than surfaced — the two are expected to be in sync, but a
+ * device that has not synced its latest catalogue yet should degrade to
+ * "that one candidate is unavailable", not to an error.
  */
 const buildCandidates = async (
     userId: string,
     availableEquipment: string[],
+    retrievedIds?: string[],
 ): Promise<AiExerciseCandidate[]> => {
     const rows = await db
         .select({
@@ -408,17 +443,31 @@ const buildCandidates = async (
         return required.every((item) => allowed.has(item.toLowerCase()));
     };
 
-    return rows
-        .filter(isUsable)
-        .slice(0, AI_EXERCISE_CANDIDATE_LIMIT)
-        .map((row) => ({
-            id: row.id,
-            name: row.name,
-            category: row.category,
-            equipment: row.equipment ?? [],
-            primaryMuscleGroups: row.primaryMuscleGroups ?? [],
-            tracking: row.tracking ?? [],
-        }));
+    const toCandidate = (row: (typeof rows)[number]): AiExerciseCandidate => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        equipment: row.equipment ?? [],
+        primaryMuscleGroups: row.primaryMuscleGroups ?? [],
+        tracking: row.tracking ?? [],
+    });
+
+    const usable = rows.filter(isUsable);
+
+    if (retrievedIds && retrievedIds.length > 0) {
+        const byId = new Map(usable.map((row) => [row.id, row]));
+        const ranked = retrievedIds
+            .map((id) => byId.get(id))
+            .filter((row): row is (typeof rows)[number] => row !== undefined)
+            .map(toCandidate);
+
+        // Retrieval can return fewer than the limit once the equipment filter
+        // is applied — never fewer than what it found, never an empty result
+        // just because the ranked set came up short.
+        if (ranked.length > 0) return ranked.slice(0, AI_EXERCISE_CANDIDATE_LIMIT);
+    }
+
+    return usable.slice(0, AI_EXERCISE_CANDIDATE_LIMIT).map(toCandidate);
 };
 
 const buildHistory = async (userId: string): Promise<AiHistoryEntry[]> => {
@@ -464,15 +513,46 @@ export const buildRequestContext = async (
     userId: string,
     locale: string,
     weightUnit: string,
+    /**
+     * The text to retrieve against — a plan's intent, typically. Omitted for
+     * an ordinary chat turn, which has no ranked candidate list to build and
+     * so has nothing worth retrieving for.
+     *
+     * When present, this is the one place retrieval actually runs: one call
+     * to `supabase/functions/syn`, whose result reorders `buildCandidates`
+     * and supplies `guidance` below. Its own failure mode is silent — see
+     * `retrieveForPlan` — so this function's behaviour with no retrieval
+     * configured, and its behaviour when retrieval fails at request time, are
+     * exactly the same: the unranked local candidate list this app always
+     * built, and an empty guidance array.
+     */
+    retrievalQuery?: string,
 ): Promise<AiRequestContext> => {
     const profile = await buildProfileContext(userId);
 
+    const retrieval = retrievalQuery
+        ? await retrieveForPlan({
+              query: retrievalQuery,
+              equipment: profile.equipment,
+              conditions: profile.conditions,
+              locale,
+              matchCount: AI_EXERCISE_CANDIDATE_LIMIT,
+          })
+        : null;
+
     const [candidates, history] = await Promise.all([
-        buildCandidates(userId, profile.equipment),
+        buildCandidates(userId, profile.equipment, retrieval?.candidateIds),
         buildHistory(userId),
     ]);
 
-    return { profile, candidates, history, locale, weightUnit };
+    return {
+        profile,
+        candidates,
+        history,
+        guidance: retrieval?.guidance ?? [],
+        locale,
+        weightUnit,
+    };
 };
 
 export const buildChatHistory = (messages: AiMessageSelect[]) =>

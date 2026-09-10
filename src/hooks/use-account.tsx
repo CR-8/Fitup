@@ -25,6 +25,8 @@ import {
 } from '@/services/backup';
 import { queryClient } from '@/queries';
 import { runInBackground } from '@/services/error-reporting';
+import { getCurrentUser } from '@/crud/user';
+import { unregisterPushToken } from '@/services/push-registration';
 
 interface AccountContextValue {
     /** Null while signed out, which is a fully supported state. */
@@ -127,6 +129,16 @@ export const AccountProvider: FC<{ children: ReactNode }> = ({ children }) => {
         // a different account entirely. Bounded inside, so a dead network costs
         // a moment rather than the ability to sign out.
         await flushBackup();
+
+        // Same reasoning, and awaited for the same reason `flushBackup` is:
+        // deleting this device's `push_tokens` row needs the session's own
+        // `auth.uid()`, which RLS checks against (supabase/migrations/0006),
+        // so it has to happen before `signOutOfAccount` invalidates it below,
+        // not merely be started before then. `unregisterPushToken` already
+        // catches its own failures and never throws, so this cannot turn a
+        // lost network request into a sign-out that gets stuck.
+        const currentUser = await getCurrentUser();
+        await unregisterPushToken(currentUser?.epsToken);
 
         await signOutOfAccount();
 

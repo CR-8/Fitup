@@ -286,6 +286,10 @@ export type AnalyticsEventMap = {
         /** How many items the validator had to drop or correct. */
         repairs: number;
     };
+    /** A plan request asked the user something instead of generating — see src/ai/validate.ts's `parseAssessment`. */
+    'ai:intake_question': AiProperties & { kind: AiPlanKindProperty };
+    /** A plan request declined to generate at all — a declared red flag, not missing info. */
+    'ai:intake_stop': AiProperties & { kind: AiPlanKindProperty };
     'ai:plan_applied': {
         kind: AiPlanKindProperty;
         workouts: number;

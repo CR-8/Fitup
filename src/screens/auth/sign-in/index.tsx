@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Dumbbell } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
-import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
@@ -28,6 +28,7 @@ import {
 } from '@/services/account';
 import { resolveAuthDestination } from '@/services/auth-navigation';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
+import { AuthHero } from '@/screens/auth/components/hero';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -37,9 +38,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     content: {
         ...theme.screenContentPadding('child'),
         gap: theme.space(5),
-    },
-    intro: {
-        gap: theme.space(2),
     },
     muted: {
         color: theme.colors.neutral[400],
@@ -194,14 +192,12 @@ const SignInScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <VStack style={styles.intro}>
-                <Title type="h1">
-                    {t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
-                </Title>
-                <Text fontSize="sm" style={styles.muted}>
-                    {t('signIn.subtitle', { ns: 'screens' })}
-                </Text>
-            </VStack>
+            <AuthHero
+                icon={Dumbbell}
+                eyebrow={t('signIn.eyebrow', { ns: 'screens' })}
+                title={t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
+                subtitle={t('signIn.subtitle', { ns: 'screens' })}
+            />
 
             <VStack style={styles.panel}>
                 {isGoogleAvailable() ? (

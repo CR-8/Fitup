@@ -3,15 +3,16 @@ import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import { Mail } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
-import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { resendConfirmation, sendPasswordReset } from '@/services/account';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
+import { AuthHero } from '@/screens/auth/components/hero';
 
 /**
  * The wait for an email, made into somewhere to be.
@@ -41,9 +42,6 @@ const styles = StyleSheet.create((theme) => ({
     content: {
         ...theme.screenContentPadding('child'),
         gap: theme.space(5),
-    },
-    intro: {
-        gap: theme.space(2),
     },
     muted: {
         color: theme.colors.neutral[400],
@@ -103,14 +101,14 @@ const CheckEmailScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <VStack style={styles.intro}>
-                <Title type="h1">{t('checkEmail.title', { ns: 'screens' })}</Title>
-                <Text fontSize="sm" style={styles.muted}>
-                    {t(isRecovery ? 'checkEmail.subtitleReset' : 'checkEmail.subtitleSignUp', {
-                        ns: 'screens',
-                    })}
-                </Text>
-            </VStack>
+            <AuthHero
+                icon={Mail}
+                eyebrow={t('checkEmail.eyebrow', { ns: 'screens' })}
+                title={t('checkEmail.title', { ns: 'screens' })}
+                subtitle={t(isRecovery ? 'checkEmail.subtitleReset' : 'checkEmail.subtitleSignUp', {
+                    ns: 'screens',
+                })}
+            />
 
             <VStack style={styles.panel}>
                 <Text fontSize="lg" fontWeight="semibold" style={styles.address}>

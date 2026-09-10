@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { requestCompletion } from '@/api/ai';
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
-import { extractJsonObject, validatePlanPayload } from '@/ai/validate';
+import { extractJsonObject, parseAssessment } from '@/ai/validate';
 import { applyPlanToSchedule, revertAppliedPlan } from '@/ai/apply-plan';
 import {
     buildChatHistory,
@@ -31,6 +31,20 @@ import { useAnalytics } from './use-analytics';
 
 /** Horizon retried when a plan at the requested length runs out of output budget. */
 const FALLBACK_HORIZON_DAYS = 3;
+
+/**
+ * How many `need_info` turns this conversation gets before `generatePlan`
+ * forces a plan out under conservative assumptions instead of asking again —
+ * see `ASSESSMENT_SCHEMA_HINT` in src/ai/prompt.ts and the `FORCE_READY` line
+ * it looks for. A cautious plan the user did not fully brief beats a fourth
+ * question they may never answer.
+ */
+const INTAKE_QUESTION_LIMIT = 2;
+
+/** How far back to look when counting prior intake turns. Generous on purpose: a
+ *  short window could undercount across a conversation with other chat in between
+ *  and let the cap reset by accident. */
+const INTAKE_LOOKBACK_MESSAGES = 20;
 
 const CONVERSATION_KEY = 'ai-conversation';
 const MESSAGES_KEY = 'ai-messages';
@@ -232,11 +246,27 @@ export const useAiChat = (conversationId: string | undefined) => {
             await createMessage({ conversationId, role: 'user', content: intent });
             invalidate();
 
+            // Retrieval needs something to embed — `intent` is it. Passed as
+            // buildRequestContext's fourth argument, which is what actually
+            // triggers a retrieval call; omitted (as `sendMessage` above
+            // does), the context comes back exactly as it always has.
             const context = await buildRequestContext(
                 user.id,
                 i18n.language,
                 user.weightUnits ?? 'kg',
+                intent,
             );
+
+            // The turn just written is passed separately as `intent`, and the
+            // prior turns are what let the model see a question it already
+            // asked and the user's reply to it — see `priorHistory` in
+            // `buildPlanMessages`. Also what `forceReady` below counts over.
+            const recentMessages = (await getMessages(conversationId)).slice(
+                -INTAKE_LOOKBACK_MESSAGES,
+            );
+            const priorHistory = buildChatHistory(recentMessages.slice(0, -1));
+            const priorIntakeTurns = recentMessages.filter((message) => message.isIntake).length;
+            const forceReady = priorIntakeTurns >= INTAKE_QUESTION_LIMIT;
 
             /**
              * One attempt at the requested horizon, then a shorter one if the reply
@@ -246,13 +276,20 @@ export const useAiChat = (conversationId: string | undefined) => {
              */
             const attempt = async (days: number) => {
                 const result = await requestCompletion({
-                    messages: buildPlanMessages(context, kind, intent, days),
+                    messages: buildPlanMessages(
+                        context,
+                        kind,
+                        intent,
+                        days,
+                        priorHistory,
+                        forceReady,
+                    ),
                     json: true,
                 });
 
                 return {
                     result,
-                    ...validatePlanPayload(
+                    assessment: parseAssessment(
                         extractJsonObject(result.content),
                         kind,
                         context.candidates,
@@ -264,15 +301,40 @@ export const useAiChat = (conversationId: string | undefined) => {
                 const isTruncation = (error: unknown) =>
                     error instanceof AiError && error.code === 'TRUNCATED';
 
-                const { result, payload, repairs } = await attempt(horizonDays).catch(
-                    async (error) => {
-                        if (!isTruncation(error) || horizonDays <= FALLBACK_HORIZON_DAYS) {
-                            throw error;
-                        }
+                const { result, assessment } = await attempt(horizonDays).catch(async (error) => {
+                    if (!isTruncation(error) || horizonDays <= FALLBACK_HORIZON_DAYS) {
+                        throw error;
+                    }
 
-                        return await attempt(FALLBACK_HORIZON_DAYS);
-                    },
-                );
+                    return await attempt(FALLBACK_HORIZON_DAYS);
+                });
+
+                if (assessment.status === 'need_info') {
+                    await createMessage({
+                        conversationId,
+                        role: 'assistant',
+                        content: assessment.questions.join('\n'),
+                        isIntake: true,
+                    });
+
+                    track('ai:intake_question', { kind, model: result.model });
+
+                    return undefined;
+                }
+
+                if (assessment.status === 'stop') {
+                    await createMessage({
+                        conversationId,
+                        role: 'assistant',
+                        content: assessment.message,
+                    });
+
+                    track('ai:intake_stop', { kind, model: result.model });
+
+                    return undefined;
+                }
+
+                const { payload, repairs } = assessment;
 
                 const plan = await createPlan({
                     userId: user.id,

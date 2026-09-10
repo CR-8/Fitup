@@ -13,8 +13,10 @@ import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
 import { useWorkoutStats, useWorkouts } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
 import { computeStreakDays } from '@/helpers/workouts';
+import { resolveFitnessLevel } from '@/helpers/fitness-level';
 
 import { ActivitySummary } from './components/activity-summary';
+import { FitnessLevelCard } from './components/fitness-level';
 import { MonthStats } from './components/month';
 import { Scale } from './components/scale';
 import { StrengthStats } from './components/strength';
@@ -83,6 +85,22 @@ const ResultsScreen = () => {
      * for a metric it cannot compute, and that is shown as an em dash rather
      * than as a zero that would read as a fact about the user's training.
      */
+    /**
+     * Same threshold `buildProfileContext` (src/crud/ai/index.ts) uses before
+     * calling `resolveFitnessLevel` — a level is only ever computed once there
+     * is a nonzero workout count and training-week span to compute it from.
+     */
+    const fitnessLevel = useMemo(
+        () =>
+            stats.workoutsCount && stats.trainingWeeks
+                ? resolveFitnessLevel({
+                      workoutsCount: stats.workoutsCount,
+                      trainingWeeks: stats.trainingWeeks,
+                  })
+                : null,
+        [stats.trainingWeeks, stats.workoutsCount],
+    );
+
     const heroBlocks = useMemo<StatBlock[]>(() => {
         const streak = computeStreakDays(workouts ?? []);
 
@@ -176,6 +194,7 @@ const ResultsScreen = () => {
         >
             <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
             <StatBlocks blocks={heroBlocks} inset={false} />
+            <FitnessLevelCard level={fitnessLevel} />
             <MonthStats />
             <ActivitySummary onScrubbingChange={setIsChartScrubbing} />
             <StrengthStats />

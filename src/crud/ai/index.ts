@@ -171,6 +171,29 @@ export const getPlansByIds = async (ids: string[]): Promise<AiPlanSelect[]> => {
     return await db.select().from(aiPlan).where(inArray(aiPlan.id, ids));
 };
 
+/**
+ * The plan the user is currently training on, or null.
+ *
+ * "Current" is the most recently applied one, not the most recently created: a
+ * draft nobody accepted is a suggestion, and two applied plans mean the later
+ * one replaced the earlier. `appliedAt` rather than `createdAt` orders them,
+ * because a plan generated on Monday and applied on Friday is newer than one
+ * generated on Tuesday and applied on Wednesday.
+ *
+ * `ai_plan_user_created_idx` covers the user filter; the ordering is over at
+ * most a handful of rows per user, so it needs no index of its own.
+ */
+export const getActivePlan = async (userId: string): Promise<AiPlanSelect | null> => {
+    const [row] = await db
+        .select()
+        .from(aiPlan)
+        .where(and(eq(aiPlan.userId, userId), eq(aiPlan.status, 'applied')))
+        .orderBy(desc(aiPlan.appliedAt))
+        .limit(1);
+
+    return row ?? null;
+};
+
 export interface CreatePlanInput {
     userId: string;
     conversationId?: string | null;

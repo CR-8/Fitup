@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert } from 'react-native';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { requestCompletion } from '@/api/ai';
@@ -15,6 +16,7 @@ import {
     createMessage,
     createPlan,
     deleteConversation,
+    getActivePlan,
     getLatestConversation,
     getMessages,
     getPlansByIds,
@@ -37,6 +39,20 @@ const MESSAGES_KEY = 'ai-messages';
 const PLANS_KEY = 'ai-plans';
 const PROFILE_KEY = 'ai-profile';
 const QUOTA_KEY = 'ai-quota';
+const ACTIVE_PLAN_KEY = 'ai-active-plan';
+
+/**
+ * Keyed so that *any* component can ask whether Syn is working, not just the one
+ * that started it.
+ *
+ * `useMutation` state is local to the hook call that created it, and three
+ * components mount `useSynActions` — the two cards on Home and the Syn thread.
+ * Without a shared key, tapping generate on Home left the thread's own mutation
+ * idle, so the user was navigated to a motionless screen and the plan arrived
+ * with no warning: the exact gap the pending row exists to close.
+ */
+const SEND_MUTATION_KEY = ['ai-send'] as const;
+const GENERATE_MUTATION_KEY = ['ai-generate'] as const;
 
 export const useAiAvailable = (): boolean => useMemo(() => isAiEnabled(), []);
 
@@ -135,6 +151,25 @@ export const useAiQuota = () => {
     };
 };
 
+/**
+ * The plan the user is training on, or null.
+ *
+ * Just the row. Progress is worked out by `derivePlanProgress` from the workout
+ * rows the caller already has, so finishing a session moves the card through
+ * the existing workouts query rather than needing this one re-read.
+ */
+export const useActivePlan = () => {
+    const { user } = useUser();
+
+    const { data, isLoading } = useQuery({
+        queryKey: [ACTIVE_PLAN_KEY, user?.id],
+        queryFn: () => getActivePlan(user!.id),
+        enabled: !!user?.id,
+    });
+
+    return { activePlan: (data ?? null) as AiPlanSelect | null, isLoading };
+};
+
 const resolveErrorKey = (error: unknown): string => {
     if (error instanceof AiError) {
         switch (error.code) {
@@ -174,7 +209,8 @@ export const useAiChat = (conversationId: string | undefined) => {
         queryClient.invalidateQueries({ queryKey: [QUOTA_KEY, user?.id] });
     }, [conversationId, queryClient, user?.id]);
 
-    const { mutateAsync: sendMessage, isPending: isSending } = useMutation({
+    const { mutateAsync: sendMessage } = useMutation({
+        mutationKey: SEND_MUTATION_KEY,
         mutationFn: async (prompt: string) => {
             if (!conversationId || !user?.id) return;
 
@@ -217,7 +253,8 @@ export const useAiChat = (conversationId: string | undefined) => {
         onError: (error) => reportError(error, 'AI chat turn failed'),
     });
 
-    const { mutateAsync: generatePlan, isPending: isGenerating } = useMutation({
+    const { mutateAsync: generatePlan } = useMutation({
+        mutationKey: GENERATE_MUTATION_KEY,
         mutationFn: async ({
             kind,
             intent,
@@ -311,12 +348,80 @@ export const useAiChat = (conversationId: string | undefined) => {
         onError: (error) => reportError(error, 'AI plan generation failed'),
     });
 
+    // Counted across every mounted caller, so Home and the thread agree.
+    const isSending = useIsMutating({ mutationKey: SEND_MUTATION_KEY }) > 0;
+    const isGenerating = useIsMutating({ mutationKey: GENERATE_MUTATION_KEY }) > 0;
+
     return {
         sendMessage,
         generatePlan,
         isSending,
         isGenerating,
         isBusy: isSending || isGenerating,
+    };
+};
+
+/**
+ * Everything a screen needs to put Syn to work: the one entry point.
+ *
+ * Home and the Syn thread both offer to generate, and the quota guard is the
+ * part that must not be written twice: refusing before spending is all that
+ * stands between a stray tap and a wasted month's allowance, and two copies is
+ * how one of them ends up checking the wrong side of zero.
+ *
+ * Callers supply the intent — the wording differs between a chip on Home and a
+ * pill in the thread — and `generate` reports whether the request actually
+ * started, so a caller can avoid claiming it did.
+ *
+ * Failures are deliberately swallowed here. `useAiChat` writes them into the
+ * conversation as an assistant turn, which outlives an alert that interrupts
+ * and then disappears.
+ */
+export const useSynActions = () => {
+    const { t } = useTranslation('screens');
+    const { conversation, isLoading } = useAiConversation();
+    const quota = useAiQuota();
+
+    // Safe to mount in several places at once: the pending flags come from
+    // `useIsMutating` over a shared key, not from this instance's own mutation,
+    // so a generation begun on Home is visible to the Syn thread too.
+    const { sendMessage, generatePlan, isSending, isGenerating, isBusy } = useAiChat(
+        conversation?.id,
+    );
+
+    const exhausted = quota.remaining <= 0;
+
+    const generate = useCallback(
+        (kind: AiPlanKind, intent: string, horizonDays?: number): boolean => {
+            if (exhausted) {
+                Alert.alert(t('syn.quota.title'), t('syn.quota.message', { limit: quota.limit }));
+                return false;
+            }
+
+            generatePlan({ kind, intent, horizonDays }).catch(() => undefined);
+
+            return true;
+        },
+        [exhausted, generatePlan, quota.limit, t],
+    );
+
+    const send = useCallback(
+        (prompt: string) => {
+            sendMessage(prompt).catch(() => undefined);
+        },
+        [sendMessage],
+    );
+
+    return {
+        conversation,
+        isLoading,
+        generate,
+        send,
+        quota,
+        exhausted,
+        isSending,
+        isGenerating,
+        isBusy,
     };
 };
 
@@ -337,6 +442,9 @@ export const useApplyAiPlan = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [PLANS_KEY] });
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            // Applying is what makes a plan the active one, which is what Home's
+            // plan card reads.
+            queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user?.id] });
         },
     });
 
@@ -348,6 +456,7 @@ export const useApplyAiPlan = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [PLANS_KEY] });
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
+            queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user?.id] });
         },
     });
 

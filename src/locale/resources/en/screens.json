@@ -60,19 +60,42 @@
         },
         "streak_one": "{{count}} day streak",
         "streak_other": "{{count}} day streak",
-        "streakLabel": "Day streak",
-        "streakEmpty": "Complete a workout to start a streak.",
-        "recentActivity": "Recent activity",
-        "viewAll": "View all",
         "quick": {
             "exercises": "Exercises",
             "syn": "Syn",
             "nutrition": "Nutrition"
         },
-        "recentEmpty": {
-            "title": "No workouts yet",
-            "description": "Complete your first workout and your training history will appear here.",
-            "action": "Plan a workout"
+        "ai": {
+            "title": "Generate your plan with AI",
+            "description": "Tell Syn your goal and body stats — get a full week of training in seconds.",
+            "action": "Generate a new plan",
+            "chips": {
+                "week": "Training week",
+                "weekIntent": "Build me a training plan for the week around my goal.",
+                "cut": "Fat loss plan",
+                "cutIntent": "Build me a training plan and a food chart for fat loss this week.",
+                "food": "Food chart",
+                "foodIntent": "Build me a food chart for the week."
+            }
+        },
+        "plan": {
+            "eyebrow": "Active plan",
+            "week": "Week {{week}} of {{weeks}}",
+            "cadence_one": "{{count}} session a week",
+            "cadence_other": "{{count}} sessions a week",
+            "sessions": "{{done}} of {{total}} sessions done",
+            "revise": {
+                "label": "Revise with AI",
+                "harder": "Make it harder",
+                "harderIntent": "Rebuild my plan harder than the one I am on — more volume or heavier work.",
+                "swap": "Swap exercises",
+                "swapIntent": "Rebuild my plan with different exercises for the same muscle groups.",
+                "nutrition": "Add nutrition",
+                "nutritionIntent": "Rebuild my plan with a food chart alongside the training.",
+                "confirmTitle": "Generate a new plan?",
+                "confirmBody": "Syn writes a new plan rather than editing this one, and applying it replaces your schedule. It uses one of your plans for this month.",
+                "confirm": "Generate"
+            }
         }
     },
     "results": {
@@ -660,7 +683,11 @@
             "greetingFallback": "Hey there 👋",
             "body": "I can see your training history and your profile. Ask me anything, or start with one of these."
         },
-        "subtitle": "Your personal fitness assistant."
+        "subtitle": "Your personal fitness assistant.",
+        "pending": {
+            "plan": "Syn is building your plan…",
+            "reply": "Syn is thinking…"
+        }
     },
     "signIn": {
         "title": "Welcome to FitSync",

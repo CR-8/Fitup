@@ -15,6 +15,12 @@ import { Pressable } from '@/components/primitives/pressable';
 
 interface WeekStatsProps {
     workouts: WorkoutSelect[];
+    /**
+     * Planned sessions, so a day can say what it holds rather than only whether
+     * something happened. A rest day shows a dash, which is information too —
+     * an unlabelled gap reads as a day the user failed to train.
+     */
+    plannedWorkouts?: WorkoutSelect[];
     firstWeekday: number;
     /** Completed this week, so the strip can say what it is showing. */
     sessions: number;
@@ -128,10 +134,19 @@ const styles = StyleSheet.create((theme, rt) => ({
     dayTextToday: {
         opacity: 1,
     },
+    plannedLabel: {
+        ...theme.fontSize['2xs'],
+        color: theme.colors.mutedTypography,
+        textAlign: 'center',
+    },
 }));
+
+/** A day with nothing planned. Not an empty string — see `plannedByDay`. */
+const REST_DAY = '–';
 
 export const WeekStats: FC<WeekStatsProps> = ({
     workouts,
+    plannedWorkouts = [],
     firstWeekday,
     sessions,
     sessionsGoal,
@@ -158,6 +173,33 @@ export const WeekStats: FC<WeekStatsProps> = ({
         return keys;
     }, [workouts]);
 
+    /**
+     * One label per day, from the planned session's own name.
+     *
+     * Truncated hard: these sit in a cell a little over forty points wide, and
+     * the names the plan generator writes ("Upper Body — Strength") are far
+     * longer than that. The first word is what distinguishes them.
+     */
+    const plannedByDay = useMemo(() => {
+        const labels = new Map<string, string>();
+
+        plannedWorkouts.forEach((row) => {
+            const when = row.startAt ?? row.createdAt;
+            if (!when) return;
+
+            const date = dayjs(when);
+            if (!date.isValid()) return;
+
+            const key = date.format('YYYY-MM-DD');
+            if (labels.has(key)) return;
+
+            const first = (row.name ?? '').trim().split(/[\s—-]+/)[0];
+            if (first) labels.set(key, first);
+        });
+
+        return labels;
+    }, [plannedWorkouts]);
+
     const weekDays = useMemo(() => {
         const today = dayjs();
         // Shared with `groupWorkoutsByWeek`, which decides how the completed
@@ -178,9 +220,10 @@ export const WeekStats: FC<WeekStatsProps> = ({
                 weekday,
                 isToday: dateKey === todayKey,
                 isWorkoutDay: workoutDayKeys.has(dateKey),
+                planned: plannedByDay.get(dateKey) ?? null,
             };
         });
-    }, [firstWeekday, i18n.language, workoutDayKeys]);
+    }, [firstWeekday, i18n.language, workoutDayKeys, plannedByDay]);
 
     const handleDayPress = useCallback(
         (dateKey: string) => {
@@ -271,6 +314,15 @@ export const WeekStats: FC<WeekStatsProps> = ({
                                     </Text>
                                 </Box>
                             </Pressable>
+                        </Box>
+                    ))}
+                </HStack>
+                <HStack style={styles.daysRow}>
+                    {weekDays.map((item) => (
+                        <Box key={`planned-${item.dateKey}`} style={styles.dayCell}>
+                            <Text style={styles.plannedLabel} numberOfLines={1}>
+                                {item.planned ?? REST_DAY}
+                            </Text>
                         </Box>
                     ))}
                 </HStack>

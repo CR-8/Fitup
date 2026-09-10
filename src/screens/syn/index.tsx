@@ -20,18 +20,17 @@ import { Title } from '@/components/typography/title';
 import type { AiMessageSelect } from '@/db/schema';
 import {
     useAiAvailable,
-    useAiChat,
-    useAiConversation,
     useAiMessages,
     useAiPlans,
-    useAiQuota,
     useClearAiConversation,
+    useSynActions,
 } from '@/hooks/use-ai';
 
 import { useUser } from '@/hooks/use-user';
 import { Box } from '@/components/primitives/box';
 
 import { Composer } from './components/composer';
+import { Pending } from './components/pending';
 import { Message } from './components/message';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -181,48 +180,37 @@ const SynScreen = () => {
     const name = user?.displayName?.trim();
 
     const available = useAiAvailable();
-    const { conversation, isLoading } = useAiConversation();
+    // One hook, because Home can start a generation too and the thread has to
+    // show it. See `useSynActions`.
+    const { conversation, isLoading, generate, send, quota, exhausted, isGenerating, isBusy } =
+        useSynActions();
     const messages = useAiMessages(conversation?.id);
     const plans = useAiPlans(messages);
-    const quota = useAiQuota();
-    const { sendMessage, generatePlan, isBusy } = useAiChat(conversation?.id);
     const { mutateAsync: clearConversation } = useClearAiConversation();
 
-    // Keep the newest turn in view as the conversation grows.
+    // Keep the newest turn in view as the conversation grows — including the
+    // pending row, which is the only sign of life during a generation and is
+    // worthless below the fold.
     useEffect(() => {
-        if (messages.length === 0) return;
+        if (messages.length === 0 && !isBusy) return;
         const timeout = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         return () => clearTimeout(timeout);
-    }, [messages.length]);
+    }, [messages.length, isBusy]);
 
-    const quotaExhausted = quota.remaining <= 0;
     const conversationId = conversation?.id;
 
-    const handleSend = useCallback(
-        (value: string) => {
-            // Failures are written into the conversation as an assistant turn, so
-            // there is nothing further to surface here.
-            sendMessage(value).catch(() => undefined);
-        },
-        [sendMessage],
-    );
+    const handleSend = send;
 
     const handleGenerate = useCallback(
         (kind: 'workout' | 'nutrition') => {
-            if (quotaExhausted) {
-                Alert.alert(t('syn.quota.title'), t('syn.quota.message', { limit: quota.limit }));
-                return;
-            }
-
-            generatePlan({
+            generate(
                 kind,
-                intent:
-                    kind === 'workout'
-                        ? t('syn.actions.workoutIntent')
-                        : t('syn.actions.nutritionIntent'),
-            }).catch(() => undefined);
+                kind === 'workout'
+                    ? t('syn.actions.workoutIntent')
+                    : t('syn.actions.nutritionIntent'),
+            );
         },
-        [generatePlan, quota.limit, quotaExhausted, t],
+        [generate, t],
     );
 
     const handleClear = useCallback(() => {
@@ -416,6 +404,9 @@ const SynScreen = () => {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 ListEmptyComponent={listEmpty}
+                ListFooterComponent={
+                    isBusy ? <Pending kind={isGenerating ? 'plan' : 'reply'} /> : null
+                }
                 keyboardDismissMode="interactive"
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
@@ -429,10 +420,10 @@ const SynScreen = () => {
                     <Pressable
                         style={[
                             styles.suggestion,
-                            (isBusy || quotaExhausted) && styles.suggestionDisabled,
+                            (isBusy || exhausted) && styles.suggestionDisabled,
                         ]}
                         onPress={() => handleGenerate('workout')}
-                        disabled={isBusy || quotaExhausted}
+                        disabled={isBusy || exhausted}
                     >
                         <Text fontSize="xs" fontWeight="medium">
                             {t('syn.actions.workout')}
@@ -442,10 +433,10 @@ const SynScreen = () => {
                     <Pressable
                         style={[
                             styles.suggestion,
-                            (isBusy || quotaExhausted) && styles.suggestionDisabled,
+                            (isBusy || exhausted) && styles.suggestionDisabled,
                         ]}
                         onPress={() => handleGenerate('nutrition')}
-                        disabled={isBusy || quotaExhausted}
+                        disabled={isBusy || exhausted}
                     >
                         <Text fontSize="xs" fontWeight="medium">
                             {t('syn.actions.nutrition')}

@@ -1,4 +1,5 @@
 import type { AiPlanKind } from '@/constants/ai';
+import type { FitnessLevel } from '@/helpers/fitness-level';
 
 /**
  * The plan shape the model is asked to return.
@@ -90,6 +91,13 @@ export interface AiProfileContext {
     bodyWeightKg: number | null;
     heightCm: number | null;
     notes: string | null;
+    /**
+     * Computed by `src/helpers/fitness-level.ts` from real training history,
+     * never asked for and never model-estimated — see that file for why. Null
+     * before a first workout is completed, which is a real state and not a
+     * missing one: there is nothing yet to compute a level from.
+     */
+    fitnessLevel: FitnessLevel | null;
 }
 
 export interface AiExerciseCandidate {
@@ -112,13 +120,57 @@ export interface AiHistoryEntry {
     difficulty: 'easy' | 'medium' | 'hard' | null;
 }
 
+/**
+ * Reviewed, human-written guidance for one condition the user declared.
+ *
+ * Comes from `condition_guidance` via `supabase/functions/syn`'s retrieval
+ * call — see supabase/migrations/0005. `avoid` is enforced there as a hard SQL
+ * filter over the candidate list before it ever reaches the prompt; it is
+ * carried here too because the prompt states it again as an absolute rule
+ * (src/ai/prompt.ts), which is the belt to the filter's suspenders — a model
+ * that reasons past the missing candidates should still see the instruction
+ * not to substitute something equivalent.
+ */
+export interface AiConditionGuidance {
+    condition: string;
+    title: string;
+    body: string;
+}
+
 export interface AiRequestContext {
     profile: AiProfileContext;
     candidates: AiExerciseCandidate[];
     history: AiHistoryEntry[];
+    /**
+     * Empty when retrieval is not configured or the call failed — see
+     * `buildCandidates` in src/crud/ai/index.ts. The prompt degrades to
+     * exactly its pre-retrieval behaviour in that case: no CONDITION GUIDANCE
+     * section, and the plain unranked candidate list it already had.
+     */
+    guidance: AiConditionGuidance[];
     locale: string;
     weightUnit: string;
 }
+
+/** One of the two things a plan request can answer with instead of a plan. */
+export interface AiIntakeQuestions {
+    status: 'need_info';
+    questions: string[];
+}
+
+/** The model judged this is not something to program around — see src/ai/prompt.ts. */
+export interface AiIntakeStop {
+    status: 'stop';
+    message: string;
+}
+
+export interface AiPlanReady {
+    status: 'ready';
+    payload: AiPlanPayload;
+    repairs: string[];
+}
+
+export type AiAssessment = AiIntakeQuestions | AiIntakeStop | AiPlanReady;
 
 export type AiFailureCode =
     | 'DISABLED'

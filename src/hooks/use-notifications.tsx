@@ -27,6 +27,7 @@ import Constants from 'expo-constants';
 import { useShallow } from 'zustand/react/shallow';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { getNotificationNavigation } from '@/helpers/notification-navigation';
+import { registerPushToken } from '@/services/push-registration';
 import { useAnalytics } from './use-analytics';
 
 interface HandleNotificationStatus {
@@ -293,6 +294,18 @@ const useNotificationsProvider = () => {
                     isDelayed: false,
                     isDelayedDate: null,
                 });
+
+                // Best-effort and independent of the write above: an account
+                // is what lets a server reach this token at all (see
+                // supabase/migrations/0006), and `registerPushToken` already
+                // no-ops with none signed in. Never throws, so it cannot turn
+                // a successful local registration into a reported failure.
+                if (epsToken) {
+                    runInBackground(
+                        () => registerPushToken(epsToken),
+                        'Failed to register push token with Supabase:',
+                    );
+                }
             } catch (error) {
                 reportError(error, 'Failed to register push notifications:');
 

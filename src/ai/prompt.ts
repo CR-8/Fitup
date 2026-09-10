@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '2';
+export const PROMPT_VERSION = '3';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -60,6 +60,54 @@ const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
   ]
 }`;
 
+/**
+ * The two other shapes a plan request can answer with, instead of a plan.
+ *
+ * Both keep the response JSON-only: the request is always sent with
+ * `response_format: json_object` (see src/api/ai.ts), so "reply in plain
+ * prose instead" is not an option the transport allows — a shape has to carry
+ * whatever the model needs to say, questions or a safety stop included.
+ */
+const ASSESSMENT_SCHEMA_HINT = `Before writing a plan, decide whether you actually know enough to write a safe
+one for this specific person. Two things can stop you, and they are answered
+with a different shape each — never a plan:
+
+1. Not enough is known yet. You are missing, and nothing in USER PROFILE or
+   the conversation above already answers, at least one of:
+   - Any injury, joint issue, or diagnosed medical condition training or diet
+     should account for — or a clear "none".
+   - What equipment is actually available, when generating a workout — or a
+     clear "bodyweight only".
+   - Any dietary restriction or allergen, when generating a nutrition plan.
+
+   Respond with exactly this instead of a plan:
+
+   { "status": "need_info", "questions": [string, ...] }
+
+   At most 3 questions, only for what is actually missing, asked together in
+   one turn — never one question per turn, and never re-asking something
+   USER PROFILE or the conversation already answered. Phrase them as a trainer
+   would, not as a form.
+
+2. Something in what the user described is a reason to stop, not to program
+   around. Chest pain, fainting, numbness, an acute unassessed injury, or
+   anything else that reads as needing a clinician before training at all.
+
+   Respond with exactly this instead of a plan:
+
+   { "status": "stop", "message": string }
+
+   message is plain text for the user: say plainly that this needs a doctor or
+   other qualified professional before training, in the language specified
+   below. Do not diagnose what it might be.
+
+If FORCE_READY appears in the request below, skip this assessment and go
+straight to a plan under conservative, general-population assumptions for
+whatever is still unknown — a cautious plan beats asking a question for the
+third time in the same conversation.
+
+Otherwise, once you know enough, respond with the plan itself:`;
+
 const SYSTEM_RULES = `You are the training assistant inside FitSync, a workout tracking app.
 
 Hard rules:
@@ -90,7 +138,15 @@ const PLAN_SYSTEM = `${SYSTEM_RULES}
 You are generating a structured plan. Respond with JSON only, no prose, no markdown
 fence.
 
+${ASSESSMENT_SCHEMA_HINT}
+
 ${PLAN_SCHEMA_HINT}
+
+Condition guidance. When CONDITION GUIDANCE appears in the request below, it is
+reviewed, human-written material for a condition this user declared — you may
+repeat it to them as-is. Its "avoid" list is absolute: never program a movement
+that matches it, not even a lighter or modified version, regardless of what else
+the plan is trying to achieve.
 
 Rules for the payload:
 - dayOffset is zero-based: 0 is the first day of the plan.
@@ -135,6 +191,18 @@ ignores them is wrong:
    session's clock, so drop movements rather than cutting rest below the ranges
    above. Leave at least one rest day between sessions training the same muscle
    group.
+8. Calibrate to the measured fitness level in USER PROFILE, when present — it is
+   computed from real training history, not self-reported, so weight it over a
+   stated goal that implies something different:
+   - "beginner": simple movement patterns, conservative loads, more full-body
+     sessions than splits, extra coaching detail in "notes".
+   - "novice": a standard split is fine; keep the working-set count moderate
+     while technique is still consolidating.
+   - "intermediate": normal working-set volume, more exercise variety per
+     movement pattern.
+   - "advanced": the step sizes in rule 1 are a floor, not a ceiling — this
+     person can absorb more volume and faster progression within them.
+   No fitness level yet (a first plan, nothing completed): program as beginner.
 
 Fixed identifiers. These are machine values, not text for the reader. Write them in
 lowercase English exactly as listed, whatever language the rest of the plan is in:
@@ -157,6 +225,10 @@ const formatProfile = (context: AiRequestContext): string => {
         lines.push(`- ${label}: ${value}`);
     };
 
+    // Computed from real training history, not asked for — see
+    // src/helpers/fitness-level.ts. Placed first: it is the single figure
+    // that most changes how the rest of this profile should be read.
+    push('Fitness level (measured from training history)', profile.fitnessLevel);
     push('Goal', profile.goal);
     push('Activity level', profile.activityLevel);
     push('Sessions per week', profile.sessionsPerWeek);
@@ -214,6 +286,21 @@ const formatHistory = (context: AiRequestContext): string => {
 };
 
 /**
+ * Reviewed guidance for whatever conditions the user declared and retrieval
+ * found a written row for. Absent (the pre-retrieval, and still the default,
+ * state) whenever `context.guidance` is empty — a condition the user declared
+ * with nothing authored yet, or no retrieval configured at all, is silently
+ * absent from the prompt rather than rendered as an empty section.
+ */
+const formatGuidance = (context: AiRequestContext): string | null => {
+    if (context.guidance.length === 0) return null;
+
+    return context.guidance
+        .map((entry) => `${entry.title} (${entry.condition}):\n${entry.body}`)
+        .join('\n\n');
+};
+
+/**
  * The app ships five locales. The model has to be told which one to answer in —
  * left to itself it replies in the language of the prompt, which is English, so a
  * Hindi or Russian user would get an English plan inside a translated interface.
@@ -241,6 +328,9 @@ const buildContextBlock = (
     { includeCatalogue = true }: { includeCatalogue?: boolean } = {},
 ): string => {
     const sections = [`USER PROFILE\n${formatProfile(context)}`];
+
+    const guidance = formatGuidance(context);
+    if (guidance) sections.push(`CONDITION GUIDANCE\n${guidance}`);
 
     if (includeCatalogue) {
         sections.push(`RECENT TRAINING\n${formatHistory(context)}`);
@@ -282,6 +372,23 @@ export const buildPlanMessages = (
     kind: AiPlanKind,
     intent: string,
     horizonDays: number,
+    /**
+     * Turns already in this conversation, so a question Syn asked and the
+     * user's reply to it are visible when this is called again — without this
+     * the assessment in `ASSESSMENT_SCHEMA_HINT` has nothing to check an
+     * answer against and would ask the same question forever. Empty for the
+     * first attempt in a conversation, same as `buildChatMessages` passes for
+     * its own first turn.
+     */
+    priorHistory: AiChatMessage[] = [],
+    /**
+     * Set once the intake has already asked its share of questions this
+     * conversation — see `INTAKE_QUESTION_LIMIT` in src/hooks/use-ai.tsx.
+     * Tells the model to stop assessing and generate under conservative
+     * assumptions instead, which is what keeps a user who never answers from
+     * being asked a fourth time.
+     */
+    forceReady = false,
 ): AiChatMessage[] => {
     const ask =
         kind === 'nutrition'
@@ -299,15 +406,20 @@ export const buildPlanMessages = (
             : `\n\nKeep it tight so the JSON finishes: at most 4 meals per day and 3 items
 per meal, short food names, no commentary beyond a one-line summary.`;
 
+    const forceReadyLine = forceReady
+        ? '\n\nFORCE_READY: this conversation has already asked what it needs to. Do not ask again — generate the plan now under conservative assumptions for anything still unknown.'
+        : '';
+
     return [
         { role: 'system', content: PLAN_SYSTEM },
         {
             role: 'system',
             content: buildContextBlock(context, { includeCatalogue: kind !== 'nutrition' }),
         },
+        ...priorHistory,
         {
             role: 'user',
-            content: `${ask}\n\nWhat I want: ${intent}\n\nSet "kind" to "${kind}".${budget}`,
+            content: `${ask}\n\nWhat I want: ${intent}\n\nSet "kind" to "${kind}".${budget}${forceReadyLine}`,
         },
     ];
 };

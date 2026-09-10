@@ -2,7 +2,8 @@
 #
 # Deliberately minimal. The project is managed through the dashboard and its SQL
 # editor — `supabase/migrations` is applied there, as `0001` and `0002` were —
-# so this file exists for one reason: to say how the CMS function is served.
+# so this file exists for one reason: to say how the CMS, Syn and push-nudge
+# functions are served.
 #
 # ---------------------------------------------------------------------------
 # DO NOT RUN `supabase config push` AGAINST THIS FILE
@@ -42,4 +43,21 @@ project_id = "fitup"
 # dashboard would be unreachable while looking, from the outside, like a broken
 # login. The function's own `basicAuth` middleware is the access control, and it
 # guards every route including `/`.
+verify_jwt = false
+
+# `functions.syn` has no entry and keeps the default (verify_jwt = true). It is
+# called by the app under the app's own Supabase auth context — a session if
+# signed in, the publishable key otherwise — so the platform's normal JWT check
+# is exactly the access control wanted; there is nothing to override.
+
+[functions.syn-backfill]
+# Same reasoning as `functions.cms`, and the same substitution: this is a human
+# running a one-off maintenance job from a terminal, not the app calling in, so
+# it authenticates with the same ADMIN_USER / ADMIN_PASSWORD basic auth rather
+# than a Supabase JWT.
+verify_jwt = false
+
+[functions.push-nudge]
+# Same reasoning again: triggered by a `pg_cron` schedule or an operator, not
+# the app, so it authenticates the same way `syn-backfill` does.
 verify_jwt = false

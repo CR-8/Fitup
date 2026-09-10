@@ -179,6 +179,16 @@
         "hero": {
             "hours": "{{value}}h",
             "streak": "Day streak"
+        },
+        "fitnessLevel": {
+            "label": "Fitness level",
+            "empty": "Complete a workout to see this",
+            "value": {
+                "beginner": "Beginner",
+                "novice": "Novice",
+                "intermediate": "Intermediate",
+                "advanced": "Advanced"
+            }
         }
     },
     "exercises": {
@@ -690,6 +700,7 @@
         }
     },
     "signIn": {
+        "eyebrow": "FitSync",
         "title": "Welcome to FitSync",
         "subtitle": "Sign in to start training. Your account keeps your workouts if you change phones.",
         "google": "Continue with Google",
@@ -860,11 +871,13 @@
         "buildPlan": "Build my meal plan"
     },
     "forgotPassword": {
+        "eyebrow": "FitSync",
         "title": "Reset your password",
         "subtitle": "Enter your email address and we will send you a link to set a new password.",
         "action": "Send the link"
     },
     "checkEmail": {
+        "eyebrow": "FitSync",
         "title": "Check your email",
         "subtitleSignUp": "We sent you a link to confirm your address. Open it on this phone to finish setting up.",
         "subtitleReset": "We sent you a link to set a new password. Open it on this phone.",
@@ -875,6 +888,7 @@
         "back": "Use a different address"
     },
     "newPassword": {
+        "eyebrow": "FitSync",
         "title": "Set a new password",
         "titleChange": "Change your password",
         "subtitle": "At least {{min}} characters.",

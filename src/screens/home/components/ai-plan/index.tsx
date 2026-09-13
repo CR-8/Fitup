@@ -1,8 +1,9 @@
 import { FC, useCallback, useMemo } from 'react';
+import { ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Sparkles } from 'lucide-react-native';
+import { Sparkles, Trophy } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -56,6 +57,21 @@ const styles = StyleSheet.create((theme, rt) => ({
         ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
     },
+    // The tally of finished plans: a small win in the card's own coral.
+    milestone: {
+        alignSelf: 'flex-start',
+        alignItems: 'center',
+        gap: theme.space(1.5),
+        paddingVertical: theme.space(1.5),
+        paddingHorizontal: theme.space(3),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.primarySoft,
+    },
+    milestoneText: {
+        ...theme.fontSize.xs,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.primary,
+    },
     action: {
         marginTop: theme.space(1),
     },
@@ -71,9 +87,15 @@ const styles = StyleSheet.create((theme, rt) => ({
     quotaExhausted: {
         color: theme.colors.destructive,
     },
+    // One row that scrolls: wrapped, the third chip sat alone on a second line.
     chips: {
         gap: theme.space(2),
-        flexWrap: 'wrap',
+        paddingHorizontal: theme.space(5),
+    },
+    // Out to the card's edges, so chips scroll away under the border rather than
+    // being cut off at the padding.
+    chipsScroll: {
+        marginHorizontal: -theme.space(5),
     },
     chip: {
         borderRadius: theme.radius.full,
@@ -100,7 +122,12 @@ const styles = StyleSheet.create((theme, rt) => ({
  */
 const PLAN_HORIZON_DAYS = 7;
 
-export const AiPlanCard: FC = () => {
+interface AiPlanCardProps {
+    /** Plans already seen through. Above zero, the card reads as "what's next". */
+    finishedPlans?: number;
+}
+
+export const AiPlanCard: FC<AiPlanCardProps> = ({ finishedPlans = 0 }) => {
     const { t } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const available = useAiAvailable();
@@ -133,6 +160,19 @@ export const AiPlanCard: FC = () => {
 
     return (
         <VStack style={styles.container}>
+            {finishedPlans > 0 ? (
+                <HStack style={styles.milestone}>
+                    <Trophy
+                        size={theme.space(3.5)}
+                        strokeWidth={2.25}
+                        color={theme.colors.primary}
+                    />
+                    <Text style={styles.milestoneText}>
+                        {t('home.ai.finished', { ns: 'screens', count: finishedPlans })}
+                    </Text>
+                </HStack>
+            ) : null}
+
             <HStack style={styles.header}>
                 <Box style={styles.badge}>
                     <Sparkles
@@ -141,10 +181,18 @@ export const AiPlanCard: FC = () => {
                         color={theme.colors.primary}
                     />
                 </Box>
-                <Title type="h5">{t('home.ai.title', { ns: 'screens' })}</Title>
+                <Title type="h5">
+                    {t(finishedPlans > 0 ? 'home.ai.nextTitle' : 'home.ai.title', {
+                        ns: 'screens',
+                    })}
+                </Title>
             </HStack>
 
-            <Text style={styles.description}>{t('home.ai.description', { ns: 'screens' })}</Text>
+            <Text style={styles.description}>
+                {t(finishedPlans > 0 ? 'home.ai.nextDescription' : 'home.ai.description', {
+                    ns: 'screens',
+                })}
+            </Text>
 
             <Box style={styles.action}>
                 <Button
@@ -165,7 +213,12 @@ export const AiPlanCard: FC = () => {
                 })}
             </Text>
 
-            <HStack style={styles.chips}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chipsScroll}
+                contentContainerStyle={styles.chips}
+            >
                 {chips.map((chip) => (
                     <Pressable
                         key={chip.key}
@@ -179,7 +232,7 @@ export const AiPlanCard: FC = () => {
                         </Text>
                     </Pressable>
                 ))}
-            </HStack>
+            </ScrollView>
         </VStack>
     );
 };

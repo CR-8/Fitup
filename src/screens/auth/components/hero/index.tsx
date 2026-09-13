@@ -1,4 +1,5 @@
 import { FC, ReactNode } from 'react';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import type { LucideIcon } from 'lucide-react-native';
@@ -23,6 +24,9 @@ import { Title } from '@/components/typography/title';
  * Purely presentational: every screen still owns its own copy, its own icon,
  * and everything below the fold.
  */
+
+// The app icon's own artwork, so the first screen and the home screen match.
+const LOGO = require('../../../../../assets/images/logo.png');
 
 const GLOW_SIZE = 220;
 
@@ -51,6 +55,15 @@ const styles = StyleSheet.create((theme) => ({
         justifyContent: 'center',
         backgroundColor: theme.colors.primarySoft,
     },
+    /**
+     * The logo is a full tile — dark square, coral F, white S — rather than the
+     * mark cut out: a white S on its own would vanish on the light theme.
+     */
+    logo: {
+        height: theme.space(20),
+        width: theme.space(20),
+        borderRadius: theme.radius['3xl'],
+    },
     eyebrow: {
         ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
@@ -70,7 +83,8 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 interface AuthHeroProps {
-    icon: LucideIcon;
+    /** Left out on sign-in, where the badge is the app's own logo instead. */
+    icon?: LucideIcon;
     /** Short, uppercase context tag above the title — e.g. "FitSync". */
     eyebrow: string;
     title: string;
@@ -93,9 +107,17 @@ export const AuthHero: FC<AuthHeroProps> = ({ icon: Icon, eyebrow, title, subtit
                     end={{ x: 1, y: 1 }}
                     style={styles.glow}
                 />
-                <Box style={styles.badge}>
-                    <Icon size={theme.space(7)} strokeWidth={2.2} color={theme.colors.primary} />
-                </Box>
+                {Icon ? (
+                    <Box style={styles.badge}>
+                        <Icon
+                            size={theme.space(7)}
+                            strokeWidth={2.2}
+                            color={theme.colors.primary}
+                        />
+                    </Box>
+                ) : (
+                    <Image source={LOGO} style={styles.logo} accessibilityIgnoresInvertColors />
+                )}
             </Box>
 
             <VStack style={styles.copy}>

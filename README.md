@@ -180,6 +180,9 @@ Review and commit the generated migration and metadata. The app applies bundled 
 | `bun start`           | Start the Expo development server        |
 | `bun run ios`         | Build and run the iOS client locally     |
 | `bun run android`     | Build and run the Android client locally |
+| `bun run android:usb` | Build and run on a USB-connected phone   |
+| `bun run start:usb`   | Start the dev server for a USB phone     |
+| `bun run usb`         | Restore the USB tunnel after re-plugging |
 | `bun run verify`      | Run lint, TypeScript, and tests          |
 | `bun run lint`        | Run Expo ESLint                          |
 | `bun run typecheck`   | Run TypeScript without emitting files    |
@@ -187,6 +190,8 @@ Review and commit the generated migration and metadata. The app applies bundled 
 | `bun run db:generate` | Generate a Drizzle migration             |
 | `bun run locale`      | Update translation resources             |
 | `bun run prebuild`    | Regenerate the local iOS project         |
+
+The `:usb` scripts serve the bundle on `127.0.0.1` through `adb reverse`, so the phone reaches the dev server only over the cable. If the cable comes out, the app stops loading instead of switching to Wi-Fi. Run them where your Android SDK's `adb` lives. If you work in a container, use the container's adb and not a host adb too. Two adb versions on one machine share port 5037, and each kills the other's server.
 
 ## EAS builds and releases
 

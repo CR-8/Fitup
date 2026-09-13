@@ -3,7 +3,8 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Play, Plus } from 'lucide-react-native';
+import { ArrowRight, ChevronRight, Dumbbell, Plus } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -38,8 +39,27 @@ const styles = StyleSheet.create((theme, rt) => ({
     card: (isResume: boolean) => ({
         backgroundColor: isResume ? theme.colors.primary : theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
-        padding: theme.space(6),
+        padding: theme.space(5),
         gap: theme.space(4),
+        overflow: 'hidden' as const,
+        // The design board's coral-edged card: the one thing on Home to start.
+        borderWidth: 1,
+        borderColor: isResume ? theme.colors.primary : 'rgba(255, 69, 58, 0.35)',
+    }),
+    glow: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+    },
+    badge: (isResume: boolean) => ({
+        height: theme.space(12),
+        width: theme.space(12),
+        borderRadius: theme.radius['2xl'],
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        backgroundColor: isResume ? 'rgba(255, 255, 255, 0.2)' : theme.colors.primarySoft,
     }),
     eyebrow: (isResume: boolean) => ({
         ...theme.typography.eyebrow,
@@ -47,7 +67,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         opacity: isResume ? 0.9 : 1,
     }),
     title: (isResume: boolean) => ({
-        ...theme.fontSize['3xl'],
+        ...theme.fontSize['2xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
         color: isResume ? theme.colors.primaryTypography : theme.colors.typography,
     }),
@@ -66,7 +86,8 @@ const styles = StyleSheet.create((theme, rt) => ({
      * which the large-text bar does cover.
      */
     action: (isResume: boolean) => ({
-        alignSelf: 'flex-start' as const,
+        alignSelf: 'stretch' as const,
+        justifyContent: 'center' as const,
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
         gap: theme.space(2),
@@ -83,7 +104,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: isResume ? theme.colors.brand[700] : theme.colors.primaryTypography,
     }),
     header: {
-        gap: theme.space(1),
+        flex: 1,
+        gap: theme.space(0.5),
+    },
+    eyebrowRow: {
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: theme.space(2),
     },
     timer: {
         ...theme.fontSize.sm,
@@ -185,11 +212,33 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                 accessibilityRole="button"
                 accessibilityLabel={actionLabel}
             >
+                {isResume ? null : (
+                    <LinearGradient
+                        colors={theme.gradients.glow as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.glow}
+                    />
+                )}
+
                 <HStack style={styles.row}>
+                    <Box style={styles.badge(isResume)}>
+                        <Dumbbell
+                            size={theme.space(6)}
+                            strokeWidth={2}
+                            color={isResume ? theme.colors.primaryTypography : theme.colors.primary}
+                        />
+                    </Box>
+
                     <VStack style={styles.header}>
-                        <Text style={styles.eyebrow(isResume)}>
-                            {t(`home.upNext.eyebrow.${state.kind}`, { ns: 'screens' })}
-                        </Text>
+                        <HStack style={styles.eyebrowRow}>
+                            <Text style={styles.eyebrow(isResume)}>
+                                {t(`home.upNext.eyebrow.${state.kind}`, { ns: 'screens' })}
+                            </Text>
+                            {isResume && elapsedFormatted ? (
+                                <Text style={styles.timer}>{elapsedFormatted}</Text>
+                            ) : null}
+                        </HStack>
                         <Text style={styles.title(isResume)} numberOfLines={2}>
                             {state.kind === 'create'
                                 ? t('home.upNext.createTitle', { ns: 'screens' })
@@ -197,9 +246,10 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                         </Text>
                     </VStack>
 
-                    {isResume && elapsedFormatted ? (
-                        <Text style={styles.timer}>{elapsedFormatted}</Text>
-                    ) : null}
+                    {/* Resume has its own button below; the chevron would say it twice. */}
+                    {isResume ? null : (
+                        <ChevronRight size={theme.space(5)} color={theme.colors.mutedTypography} />
+                    )}
                 </HStack>
 
                 {subtitle ? (
@@ -213,23 +263,19 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                         <Plus
                             size={theme.space(4.5)}
                             strokeWidth={2.25}
-                            color={
-                                isResume ? theme.colors.brand[700] : theme.colors.primaryTypography
-                            }
+                            color={theme.colors.primaryTypography}
                         />
-                    ) : (
-                        <Play
+                    ) : null}
+                    <Text style={styles.actionText(isResume)}>{actionLabel}</Text>
+                    {state.kind === 'create' ? null : (
+                        <ArrowRight
                             size={theme.space(4.5)}
                             strokeWidth={2.25}
-                            fill={
-                                isResume ? theme.colors.brand[700] : theme.colors.primaryTypography
-                            }
                             color={
                                 isResume ? theme.colors.brand[700] : theme.colors.primaryTypography
                             }
                         />
                     )}
-                    <Text style={styles.actionText(isResume)}>{actionLabel}</Text>
                 </Box>
             </Pressable>
         </Box>

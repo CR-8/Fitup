@@ -1,9 +1,10 @@
-import { FC, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { FC, useCallback, useEffect, useMemo } from 'react';
+import { Alert, ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Flame } from 'lucide-react-native';
+import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -62,12 +63,11 @@ const styles = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.elevated,
         overflow: 'hidden',
     },
-    progressFill: (ratio: number) => ({
-        width: `${Math.round(ratio * 100)}%`,
+    progressFill: {
         height: '100%',
         borderRadius: theme.radius.full,
         backgroundColor: theme.colors.primary,
-    }),
+    },
     metaRow: {
         alignItems: 'center',
         gap: theme.space(4),
@@ -85,9 +85,15 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.mutedTypography,
         marginTop: theme.space(1),
     },
+    // One row that scrolls: wrapped, the third chip sat alone on a second line.
     chips: {
         gap: theme.space(2),
-        flexWrap: 'wrap',
+        paddingHorizontal: theme.space(5),
+    },
+    // Out to the card's edges, so chips scroll away under the border rather than
+    // being cut off at the padding.
+    chipsScroll: {
+        marginHorizontal: -theme.space(5),
     },
     chip: {
         borderRadius: theme.radius.full,
@@ -158,9 +164,18 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
         [generate, t],
     );
 
-    if (!activePlan || !progress) return null;
+    const ratio =
+        progress && progress.sessionsTotal > 0 ? progress.sessionsDone / progress.sessionsTotal : 0;
 
-    const ratio = progress.sessionsTotal === 0 ? 0 : progress.sessionsDone / progress.sessionsTotal;
+    // Fills rather than jumps, so a finished session reads as progress being
+    // made — the one moment this card has news.
+    const fill = useSharedValue(0);
+    useEffect(() => {
+        fill.set(withTiming(ratio, { duration: 600 }));
+    }, [fill, ratio]);
+    const fillStyle = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
+
+    if (!activePlan || !progress) return null;
 
     return (
         <VStack style={styles.container}>
@@ -187,7 +202,7 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
             </VStack>
 
             <Box style={styles.progressTrack}>
-                <Box style={styles.progressFill(ratio)} />
+                <Reanimated.View style={[styles.progressFill, fillStyle]} />
             </Box>
 
             <HStack style={styles.metaRow}>
@@ -216,7 +231,12 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
 
             <Text style={styles.reviseLabel}>{t('home.plan.revise.label', { ns: 'screens' })}</Text>
 
-            <HStack style={styles.chips}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chipsScroll}
+                contentContainerStyle={styles.chips}
+            >
                 {REVISIONS.map((revision) => (
                     <Pressable
                         key={revision.key}
@@ -230,7 +250,7 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
                         </Text>
                     </Pressable>
                 ))}
-            </HStack>
+            </ScrollView>
         </VStack>
     );
 };

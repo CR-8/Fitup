@@ -17,8 +17,10 @@ import { Separator } from '@/components/layout/separator';
 import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
 import { BackButton } from '@/components/buttons/back';
 import { Button } from '@/components/buttons/base';
+import { ButtonLabel } from '@/components/buttons/label';
 import { MEAL_SLOTS, type MealSlot } from '@/db/schema';
 import {
+    nutritionBasis,
     toDateKey,
     useDayProgress,
     useDeleteMealItem,
@@ -35,7 +37,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(4),
     },
     content: {
-        ...theme.screenContentPadding('root'),
+        // No navigation header above this screen; it clears the status bar itself.
+        paddingTop: rt.insets.top + theme.space(2),
+        paddingBottom: theme.screenContentPadding('root').paddingBottom,
         gap: theme.space(4),
     },
     // The screen is presented as a card with the native header switched off, so
@@ -51,28 +55,39 @@ const styles = StyleSheet.create((theme, rt) => ({
         ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
     },
+    /** One pill: previous, the day (tap to come back to today), next. */
     dayRow: {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: theme.space(3),
+        padding: theme.space(1.5),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.foreground,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
     dayButton: {
-        height: theme.space(9),
-        width: theme.space(9),
+        height: theme.space(10),
+        width: theme.space(10),
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.elevated,
     },
     dayLabel: {
+        flex: 1,
         alignItems: 'center',
     },
     muted: {
         color: theme.colors.neutral[400],
     },
+    // A card on the page, like Home's. It used to be the page colour, so
+    // nothing on this screen read as a card.
     panel: {
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.radius['4xl'],
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['3xl'],
+        borderWidth: 1,
+        borderColor: theme.colors.border,
         padding: theme.space(5),
         gap: theme.space(4),
     },
@@ -127,6 +142,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     setup: {
         alignItems: 'center',
         gap: theme.space(3),
+        paddingVertical: theme.space(8),
+    },
+    setupAction: {
+        alignSelf: 'stretch',
+        marginTop: theme.space(2),
     },
     setupIcon: {
         height: theme.space(12),
@@ -210,26 +230,8 @@ const DietScreen: FC = () => {
         [progress.consumed, t],
     );
 
-    /**
-     * Progress is measured against the day's own plan.
-     *
-     * The profile carries daily macro targets and they are preferred when set,
-     * but nothing in the app writes them today — so the honest denominator is
-     * what the chart laid out for the day, and the caption says so rather than
-     * presenting a plan as a health target.
-     */
-    const basis = useMemo(() => {
-        const hasTargets =
-            typeof progress.targets.calories === 'number' && progress.targets.calories > 0;
-
-        return {
-            hasTargets,
-            calories: hasTargets ? progress.targets.calories : progress.planned.calories,
-            proteinG: hasTargets ? progress.targets.proteinG : progress.planned.proteinG,
-            carbsG: hasTargets ? progress.targets.carbsG : progress.planned.carbsG,
-            fatG: hasTargets ? progress.targets.fatG : progress.planned.fatG,
-        };
-    }, [progress.planned, progress.targets]);
+    // Targets when set, otherwise the day's own plan — see `nutritionBasis`.
+    const basis = useMemo(() => nutritionBasis(progress), [progress]);
 
     const caloriesRemaining = Math.max(
         0,
@@ -282,17 +284,18 @@ const DietScreen: FC = () => {
 
     const planCta = aiAvailable ? (
         <Button
-            title={t('diet.buildPlan', { ns: 'screens' })}
+            title={
+                <ButtonLabel
+                    icon={Sparkles}
+                    label={t('diet.buildPlan', { ns: 'screens' })}
+                    color={theme.colors.primaryTypography}
+                />
+            }
             type="primary"
             onPress={handleBuildPlan}
             disabled={isBusy}
             loading={isBusy}
-            spinnerColor={theme.colors.white}
-            prefix={
-                isBusy ? undefined : (
-                    <Sparkles size={theme.space(4.5)} color={theme.colors.white} strokeWidth={2} />
-                )
-            }
+            spinnerColor={theme.colors.primaryTypography}
             accessibilityLabel={t('diet.buildPlan', { ns: 'screens' })}
         />
     ) : null;
@@ -317,7 +320,13 @@ const DietScreen: FC = () => {
                     <ChevronLeft size={theme.space(4)} color={theme.colors.typography} />
                 </Pressable>
 
-                <VStack style={styles.dayLabel}>
+                <Pressable
+                    style={styles.dayLabel}
+                    onPress={() => setDayOffset(0)}
+                    disabled={dayOffset === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('diet.today', { ns: 'screens' })}
+                >
                     <Text fontSize="sm" fontWeight="semibold">
                         {dayOffset === 0
                             ? t('diet.today', { ns: 'screens' })
@@ -328,7 +337,7 @@ const DietScreen: FC = () => {
                             {dayjs(date).format('YYYY')}
                         </Text>
                     ) : null}
-                </VStack>
+                </Pressable>
 
                 <Pressable
                     style={styles.dayButton}
@@ -344,7 +353,9 @@ const DietScreen: FC = () => {
                     {hasEaten ? (
                         <VStack style={styles.header}>
                             <Text style={styles.sectionLabel}>
-                                {t('diet.eatenToday', { ns: 'screens' })}
+                                {dayOffset === 0
+                                    ? t('diet.eatenToday', { ns: 'screens' })
+                                    : t('diet.eaten', { ns: 'screens' })}
                             </Text>
                             <StatBlocks blocks={consumedBlocks} inset={false} />
                         </VStack>
@@ -519,7 +530,7 @@ const DietScreen: FC = () => {
                             ? t('diet.empty.message', { ns: 'screens' })
                             : t('diet.empty.messageOffline', { ns: 'screens' })}
                     </Text>
-                    {planCta}
+                    <Box style={styles.setupAction}>{planCta}</Box>
                 </VStack>
             )}
         </ScrollView>

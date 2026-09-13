@@ -26,17 +26,23 @@ type NumericStepperFieldProps = {
     min?: number;
     max?: number;
     decimalPlaces?: number;
+    /**
+     * Smaller buttons and value, for two side by side — the workout timer's
+     * weight and reps. The default is sized for a field that has the row to
+     * itself, and at half width its 34px value wraps a character per line.
+     */
+    compact?: boolean;
 };
 
 const styles = StyleSheet.create((theme, rt) => ({
-    container: {
+    container: (compact: boolean) => ({
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    actionButton: (disabled: boolean) => ({
-        width: theme.space(12),
-        height: theme.space(12),
+        gap: compact ? theme.space(2) : theme.space(3),
+    }),
+    actionButton: (disabled: boolean, compact: boolean) => ({
+        width: compact ? theme.space(10) : theme.space(12),
+        height: compact ? theme.space(10) : theme.space(12),
         borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
@@ -49,12 +55,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    valueText: {
-        ...theme.fontSize['4xl'],
+    valueText: (compact: boolean) => ({
+        ...(compact ? theme.fontSize['2xl'] : theme.fontSize['4xl']),
         color: theme.colors.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        textAlign: 'center',
-    },
+        textAlign: 'center' as const,
+    }),
     background: {
         backgroundColor:
             rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
@@ -179,6 +185,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
     min = 0,
     max,
     decimalPlaces = 1,
+    compact = false,
 }) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation(['common']);
@@ -298,27 +305,27 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
 
     return (
         <>
-            <HStack style={styles.container}>
+            <HStack style={styles.container(compact)}>
                 <Pressable
                     onPress={handleStepDown}
                     disabled={!canDecrement}
-                    style={styles.actionButton(!canDecrement)}
+                    style={styles.actionButton(!canDecrement, compact)}
                 >
-                    <Minus size={26} color={theme.colors.typography} />
+                    <Minus size={compact ? 20 : 26} color={theme.colors.typography} />
                 </Pressable>
 
                 <Pressable onPress={handleOpenModal} style={styles.valueButton}>
-                    <Text style={styles.valueText}>
-                        {`${formatDisplayValue(safeValue, decimalPlaces)} ${unit}`}
+                    <Text style={styles.valueText(compact)} numberOfLines={1} adjustsFontSizeToFit>
+                        {`${formatDisplayValue(safeValue, decimalPlaces)} ${unit}`.trim()}
                     </Text>
                 </Pressable>
 
                 <Pressable
                     onPress={handleStepUp}
                     disabled={!canIncrement}
-                    style={styles.actionButton(!canIncrement)}
+                    style={styles.actionButton(!canIncrement, compact)}
                 >
-                    <Plus size={26} color={theme.colors.typography} />
+                    <Plus size={compact ? 20 : 26} color={theme.colors.typography} />
                 </Pressable>
             </HStack>
 

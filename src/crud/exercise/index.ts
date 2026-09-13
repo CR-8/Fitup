@@ -3,6 +3,7 @@ import { eq, and, desc, inArray, or, exists, like, sql, type SQL } from 'drizzle
 import { db } from '@/db';
 import {
     exercise,
+    exerciseFavorite,
     exerciseSet,
     workoutExercise,
     workoutGroup,
@@ -554,6 +555,73 @@ export const getExerciseSetsByWorkoutExerciseIds = async (
         reportError(error, 'Failed to load exercise sets by workout exercise ids:');
         return [];
     }
+};
+
+/** Ids of every exercise this user has hearted. */
+export const getFavoriteExerciseIds = async (userId: string): Promise<string[]> => {
+    const rows = await db
+        .select({ exerciseId: exerciseFavorite.exerciseId })
+        .from(exerciseFavorite)
+        .where(eq(exerciseFavorite.userId, userId));
+
+    return rows.map((row) => row.exerciseId);
+};
+
+/**
+ * Hearts or un-hearts an exercise, and returns whether it is now a favourite.
+ *
+ * The id is derived rather than generated — see `exerciseFavorite` — so the
+ * lookup is by primary key and a heart made on another phone is the same row.
+ */
+export const toggleFavoriteExercise = async (
+    userId: string,
+    exerciseId: string,
+): Promise<boolean> => {
+    const id = `${userId}_${exerciseId}`;
+    const [existing] = await db
+        .select()
+        .from(exerciseFavorite)
+        .where(eq(exerciseFavorite.id, id))
+        .limit(1);
+
+    if (existing) {
+        await withSyncDelete('exercise_favorite', existing, async () => {
+            await db.delete(exerciseFavorite).where(eq(exerciseFavorite.id, id));
+        });
+
+        return false;
+    }
+
+    await withSync('exercise_favorite', 'create', async () => {
+        await db.insert(exerciseFavorite).values({ id, userId, exerciseId });
+        return db.select().from(exerciseFavorite).where(eq(exerciseFavorite.id, id)).limit(1);
+    });
+
+    return true;
+};
+
+/**
+ * The exercises this user trained most recently, newest first.
+ *
+ * Ids only: the Exercises screen already holds every exercise row for its list,
+ * so it maps these onto rows it has rather than reading them twice.
+ */
+export const getRecentlyUsedExerciseIds = async (
+    userId: string,
+    limit: number = 10,
+): Promise<string[]> => {
+    const lastUsed = sql<number>`max(${workout.completedAt})`;
+
+    const rows = await db
+        .select({ exerciseId: workoutExercise.exerciseId })
+        .from(workoutExercise)
+        .innerJoin(workout, eq(workout.id, workoutExercise.workoutId))
+        .where(and(eq(workout.userId, userId), eq(workout.status, 'completed')))
+        .groupBy(workoutExercise.exerciseId)
+        .orderBy(desc(lastUsed))
+        .limit(limit);
+
+    return rows.map((row) => row.exerciseId);
 };
 
 export const getLastExerciseSetsByExerciseId = async (

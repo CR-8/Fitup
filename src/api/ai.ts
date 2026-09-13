@@ -49,6 +49,13 @@ const SUPPRESS_SENTRY_CODES = new Set<AiFailureCode>([
     'DISABLED',
 ]);
 
+/**
+ * Transient and user-caused failures already reach the user as a turn in the
+ * thread; reporting them as faults only buries the real ones.
+ */
+export const isReportableAiError = (error: unknown): boolean =>
+    !(error instanceof AiError && SUPPRESS_SENTRY_CODES.has(error.code));
+
 const aiClient = createAxios({ timeout: AI_CONFIG.timeoutMs });
 
 const buildHeaders = (): Record<string, string> => {
@@ -112,6 +119,9 @@ export const requestCompletion = async ({
 
     const body: Record<string, unknown> = {
         model: AI_CONFIG.model,
+        // Fallbacks, for gateways that take them. Left out for a single model, so
+        // a provider that rejects unknown fields never sees it.
+        ...(AI_CONFIG.models.length > 1 ? { models: AI_CONFIG.models } : {}),
         messages,
         ...buildSamplingParameters(),
     };
@@ -157,10 +167,13 @@ export const requestCompletion = async ({
     } catch (error) {
         const aiError = classifyError(error);
 
-        if (!SUPPRESS_SENTRY_CODES.has(aiError.code)) {
+        // A truncation is retried shorter by the plan generator, and reported there
+        // if the retry fails too — reporting it here showed an error for a plan
+        // that then arrived.
+        if (isReportableAiError(aiError) && aiError.code !== 'TRUNCATED') {
             reportError(aiError, 'ai.requestCompletion failed', {
                 tags: { feature: 'ai', code: aiError.code },
-                extras: { model: AI_CONFIG.model, transport: AI_CONFIG.transport },
+                extras: { models: AI_CONFIG.models, transport: AI_CONFIG.transport },
             });
         }
 

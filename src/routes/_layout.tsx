@@ -124,22 +124,6 @@ const App: FC = () => {
                             headerShown: false,
                         }}
                     >
-                        {/* Reachable without a session: sign-in itself, the
-                                redirect target — which by definition lands before
-                                one exists — and the three screens either side of an
-                                email link.
-
-                                `auth/new-password` is here rather than behind the
-                                guard on purpose. A reset link does open a session,
-                                so the guard would admit it, but the screen has to
-                                survive its own sign-out escape hatch, and it is
-                                pre-session in every sense that matters. */}
-                        <Stack.Screen name="sign-in" />
-                        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
-                        <Stack.Screen name="auth/forgot-password" />
-                        <Stack.Screen name="auth/check-email" />
-                        <Stack.Screen name="auth/new-password" />
-
                         {/* Removing these from the navigator — rather than
                                 redirecting away from them — is what makes signing out a
                                 real logout: their history entries go with them, so back
@@ -231,6 +215,28 @@ const App: FC = () => {
                                 }}
                             />
                         </Stack.Protected>
+
+                        {/* After the protected group, not before: when a navigator has to
+                                pick a screen on its own — a development reload did exactly
+                                that — it takes the first one declared. First was sign-in, so
+                                a signed-in user was put in front of the sign-in form with
+                                nothing to move them on. Signed out, the protected screens
+                                are gone and sign-in is first again. */}
+                        {/* Reachable without a session: sign-in itself, the
+                                redirect target — which by definition lands before
+                                one exists — and the three screens either side of an
+                                email link.
+
+                                `auth/new-password` is here rather than behind the
+                                guard on purpose. A reset link does open a session,
+                                so the guard would admit it, but the screen has to
+                                survive its own sign-out escape hatch, and it is
+                                pre-session in every sense that matters. */}
+                        <Stack.Screen name="sign-in" />
+                        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+                        <Stack.Screen name="auth/forgot-password" />
+                        <Stack.Screen name="auth/check-email" />
+                        <Stack.Screen name="auth/new-password" />
                     </Stack>
                     <Actions />
                     <RestInput />

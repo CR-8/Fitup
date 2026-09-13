@@ -6,11 +6,16 @@ import { router } from 'expo-router';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
-import { useExercisesList } from '@/hooks/use-exercises';
+import {
+    useExercisesList,
+    useFavoriteExerciseIds,
+    useRecentlyUsedExerciseIds,
+} from '@/hooks/use-exercises';
 import { countActiveFilters, useFilterStore } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
 import { Search } from './components/search';
+import { Shelf } from './components/shelf';
 import { ExercisesListContainer } from './components/list/container';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -61,6 +66,40 @@ const Exercises: FC = () => {
         router.navigate(`/exercises/${exerciseId}`);
     }, []);
 
+    const favoriteIds = useFavoriteExerciseIds();
+    const recentIds = useRecentlyUsedExerciseIds();
+
+    // Mapped onto rows already loaded for the list, so neither shelf reads the
+    // exercise table a second time. An id with no row — an exercise since
+    // deleted, or filtered out — simply drops out.
+    const shelves = useMemo(() => {
+        if (deferredQuery.trim() || !rawExercises) return null;
+
+        const byId = new Map(rawExercises.map((exercise) => [exercise.id, exercise]));
+        const pick = (ids: Iterable<string>) =>
+            [...ids].map((id) => byId.get(id)).filter((row) => row !== undefined);
+
+        const favorites = pick(favoriteIds);
+        const recent = pick(recentIds);
+
+        if (favorites.length === 0 && recent.length === 0) return null;
+
+        return (
+            <>
+                <Shelf
+                    title={t('exercises.favorites', { ns: 'screens' })}
+                    exercises={favorites}
+                    onPress={handleExercisePress}
+                />
+                <Shelf
+                    title={t('exercises.recentlyUsed', { ns: 'screens' })}
+                    exercises={recent}
+                    onPress={handleExercisePress}
+                />
+            </>
+        );
+    }, [deferredQuery, favoriteIds, handleExercisePress, rawExercises, recentIds, t]);
+
     return (
         <Box style={styles.container}>
             <Box style={styles.header}>
@@ -82,6 +121,7 @@ const Exercises: FC = () => {
                 error={error}
                 onExercisePress={handleExercisePress}
                 contentContainerStyle={styles.contentContainer}
+                header={shelves}
             />
         </Box>
     );

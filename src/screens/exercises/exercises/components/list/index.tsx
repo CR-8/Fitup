@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactElement } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { FlashList, ViewToken } from '@shopify/flash-list';
@@ -30,6 +30,8 @@ interface ExerciseListProps<T = React.ReactElement> {
     isLoading?: boolean;
     error?: unknown;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    /** Scrolls with the list, above the first row. */
+    header?: ReactElement | null;
 }
 
 export const ExerciseList: FC<ExerciseListProps> = ({
@@ -42,6 +44,7 @@ export const ExerciseList: FC<ExerciseListProps> = ({
     isLoading,
     error,
     contentContainerStyle,
+    header,
 }) => {
     if (isLoading) return <LoadingState />;
     if (error) return <EmptyState />;
@@ -58,6 +61,7 @@ export const ExerciseList: FC<ExerciseListProps> = ({
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{ itemVisiblePercentThreshold: 10 }}
                 contentContainerStyle={contentContainerStyle}
+                ListHeaderComponent={header}
                 extraData={extraData}
                 keyExtractor={(item) => {
                     if (item.type === 'exercise') {

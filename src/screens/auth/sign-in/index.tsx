@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Dumbbell } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -193,7 +192,6 @@ const SignInScreen = () => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <AuthHero
-                icon={Dumbbell}
                 eyebrow={t('signIn.eyebrow', { ns: 'screens' })}
                 title={t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
                 subtitle={t('signIn.subtitle', { ns: 'screens' })}

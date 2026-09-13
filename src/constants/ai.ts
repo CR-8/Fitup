@@ -74,6 +74,40 @@ const readHeaders = (value: string | undefined): Record<string, string> => {
     }
 };
 
+/**
+ * One model, or several separated by commas. The first is asked; the whole list
+ * goes to the gateway as `models`, which OpenRouter works through in order when a
+ * model errors, is rate limited or is down.
+ *
+ * A single free model is not dependable on its own: `openrouter/free` routes each
+ * call to whichever small model is free that minute, and some take over a minute
+ * for a week's plan — long enough for the request to die on the way back.
+ */
+const readList = (value: string | undefined): string[] | null => {
+    const entries = (readString(value) ?? '')
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+
+    return entries.length > 0 ? entries : null;
+};
+
+/**
+ * How much a reasoning model may think before answering: `off`, or an effort of
+ * `low`, `medium` or `high`. Hidden reasoning counts against the token ceiling,
+ * and on OpenRouter's free models it spent over half of an 8000-token budget
+ * before a plan's JSON began — so plans run with it `off`. Unset leaves the field
+ * out entirely, for gateways that do not know it.
+ */
+const readReasoning = (value: string | undefined) => {
+    const raw = readString(value)?.toLowerCase();
+
+    if (raw === 'off') return { enabled: false };
+    if (raw === 'low' || raw === 'medium' || raw === 'high') return { effort: raw };
+
+    return null;
+};
+
 const baseUrl = readString(process.env.EXPO_PUBLIC_AI_BASE_URL);
 const apiKey = readString(process.env.EXPO_PUBLIC_AI_API_KEY);
 
@@ -89,6 +123,8 @@ const transport: AiTransportMode =
         ? 'direct'
         : 'proxy';
 
+const models = readList(process.env.EXPO_PUBLIC_AI_MODEL) ?? [DEFAULT_MODEL];
+
 export const AI_CONFIG = {
     enabled: readBoolean(process.env.EXPO_PUBLIC_AI_ENABLED, baseUrl !== null),
     transport,
@@ -100,7 +136,8 @@ export const AI_CONFIG = {
     headers: readHeaders(process.env.EXPO_PUBLIC_AI_HEADERS),
     timeoutMs: readNumber(process.env.EXPO_PUBLIC_AI_TIMEOUT_MS, DEFAULT_TIMEOUT_MS)!,
 
-    model: readString(process.env.EXPO_PUBLIC_AI_MODEL) ?? DEFAULT_MODEL,
+    model: models[0],
+    models,
 
     // Sampling. Null means "omit from the request" so the provider's own default
     // applies — important because not every gateway accepts every parameter.
@@ -110,6 +147,7 @@ export const AI_CONFIG = {
     frequencyPenalty: readNumber(process.env.EXPO_PUBLIC_AI_FREQUENCY_PENALTY, null),
     presencePenalty: readNumber(process.env.EXPO_PUBLIC_AI_PRESENCE_PENALTY, null),
     seed: readNumber(process.env.EXPO_PUBLIC_AI_SEED, null),
+    reasoning: readReasoning(process.env.EXPO_PUBLIC_AI_REASONING),
 
     monthlyQuota: readNumber(process.env.EXPO_PUBLIC_AI_MONTHLY_QUOTA, DEFAULT_MONTHLY_QUOTA)!,
 } as const;
@@ -124,7 +162,7 @@ const clamp = (value: number, min: number, max: number): number =>
     Math.min(Math.max(value, min), max);
 
 export const buildSamplingParameters = () => {
-    const params: Record<string, number> = {};
+    const params: Record<string, number | object> = {};
 
     if (AI_CONFIG.temperature !== null) {
         params.temperature = clamp(AI_CONFIG.temperature, 0, 2);
@@ -143,6 +181,9 @@ export const buildSamplingParameters = () => {
     }
     if (AI_CONFIG.seed !== null) {
         params.seed = Math.round(AI_CONFIG.seed);
+    }
+    if (AI_CONFIG.reasoning !== null) {
+        params.reasoning = AI_CONFIG.reasoning;
     }
 
     return params;

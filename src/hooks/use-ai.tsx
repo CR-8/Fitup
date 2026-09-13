@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { requestCompletion } from '@/api/ai';
+import { isReportableAiError, requestCompletion } from '@/api/ai';
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
 import { extractJsonObject, parseAssessment } from '@/ai/validate';
@@ -17,6 +17,7 @@ import {
     createPlan,
     deleteConversation,
     getActivePlan,
+    getAppliedPlans,
     getLatestConversation,
     getMessages,
     getPlansByIds,
@@ -33,6 +34,14 @@ import { useAnalytics } from './use-analytics';
 
 /** Horizon retried when a plan at the requested length runs out of output budget. */
 const FALLBACK_HORIZON_DAYS = 3;
+
+/**
+ * How far ahead a plan with food in it looks. Meals are far wordier than
+ * training: a week of them is about 5,500 tokens of JSON, which OpenRouter's free
+ * models took up to five minutes to write. Three days comes back in a fraction of
+ * that. Training plans keep their week.
+ */
+const FOOD_HORIZON_DAYS = 3;
 
 /**
  * How many `need_info` turns this conversation gets before `generatePlan`
@@ -186,6 +195,22 @@ export const useActivePlan = () => {
     return { activePlan: (data ?? null) as AiPlanSelect | null, isLoading };
 };
 
+/**
+ * Every applied plan, newest first. Keyed under the active plan's key, so
+ * whatever refreshes that refreshes this.
+ */
+export const useAppliedPlans = () => {
+    const { user } = useUser();
+
+    const { data, isLoading } = useQuery({
+        queryKey: [ACTIVE_PLAN_KEY, user?.id, 'all'],
+        queryFn: () => getAppliedPlans(user!.id),
+        enabled: !!user?.id,
+    });
+
+    return { plans: (data ?? []) as AiPlanSelect[], isLoading };
+};
+
 const resolveErrorKey = (error: unknown): string => {
     if (error instanceof AiError) {
         switch (error.code) {
@@ -266,7 +291,9 @@ export const useAiChat = (conversationId: string | undefined) => {
             }
         },
         onSettled: invalidate,
-        onError: (error) => reportError(error, 'AI chat turn failed'),
+        onError: (error) => {
+            if (isReportableAiError(error)) reportError(error, 'AI chat turn failed');
+        },
     });
 
     const { mutateAsync: generatePlan } = useMutation({
@@ -274,13 +301,16 @@ export const useAiChat = (conversationId: string | undefined) => {
         mutationFn: async ({
             kind,
             intent,
-            horizonDays = 7,
+            horizonDays: requestedDays = 7,
         }: {
             kind: AiPlanKind;
             intent: string;
             horizonDays?: number;
         }) => {
             if (!conversationId || !user?.id) return;
+
+            const horizonDays =
+                kind === 'workout' ? requestedDays : Math.min(requestedDays, FOOD_HORIZON_DAYS);
 
             await createMessage({ conversationId, role: 'user', content: intent });
             invalidate();
@@ -409,7 +439,9 @@ export const useAiChat = (conversationId: string | undefined) => {
             }
         },
         onSettled: invalidate,
-        onError: (error) => reportError(error, 'AI plan generation failed'),
+        onError: (error) => {
+            if (isReportableAiError(error)) reportError(error, 'AI plan generation failed');
+        },
     });
 
     // Counted across every mounted caller, so Home and the thread agree.

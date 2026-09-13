@@ -495,7 +495,13 @@ const StrengthStats = () => {
         [stats],
     );
 
+    // Muscular load leads: it is the one radar the design board shows.
     const cards: StrengthMetricCard[] = [
+        {
+            key: 'muscularLoad',
+            title: t('results.strength.metrics.muscularLoad', { ns: 'screens' }),
+            values: stats.muscularLoad,
+        },
         {
             key: 'totalVolume',
             title: t('results.strength.metrics.totalVolume', { ns: 'screens' }),
@@ -505,11 +511,6 @@ const StrengthStats = () => {
             key: 'workoutFrequency',
             title: t('results.strength.metrics.workoutFrequency', { ns: 'screens' }),
             values: stats.workoutFrequency,
-        },
-        {
-            key: 'muscularLoad',
-            title: t('results.strength.metrics.muscularLoad', { ns: 'screens' }),
-            values: stats.muscularLoad,
         },
     ];
 

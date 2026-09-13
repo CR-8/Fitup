@@ -22,6 +22,8 @@ export interface PlanProgress {
     perWeek: number;
     /** True once the last week has passed, so the card can offer a new plan. */
     finished: boolean;
+    /** Done with: every session completed, or its time is up. */
+    complete: boolean;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -58,7 +60,8 @@ export const derivePlanProgress = (
 
     // `horizonDays` is what the model was asked for, so it is the plan's length
     // even when the workouts inside it do not reach the final day.
-    const weeks = Math.max(1, Math.ceil((payload.horizonDays ?? 7) / 7));
+    const horizonDays = payload.horizonDays ?? 7;
+    const weeks = Math.max(1, Math.ceil(horizonDays / 7));
     const sessionsTotal = payload.workouts?.length ?? 0;
 
     // Applied, not created: the plan starts when the user accepted it, which is
@@ -70,6 +73,10 @@ export const derivePlanProgress = (
     // its horizon stays on its last week rather than counting upward forever.
     const week = Math.min(weeks, Math.floor(elapsedDays / 7) + 1);
 
+    // The plan's own length, not rounded up to a whole week: a 3-day food plan is
+    // over after three days, and Home should offer the next one then.
+    const finished = elapsedDays >= horizonDays;
+
     return {
         title: payload.title,
         week,
@@ -77,6 +84,35 @@ export const derivePlanProgress = (
         sessionsDone: Math.min(sessionsDone, sessionsTotal),
         sessionsTotal,
         perWeek: sessionsTotal === 0 ? 0 : Math.round(sessionsTotal / weeks),
-        finished: elapsedDays >= weeks * 7,
+        finished,
+        complete: finished || (sessionsTotal > 0 && sessionsDone >= sessionsTotal),
     };
+};
+
+/**
+ * The plan to show as running, and how many are behind the user.
+ *
+ * `plans` is every applied plan, newest first. The newest is current until it is
+ * complete; then Home offers a new one instead. An older plan is judged at the
+ * moment the next one replaced it, so a plan abandoned in its first week does not
+ * become "finished" just by being left alone until its horizon passes.
+ */
+export const summarisePlans = (
+    plans: AiPlanSelect[],
+    workouts: WorkoutSelect[],
+    now: number = Date.now(),
+): { current: AiPlanSelect | null; finished: number } => {
+    let finished = 0;
+    let current: AiPlanSelect | null = null;
+
+    plans.forEach((plan, index) => {
+        const replacedAt = index === 0 ? null : plans[index - 1].appliedAt;
+        const at = replacedAt ? new Date(replacedAt).getTime() : now;
+        const { complete } = derivePlanProgress(plan, workouts, at);
+
+        if (complete) finished += 1;
+        else if (index === 0) current = plan;
+    });
+
+    return { current, finished };
 };

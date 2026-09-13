@@ -33,6 +33,8 @@ import { connectSupabase, type SupabaseClient } from './lib/supabase';
  * order is for whoever reads the output.
  */
 const USER_TABLES = [
+    'exercise_favorites',
+    'push_tokens',
     'meal_items',
     'meals',
     'exercise_sets',
@@ -51,10 +53,15 @@ const USER_TABLES = [
  * everything above, and emptying it would leave the app's exercise library
  * blank until `bun run seed` ran again.
  */
-const KEEP_TABLES = ['catalogue_exercises', 'catalogue_instructions'] as const;
+const KEEP_TABLES = [
+    'catalogue_exercises',
+    'catalogue_instructions',
+    'exercise_embeddings',
+    'condition_guidance',
+] as const;
 
 /**
- * True for every row, on a column declared `not null` in all ten tables.
+ * True for every row, on a column declared `not null` in every user table.
  * PostgREST rejects a delete with no predicate, and this is the honest way to
  * write "all of them" — an id list would miss the orphan that prompted this.
  */
@@ -132,11 +139,22 @@ const mask = (email: string | undefined): string => {
     return `${local.slice(0, 3)}***@${domain}`;
 };
 
+/**
+ * Row counts for the tables this project actually has.
+ *
+ * A migration can be in the repo and not applied — `push_tokens` (0006) is
+ * exactly that on the live project — so a table PostgREST does not know
+ * (PGRST205) is left out rather than failing the run.
+ */
 const survey = async (client: SupabaseClient) => {
     const counts: Record<string, number> = {};
 
     for (const table of [...USER_TABLES, ...KEEP_TABLES]) {
-        counts[table] = await client.count(table);
+        try {
+            counts[table] = await client.count(table);
+        } catch (error) {
+            if (!String(error).includes('PGRST205')) throw error;
+        }
     }
 
     return counts;
@@ -148,13 +166,17 @@ const survey = async (client: SupabaseClient) => {
  * Once these are gone this directory is the only rollback there is, and the
  * whole of it is under a megabyte.
  */
-const dump = async (client: SupabaseClient, users: AuthUser[]): Promise<string> => {
+const dump = async (
+    client: SupabaseClient,
+    users: AuthUser[],
+    tables: readonly string[],
+): Promise<string> => {
     const dir = `${DUMP_ROOT}/${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
     await mkdir(dir, { recursive: true });
     await writeFile(`${dir}/users.json`, JSON.stringify(users, null, 2));
 
-    for (const table of USER_TABLES) {
+    for (const table of tables) {
         const rows = await client.select<Record<string, unknown>>(`${table}?select=*`);
 
         await writeFile(`${dir}/${table}.json`, JSON.stringify(rows, null, 2));
@@ -172,6 +194,8 @@ const main = async () => {
 
     const users = await admin.list();
     const before = await survey(client);
+    const userTables = USER_TABLES.filter((table) => table in before);
+    const missing = [...USER_TABLES, ...KEEP_TABLES].filter((table) => !(table in before));
 
     console.log(`\n${users.length} account${users.length === 1 ? '' : 's'}:`);
     for (const user of users) {
@@ -180,19 +204,21 @@ const main = async () => {
         );
     }
 
-    const owned = USER_TABLES.reduce((total, table) => total + before[table], 0);
+    const owned = userTables.reduce((total, table) => total + before[table], 0);
 
     console.log(`\n${owned} rows of account data:`);
-    for (const table of USER_TABLES) {
+    for (const table of userTables) {
         console.log(`  ${table.padEnd(20)} ${before[table]}`);
     }
 
     console.log('\nkept:');
     for (const table of KEEP_TABLES) {
-        console.log(`  ${table.padEnd(20)} ${before[table]}`);
+        if (table in before) console.log(`  ${table.padEnd(20)} ${before[table]}`);
     }
 
-    const dir = await dump(client, users);
+    if (missing.length > 0) console.log(`\nnot on this project: ${missing.join(', ')}`);
+
+    const dir = await dump(client, users, userTables);
     console.log(`\ndumped to ${dir}`);
 
     if (!confirmed) {
@@ -201,7 +227,7 @@ const main = async () => {
     }
 
     console.log('\ndeleting account data...');
-    for (const table of USER_TABLES) {
+    for (const table of userTables) {
         const removed = await client.deleteAll(table, ALL_ROWS);
         console.log(`  ${table.padEnd(20)} -${removed}`);
     }
@@ -220,7 +246,7 @@ const main = async () => {
     const remaining = await admin.list();
     const problems: string[] = [];
 
-    for (const table of USER_TABLES) {
+    for (const table of userTables) {
         if (after[table] !== 0) problems.push(`${table} still holds ${after[table]} rows`);
     }
 
@@ -246,7 +272,9 @@ const main = async () => {
 
     console.log(
         `\nDone. 0 accounts, 0 rows of account data, ` +
-            `${KEEP_TABLES.map((t) => `${t} ${after[t]}`).join(', ')} untouched.`,
+            `${KEEP_TABLES.filter((t) => t in after)
+                .map((t) => `${t} ${after[t]}`)
+                .join(', ')} untouched.`,
     );
     console.log(`Rollback, if it is ever needed, is ${dir}.`);
 };

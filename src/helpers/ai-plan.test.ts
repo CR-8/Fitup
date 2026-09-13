@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 
-import { derivePlanProgress } from './ai-plan';
+import { derivePlanProgress, summarisePlans } from './ai-plan';
 
 /**
  * Guards the arithmetic behind "Week 2 of 8 — 7 of 32 sessions done".
@@ -105,5 +105,80 @@ describe('how many sessions are done', () => {
     test('sessions a week comes out of the plan, not a guess', () => {
         // 32 sessions over 8 weeks is 4 a week, which is the line the card shows.
         expect(derivePlanProgress(planRow(), [], NOW).perWeek).toBe(4);
+    });
+});
+
+describe('when a plan is done with', () => {
+    test('a plan with every session completed is complete before its horizon', () => {
+        const progress = derivePlanProgress(
+            planRow({ workouts: 4, horizonDays: 7 }),
+            completed(4),
+            NOW,
+        );
+
+        expect(progress.finished).toBe(false);
+        expect(progress.complete).toBe(true);
+    });
+
+    test('a 3-day plan is finished on day 3, not rounded up to a week', () => {
+        expect(derivePlanProgress(planRow({ horizonDays: 3 }), [], NOW + 2 * DAY).finished).toBe(
+            false,
+        );
+        expect(derivePlanProgress(planRow({ horizonDays: 3 }), [], NOW + 3 * DAY).finished).toBe(
+            true,
+        );
+    });
+
+    test('a plan whose time is up is complete, sessions or not', () => {
+        expect(derivePlanProgress(planRow({ horizonDays: 7 }), [], NOW + 8 * DAY).complete).toBe(
+            true,
+        );
+    });
+});
+
+describe('which plan Home shows, and how many are behind the user', () => {
+    const plan = (id: string, appliedAt: number, workouts = 4) =>
+        ({
+            ...(planRow({ appliedAt, workouts, horizonDays: 7 }) as object),
+            id,
+            appliedWorkoutIds: Array.from({ length: workouts }, (_, at) => `${id}-w-${at}`),
+        }) as never;
+
+    const done = (id: string, count: number) =>
+        Array.from({ length: count }, (_, at) => ({
+            id: `${id}-w-${at}`,
+            status: 'completed',
+        })) as never[];
+
+    test('nothing applied is nothing running and nothing finished', () => {
+        expect(summarisePlans([], [], NOW)).toEqual({ current: null, finished: 0 });
+    });
+
+    test('a plan mid-week is the current one', () => {
+        const running = plan('a', NOW - 2 * DAY);
+
+        expect(summarisePlans([running], [], NOW)).toEqual({ current: running, finished: 0 });
+    });
+
+    test('a completed plan stops being current and counts as finished', () => {
+        expect(summarisePlans([plan('a', NOW - 2 * DAY)], done('a', 4), NOW)).toEqual({
+            current: null,
+            finished: 1,
+        });
+    });
+
+    test('a plan replaced in its first week does not count as finished later', () => {
+        const newer = plan('b', NOW - 20 * DAY);
+        const abandoned = plan('a', NOW - 22 * DAY);
+
+        // `newer` has run out too, so it counts; `abandoned` was two days in when replaced.
+        expect(summarisePlans([newer, abandoned], [], NOW)).toEqual({ current: null, finished: 1 });
+    });
+
+    test('a plan that ran its course before the next one counts', () => {
+        const newer = plan('b', NOW - 1 * DAY);
+        const older = plan('a', NOW - 10 * DAY);
+
+        expect(summarisePlans([newer, older], [], NOW)).toEqual({ current: newer, finished: 1 });
     });
 });

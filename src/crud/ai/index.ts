@@ -200,6 +200,14 @@ export const getActivePlan = async (userId: string): Promise<AiPlanSelect | null
     return row ?? null;
 };
 
+/** Every plan the user has applied, newest first — see `summarisePlans`. */
+export const getAppliedPlans = async (userId: string): Promise<AiPlanSelect[]> =>
+    await db
+        .select()
+        .from(aiPlan)
+        .where(and(eq(aiPlan.userId, userId), eq(aiPlan.status, 'applied')))
+        .orderBy(desc(aiPlan.appliedAt));
+
 export interface CreatePlanInput {
     userId: string;
     conversationId?: string | null;

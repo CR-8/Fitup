@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleProp, ViewStyle } from 'react-native';
 import { ViewToken } from '@shopify/flash-list';
 import { router } from 'expo-router';
@@ -6,6 +6,8 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { PreviewThumbnail } from '@/components/layout/preview';
+import { Box } from '@/components/primitives/box';
+import { FavoriteButton } from '@/components/buttons/favorite';
 
 import { ExerciseList } from './index';
 import { ExerciseListItemComponent } from '../card';
@@ -49,6 +51,8 @@ type BaseProps = {
     error?: unknown;
     extraData?: unknown;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    /** Browse mode's shelves, rendered above the list. */
+    header?: ReactElement | null;
     activeFilterCount?: number;
 };
 
@@ -57,6 +61,14 @@ type ExercisesListContainerProps = BaseProps & (ModeBrowse | ModeSelect);
 const styles = StyleSheet.create((theme) => ({
     previewThumbContainer: {
         marginLeft: theme.space(8),
+    },
+    // Leading, the thumbnail owns the row's left inset: the row drops its own
+    // padding on any side that has an accessory.
+    previewThumbLeading: {
+        marginLeft: theme.space(4),
+    },
+    favoriteTrailing: {
+        marginRight: theme.space(2),
     },
 }));
 
@@ -77,6 +89,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     extraData,
     contentContainerStyle,
     activeFilterCount = 0,
+    header,
     ...rest
 }) => {
     const { t, i18n } = useTranslation(['common', 'screens']);
@@ -284,11 +297,24 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                     onOpen={handleGifPreviewOpen}
                     analyticsSurface={mode === 'browse' ? 'exercise_library' : 'workout_select'}
                     analyticsWorkoutId={analyticsWorkoutId}
-                    containerStyle={styles.previewThumbContainer}
+                    containerStyle={
+                        mode === 'browse'
+                            ? styles.previewThumbLeading
+                            : styles.previewThumbContainer
+                    }
                 />
             );
         },
         [analyticsWorkoutId, handleGifPreviewOpen, mode],
+    );
+
+    const renderFavorite = useCallback(
+        (exerciseItem: ExerciseCard) => (
+            <Box style={styles.favoriteTrailing}>
+                <FavoriteButton exerciseId={exerciseItem.exercise.id} />
+            </Box>
+        ),
+        [],
     );
 
     const renderItem = useCallback(
@@ -355,7 +381,8 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                             trackSearchSelection(item);
                             onExercisePress?.(item.exercise.id);
                         }}
-                        renderRightAccessory={renderGifAccessory}
+                        renderLeftAccessory={renderGifAccessory}
+                        renderRightAccessory={renderFavorite}
                     />
                 );
             }
@@ -370,6 +397,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
             onExercisePress,
             onToggle,
             query,
+            renderFavorite,
             renderGifAccessory,
             selectedList,
             trackSearchSelection,
@@ -390,12 +418,18 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                 return;
             }
 
-            const firstVisibleIndex = Math.max(
-                0,
-                Math.min(viewableItems[0].index || 0, data.length - 1),
-            );
-            const category = stickyLookup.categoryByIndex[firstVisibleIndex];
-            const muscleGroup = stickyLookup.muscleGroupByIndex[firstVisibleIndex];
+            // The lowest index on screen, not the first entry: viewability is
+            // reported per item and nothing promises the list arrives sorted.
+            const lowestIndex = Math.min(...viewableItems.map((item) => item.index ?? 0));
+            const firstVisibleIndex = Math.max(0, Math.min(lowestIndex, data.length - 1));
+            // At the very top the first category row is itself on screen, so a
+            // sticky copy of it only repeats it — and with the shelves above the
+            // list, it read as though Favourites belonged to that category.
+            const atTop = firstVisibleIndex === 0;
+            const category = atTop ? undefined : stickyLookup.categoryByIndex[firstVisibleIndex];
+            const muscleGroup = atTop
+                ? undefined
+                : stickyLookup.muscleGroupByIndex[firstVisibleIndex];
 
             setStickyHeaderState((prev) =>
                 prev.category === category && prev.muscleGroup === muscleGroup
@@ -421,6 +455,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
             isLoading={isLoading}
             error={error}
             contentContainerStyle={contentContainerStyle}
+            header={header}
         />
     );
 };

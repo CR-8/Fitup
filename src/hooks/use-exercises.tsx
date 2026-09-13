@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from './use-user';
 import { useAnalytics } from './use-analytics';
@@ -8,6 +9,9 @@ import {
     mergeExercise,
     getExerciseById,
     getExerciseHistory,
+    getFavoriteExerciseIds,
+    getRecentlyUsedExerciseIds,
+    toggleFavoriteExercise,
     updateExercise,
     type ExerciseHistoryItem,
     type ExerciseFilterParams,
@@ -87,6 +91,53 @@ export const useExerciseHistory = (exerciseId: string) => {
         queryFn: () => getExerciseHistory(exerciseId, user!.id),
         enabled: !!user?.id && !!exerciseId,
     });
+};
+
+export const useFavoriteExerciseIds = () => {
+    const { user } = useUser();
+
+    const { data } = useQuery({
+        queryKey: ['exercise-favorites', user?.id],
+        queryFn: () => getFavoriteExerciseIds(user!.id),
+        enabled: !!user?.id,
+    });
+
+    return useMemo(() => new Set(data ?? []), [data]);
+};
+
+/**
+ * Flips the heart in the cache before the write, so it answers the tap at once.
+ * A heart that waits on SQLite reads as a missed press; on failure the cache is
+ * simply re-read, which puts the heart back where the database says it is.
+ */
+export const useToggleFavoriteExercise = () => {
+    const queryClient = useQueryClient();
+    const { user } = useUser();
+    const key = ['exercise-favorites', user?.id];
+
+    return useMutation({
+        mutationFn: (exerciseId: string) => toggleFavoriteExercise(user!.id, exerciseId),
+        onMutate: (exerciseId) => {
+            queryClient.setQueryData<string[]>(key, (ids = []) =>
+                ids.includes(exerciseId)
+                    ? ids.filter((id) => id !== exerciseId)
+                    : [...ids, exerciseId],
+            );
+        },
+        onError: () => queryClient.invalidateQueries({ queryKey: key }),
+    });
+};
+
+export const useRecentlyUsedExerciseIds = () => {
+    const { user } = useUser();
+
+    const { data = [] } = useQuery({
+        queryKey: ['exercises-recent', user?.id],
+        queryFn: () => getRecentlyUsedExerciseIds(user!.id),
+        enabled: !!user?.id,
+    });
+
+    return data;
 };
 
 export const useMergeExercise = () => {

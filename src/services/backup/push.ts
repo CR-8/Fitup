@@ -94,6 +94,17 @@ const UPSERT_CHUNK = 500;
 /** Bound parameters per statement, kept well under SQLite's 999. */
 const LOOKUP_CHUNK = 200;
 
+/**
+ * Failures that say nothing about the rows: no connection (status 0), or a
+ * gateway or rate limit in the way. The operations stay queued and go up on the
+ * next push, so these are not reported as faults. A 500 still is — that is the
+ * database rejecting the write, and retrying will not change it.
+ */
+const TRANSIENT_STATUSES = new Set([0, 408, 429, 502, 503, 504, 520]);
+
+const isTransient = (error: unknown): boolean =>
+    TRANSIENT_STATUSES.has((error as { status?: number } | null)?.status ?? -1);
+
 const upsertRows = async (
     spec: BackupTableSpec,
     rows: Record<string, unknown>[],
@@ -105,13 +116,15 @@ const upsertRows = async (
         .map((row) => toRemoteRow(spec, row, accountId));
 
     for (let offset = 0; offset < payload.length; offset += UPSERT_CHUNK) {
-        const { error } = await client
+        const { error, status } = await client
             .from(spec.remote)
             .upsert(payload.slice(offset, offset + UPSERT_CHUNK), {
                 onConflict: spec.conflictTarget,
             });
 
-        if (error) throw error;
+        // The status rides along: the error body alone cannot tell a gateway
+        // timeout from a rejected row.
+        if (error) throw { ...error, status };
     }
 };
 
@@ -173,12 +186,12 @@ const pushTable = async (
     // and its training profile are updated for the life of the account.
     if (spec.conflictTarget === 'id') {
         for (let offset = 0; offset < deleteIds.length; offset += LOOKUP_CHUNK) {
-            const { error } = await client
+            const { error, status } = await client
                 .from(spec.remote)
                 .delete()
                 .in('id', deleteIds.slice(offset, offset + LOOKUP_CHUNK));
 
-            if (error) throw error;
+            if (error) throw { ...error, status };
         }
     }
 
@@ -246,6 +259,8 @@ export const pushBackup = async (): Promise<boolean> => {
                 noteBackupSchemaMissing();
                 break;
             }
+
+            if (isTransient(error)) continue;
 
             reportError(error, `Failed to back up ${spec.local}:`, {
                 tags: { scope: 'backup' },

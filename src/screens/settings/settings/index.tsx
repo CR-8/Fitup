@@ -34,6 +34,7 @@ import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/forms/label';
 import { isAuthConfigured } from '@/constants/auth';
 import { useUser } from '@/hooks/use-user';
+import { localeNames, normalizeLanguage } from '@/locale/constants';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
@@ -81,6 +82,14 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     settingTitle: {
         color: theme.colors.typography,
+    },
+    settingValueRow: {
+        alignItems: 'center',
+        gap: theme.space(1.5),
+    },
+    settingValue: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
@@ -218,6 +227,8 @@ const SettingsScreen = () => {
         {
             icon: Sun,
             title: t('settings.items.theme.title', { ns: 'screens' }),
+            // Unset means the first-launch default, which is dark.
+            value: t(`settings.items.theme.${user?.theme ?? 'dark'}`, { ns: 'screens' }),
             onPress: () => router.navigate('/settings/theme'),
         },
         {
@@ -233,11 +244,13 @@ const SettingsScreen = () => {
         {
             icon: Ruler,
             title: t('settings.items.units.title', { ns: 'screens' }),
+            value: [user?.weightUnits, user?.measurementUnits].filter(Boolean).join(', '),
             onPress: () => router.navigate('/settings/units'),
         },
         {
             icon: Languages,
             title: t('settings.items.language.title', { ns: 'screens' }),
+            value: localeNames[normalizeLanguage(user?.lng)],
             onPress: () => router.navigate('/settings/language'),
         },
         {
@@ -319,13 +332,18 @@ const SettingsScreen = () => {
                                                 </Text>
                                             </Box>
                                         </VStack>
-                                        <Box>
+                                        <HStack style={styles.settingValueRow}>
+                                            {'value' in setting && setting.value ? (
+                                                <Text style={styles.settingValue} numberOfLines={1}>
+                                                    {setting.value}
+                                                </Text>
+                                            ) : null}
                                             <ChevronRight
                                                 size={theme.space(5)}
                                                 color={theme.colors.typography}
                                                 opacity={0.8}
                                             />
-                                        </Box>
+                                        </HStack>
                                     </HStack>
                                 </HStack>
                             </Pressable>

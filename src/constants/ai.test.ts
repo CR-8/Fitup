@@ -17,6 +17,7 @@ const ENV_KEYS = [
     'EXPO_PUBLIC_AI_FREQUENCY_PENALTY',
     'EXPO_PUBLIC_AI_PRESENCE_PENALTY',
     'EXPO_PUBLIC_AI_SEED',
+    'EXPO_PUBLIC_AI_REASONING',
     'EXPO_PUBLIC_AI_HEADERS',
     'EXPO_PUBLIC_AI_ENABLED',
     'EXPO_PUBLIC_AI_MONTHLY_QUOTA',
@@ -55,6 +56,12 @@ describe('AI configuration', () => {
             EXPO_PUBLIC_AI_BASE_URL: 'https://api.example.test/v1',
         });
         expect(isAiEnabled()).toBe(true);
+    });
+
+    test('reads a comma-separated model list, the first one being the model', () => {
+        const { AI_CONFIG } = loadConfig({ EXPO_PUBLIC_AI_MODEL: ' a/one:free , b/two ,' });
+        expect(AI_CONFIG.model).toBe('a/one:free');
+        expect(AI_CONFIG.models).toEqual(['a/one:free', 'b/two']);
     });
 
     test('can be force-disabled even with a base URL', () => {
@@ -132,6 +139,24 @@ describe('sampling parameters', () => {
         // The ceiling is deliberately generous: reasoning models spend part of the
         // budget thinking, and running out truncates the reply beyond recovery.
         expect(buildSamplingParameters()).toEqual({ temperature: 0.4, max_tokens: 8000 });
+    });
+
+    test('reasoning can be switched off or given an effort, and is omitted otherwise', () => {
+        const base = { EXPO_PUBLIC_AI_BASE_URL: 'https://api.example.test/v1' };
+
+        expect(
+            loadConfig({ ...base, EXPO_PUBLIC_AI_REASONING: 'OFF' }).buildSamplingParameters(),
+        ).toMatchObject({ reasoning: { enabled: false } });
+        expect(
+            loadConfig({ ...base, EXPO_PUBLIC_AI_REASONING: 'low' }).buildSamplingParameters(),
+        ).toMatchObject({ reasoning: { effort: 'low' } });
+        expect(
+            loadConfig({
+                ...base,
+                EXPO_PUBLIC_AI_REASONING: 'sometimes',
+            }).buildSamplingParameters(),
+        ).not.toHaveProperty('reasoning');
+        expect(loadConfig(base).buildSamplingParameters()).not.toHaveProperty('reasoning');
     });
 
     test('omits parameters that were never configured', () => {

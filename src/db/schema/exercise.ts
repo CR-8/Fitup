@@ -7,6 +7,8 @@ export type ExerciseInsert = typeof exercise.$inferInsert;
 export type ExerciseSetSelect = typeof exerciseSet.$inferSelect;
 export type ExerciseSetInsert = typeof exerciseSet.$inferInsert;
 
+export type ExerciseFavoriteSelect = typeof exerciseFavorite.$inferSelect;
+
 export type ExerciseMuscleLoadProfile = Record<string, unknown>[];
 
 export const exercise = sqliteTable('exercise', {
@@ -131,3 +133,24 @@ export const exerciseSet = sqliteTable(
         ),
     ],
 );
+
+/**
+ * An exercise the user has hearted.
+ *
+ * `id` is `${userId}_${exerciseId}`, not a nanoid, on purpose. The backup table
+ * in Postgres keys on `id` across every account, and a random id would let the
+ * same heart made on two phones arrive as two rows — which a restore then
+ * writes into one device and duplicates. A derived id makes that the same row.
+ */
+export const exerciseFavorite = sqliteTable('exercise_favorite', {
+    id: text('id').primaryKey(),
+    userId: text('user_id', { length: 21 }).notNull(),
+    exerciseId: text('exercise_id', { length: 21 }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`(strftime('%s','now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`(strftime('%s','now') * 1000)`)
+        .$onUpdate(() => new Date()),
+});

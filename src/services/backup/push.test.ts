@@ -10,6 +10,7 @@ let mockSettled: string[] = [];
 let mockUpserted: Record<string, any[][]> = {};
 let mockDeleted: string[][] = [];
 let mockUpsertFails = false;
+let mockUpsertStatus = 400;
 let mockOwner: any = { id: OWNER };
 let mockReported: string[] = [];
 
@@ -58,7 +59,8 @@ jest.mock('@/services/supabase', () => ({
         auth: { getSession: async () => ({ data: { session: { user: { id: 'account-1' } } } }) },
         from: (table: string) => ({
             upsert: async (rows: any[]) => {
-                if (mockUpsertFails) return { error: { message: 'nope' } };
+                if (mockUpsertFails)
+                    return { error: { message: 'nope' }, status: mockUpsertStatus };
                 mockUpserted[table] = [...(mockUpserted[table] ?? []), rows];
                 return { error: null };
             },
@@ -111,6 +113,7 @@ const reset = () => {
     mockUpserted = {};
     mockDeleted = [];
     mockUpsertFails = false;
+    mockUpsertStatus = 400;
     mockOwner = { id: OWNER };
     mockReported = [];
 };
@@ -203,6 +206,21 @@ describe('draining the change queue', () => {
         expect(mockSettled).toEqual([]);
         expect(complete).toBe(false);
         expect(mockReported).toContain('Failed to back up workout:');
+    });
+
+    test('a gateway timeout leaves its operations pending without reporting a fault', async () => {
+        const { pushBackup } = loadModule();
+
+        mockWorkoutRows = [{ id: 'w1', name: 'Planned', userId: OWNER }];
+        mockPending = [operation('op1', 'w1')];
+        mockUpsertFails = true;
+        mockUpsertStatus = 504;
+
+        const complete = await pushBackup();
+
+        expect(mockSettled).toEqual([]);
+        expect(complete).toBe(false);
+        expect(mockReported).toEqual([]);
     });
 
     test('a queue entry for a table nothing backs up is settled, not kept forever', async () => {

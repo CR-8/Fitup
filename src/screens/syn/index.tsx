@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Alert, FlatList, type ListRenderItem } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, ScrollView, type ListRenderItem } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import {
@@ -147,6 +147,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         ...theme.fontSize.default,
         fontWeight: theme.fontWeight.medium.fontWeight,
         color: theme.colors.typography,
+    },
+    suggestionsScroll: {
+        flexGrow: 0,
     },
     suggestions: {
         paddingBottom: theme.space(2),
@@ -416,33 +419,36 @@ const SynScreen = () => {
                 pills would be the same two actions twice on an empty screen.
                 They come back once there is a conversation to act on. */}
             {messages.length > 0 ? (
-                <HStack style={styles.suggestions}>
-                    <Pressable
-                        style={[
-                            styles.suggestion,
-                            (isBusy || exhausted) && styles.suggestionDisabled,
-                        ]}
-                        onPress={() => handleGenerate('workout')}
-                        disabled={isBusy || exhausted}
-                    >
-                        <Text fontSize="xs" fontWeight="medium">
-                            {t('syn.actions.workout')}
-                        </Text>
-                    </Pressable>
+                // All four, as in the empty state — once a conversation exists
+                // this row is the only way back to them. Scrolls rather than
+                // wraps, so it never pushes the composer up.
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={styles.suggestions}
+                    style={styles.suggestionsScroll}
+                >
+                    {quickActions.map((action) => {
+                        // Only generating spends the monthly allowance; asking a
+                        // question does not, so those two stay available.
+                        const spendsQuota = action.key === 'workout' || action.key === 'nutrition';
+                        const disabled = isBusy || (spendsQuota && exhausted);
 
-                    <Pressable
-                        style={[
-                            styles.suggestion,
-                            (isBusy || exhausted) && styles.suggestionDisabled,
-                        ]}
-                        onPress={() => handleGenerate('nutrition')}
-                        disabled={isBusy || exhausted}
-                    >
-                        <Text fontSize="xs" fontWeight="medium">
-                            {t('syn.actions.nutrition')}
-                        </Text>
-                    </Pressable>
-                </HStack>
+                        return (
+                            <Pressable
+                                key={action.key}
+                                style={[styles.suggestion, disabled && styles.suggestionDisabled]}
+                                onPress={action.run}
+                                disabled={disabled}
+                            >
+                                <Text fontSize="xs" fontWeight="medium">
+                                    {action.label}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </ScrollView>
             ) : null}
 
             <Composer onSend={handleSend} busy={isBusy} />

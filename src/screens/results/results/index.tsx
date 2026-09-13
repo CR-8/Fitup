@@ -184,10 +184,12 @@ const ResultsScreen = () => {
         >
             <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
             <StatBlocks blocks={heroBlocks} inset={false} />
-            <FitnessLevelCard level={fitnessLevel} />
-            <MonthStats />
+            {/* The design board's reading order: totals, the month's training
+                time, then muscular load — before the calendar and the rest. */}
             <ActivitySummary onScrubbingChange={setIsChartScrubbing} />
             <StrengthStats />
+            <MonthStats />
+            <FitnessLevelCard level={fitnessLevel} />
             <Scale />
             <VStack style={styles.fieldContainer}>
                 <Title type="h4">{t('results.stats.title', { ns: 'screens' })}</Title>

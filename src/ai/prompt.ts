@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '3';
+export const PROMPT_VERSION = '4';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -400,10 +400,20 @@ export const buildPlanMessages = (
     // A day of meals is far wordier than a day of training, so a full week of food
     // runs into the output ceiling unless the shape is bounded up front. Truncated
     // JSON is unrecoverable; a slightly terser plan is not.
+    //
+    // The food itself is North Indian home cooking, portioned the way it is served
+    // there. The dietary pattern and allergens in the profile still decide what is
+    // allowed — hard rule 3 — so a vegetarian gets paneer and dal, not chicken.
     const budget =
         kind === 'workout'
             ? ''
-            : `\n\nKeep it tight so the JSON finishes: at most 4 meals per day and 3 items
+            : `\n\nThe food is North Indian home cooking: roti or phulka, paratha, dal, rajma,
+chole, kadhi, seasonal sabzi, paneer, curd or raita, poha, besan chilla, upma, chaas or
+lassi, with egg, chicken or fish only where the dietary pattern allows them. Write
+quantities the Indian way (2 rotis, 1 katori dal, 1 glass chaas) and keep calories and
+macros realistic for those portions.
+
+Keep it tight so the JSON finishes: at most 4 meals per day and 3 items
 per meal, short food names, no commentary beyond a one-line summary.`;
 
     const forceReadyLine = forceReady

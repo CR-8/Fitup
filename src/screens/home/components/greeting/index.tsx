@@ -2,7 +2,8 @@ import { FC } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Settings2 } from 'lucide-react-native';
+import { Settings } from 'lucide-react-native';
+import { Image as ExpoImage } from 'expo-image';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -11,6 +12,7 @@ import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { Pressable } from '@/components/primitives/pressable';
 import { useUser } from '@/hooks/use-user';
+import { useAccount } from '@/hooks/use-account';
 
 import { greetingKeyForHour } from './salutation';
 
@@ -39,13 +41,23 @@ const styles = StyleSheet.create((theme) => ({
         ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
     },
+    tagline: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
+    avatar: {
+        height: '100%',
+        width: '100%',
+        borderRadius: theme.radius.full,
+    },
     dietButton: {
-        height: theme.space(10),
-        width: theme.space(10),
+        height: theme.space(11),
+        width: theme.space(11),
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: theme.radius.full,
         backgroundColor: theme.colors.foreground,
+        overflow: 'hidden',
     },
 }));
 
@@ -53,8 +65,11 @@ export const Greeting: FC = () => {
     const { t } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const { user } = useUser();
+    const { session } = useAccount();
 
     const name = user?.displayName?.trim();
+    // Google fills this; an email sign-up has none, and keeps the icon.
+    const avatarUrl = session?.user.user_metadata?.avatar_url as string | undefined;
     const salutation = t(`home.greeting.${greetingKeyForHour(new Date().getHours())}`, {
         ns: 'screens',
     });
@@ -67,8 +82,11 @@ export const Greeting: FC = () => {
                     {/* The name is optional — onboarding can be skipped — so the
                         greeting has to read as a complete sentence without it. */}
                     <Title type="h1" numberOfLines={1}>
-                        {name || t('home.greeting.fallback', { ns: 'screens' })}
+                        {name ? `${name} 👋` : t('home.greeting.fallback', { ns: 'screens' })}
                     </Title>
+                    <Text style={styles.tagline}>
+                        {t('home.greeting.tagline', { ns: 'screens' })}
+                    </Text>
                 </VStack>
 
                 {/* Settings left the tab bar — it is configuration, not a daily
@@ -80,12 +98,16 @@ export const Greeting: FC = () => {
                     accessibilityRole="button"
                     accessibilityLabel={t('settings.title', { ns: 'screens' })}
                 >
-                    <Settings2
-                        size={theme.space(5)}
-                        strokeWidth={theme.space(0.375)}
-                        opacity={0.8}
-                        color={theme.colors.typography}
-                    />
+                    {avatarUrl ? (
+                        <ExpoImage source={{ uri: avatarUrl }} style={styles.avatar} />
+                    ) : (
+                        <Settings
+                            size={theme.space(5)}
+                            strokeWidth={theme.space(0.375)}
+                            opacity={0.8}
+                            color={theme.colors.typography}
+                        />
+                    )}
                 </Pressable>
             </HStack>
         </Box>

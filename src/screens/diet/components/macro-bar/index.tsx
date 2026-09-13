@@ -22,7 +22,8 @@ const styles = StyleSheet.create((theme) => ({
     track: {
         height: theme.space(1.5),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.foreground,
+        // Drawn on cards, so a step up from the card colour rather than the card colour.
+        backgroundColor: theme.colors.elevated,
         overflow: 'hidden',
     },
     // Overshooting a target is information, not an error, so it is shown in the

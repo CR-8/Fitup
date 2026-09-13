@@ -1,5 +1,6 @@
 import { FC, Fragment } from 'react';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import type { LucideIcon } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -26,6 +27,11 @@ export interface StatBlock {
     label: string;
     /** Draws the value in the accent colour. Used for progress against a goal. */
     emphasised?: boolean;
+    /**
+     * A leading glyph, which turns the tile into a row: icon, then the figure
+     * over its label. Home's streak and month tiles use it; Results doesn't.
+     */
+    icon?: LucideIcon;
 }
 
 const styles = StyleSheet.create((theme) => ({
@@ -89,6 +95,19 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.mutedTypography,
         textAlign: 'center',
     },
+    iconBlock: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        gap: theme.space(3),
+        paddingHorizontal: theme.space(4),
+    },
+    iconText: {
+        flexShrink: 1,
+        alignItems: 'flex-start',
+    },
+    iconLabel: {
+        textAlign: 'left',
+    },
 }));
 
 export const StatBlocks: FC<{
@@ -101,6 +120,7 @@ export const StatBlocks: FC<{
     /** 'grouped' (default): one row, hairline dividers. 'split': bordered tiles. */
     variant?: 'grouped' | 'split';
 }> = ({ blocks, inset = true, variant = 'grouped' }) => {
+    const { theme } = useUnistyles();
     const isSplit = variant === 'split';
 
     return (
@@ -110,23 +130,41 @@ export const StatBlocks: FC<{
                     <Fragment key={block.key}>
                         {!isSplit && index > 0 ? <Box style={styles.divider} /> : null}
                         <VStack
-                            style={isSplit ? styles.splitBlock : styles.block}
+                            style={[
+                                isSplit ? styles.splitBlock : styles.block,
+                                block.icon && styles.iconBlock,
+                            ]}
                             accessibilityRole="text"
                             accessibilityLabel={`${block.value} ${block.label}`}
                         >
-                            <Text
-                                style={[styles.value, block.emphasised && styles.valueEmphasised]}
-                                numberOfLines={1}
-                                adjustsFontSizeToFit
-                            >
-                                {block.value}
-                            </Text>
-                            <Text
-                                style={isSplit ? styles.splitLabel : styles.label}
-                                numberOfLines={2}
-                            >
-                                {block.label}
-                            </Text>
+                            {block.icon ? (
+                                <block.icon
+                                    size={theme.space(6)}
+                                    strokeWidth={2}
+                                    color={theme.colors.primary}
+                                />
+                            ) : null}
+                            <VStack style={block.icon ? styles.iconText : undefined}>
+                                <Text
+                                    style={[
+                                        styles.value,
+                                        block.emphasised && styles.valueEmphasised,
+                                    ]}
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                >
+                                    {block.value}
+                                </Text>
+                                <Text
+                                    style={[
+                                        isSplit ? styles.splitLabel : styles.label,
+                                        block.icon && styles.iconLabel,
+                                    ]}
+                                    numberOfLines={2}
+                                >
+                                    {block.label}
+                                </Text>
+                            </VStack>
                         </VStack>
                     </Fragment>
                 ))}

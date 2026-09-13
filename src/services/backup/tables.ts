@@ -3,6 +3,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
     aiProfile,
     exercise,
+    exerciseFavorite,
     exerciseSet,
     measurement,
     user,
@@ -347,6 +348,23 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
         // middle of that rest, so carrying it would only resume someone else's
         // stopwatch. Both read as "not paused" when absent.
         deviceOnly: ['pausedAt', 'pausedMs'],
+    },
+    {
+        local: 'exercise_favorite',
+        remote: 'exercise_favorites',
+        scope: { kind: 'user', column: 'userId' },
+        table: exerciseFavorite,
+        idColumn: 'id',
+        conflictTarget: 'id',
+        columns: {
+            id: 'id',
+            userId: 'user_id',
+            exerciseId: 'exercise_id',
+            createdAt: 'created_at',
+            updatedAt: 'updated_at',
+        },
+        dates: [...TIMESTAMPS],
+        deviceOnly: [],
     },
 ];
 

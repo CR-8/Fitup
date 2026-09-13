@@ -29,27 +29,18 @@
             "morning": "Good morning",
             "afternoon": "Good afternoon",
             "evening": "Good evening",
-            "fallback": "Ready to train?"
-        },
-        "thisWeek": "This week",
-        "sessionsOfGoal": "{{count}} of {{goal}} sessions",
-        "sessionsDone_one": "{{count}} session",
-        "sessionsDone_other": "{{count}} sessions",
-        "stats": {
-            "sessions": "sessions",
-            "time": "time",
-            "volume_kg": "kg lifted",
-            "volume_lb": "lb lifted"
+            "fallback": "Ready to train?",
+            "tagline": "Let's make progress today."
         },
         "upNext": {
             "eyebrow": {
                 "resume": "In progress",
-                "start": "Up next",
+                "start": "Today's workout",
                 "create": "Get started"
             },
             "action": {
                 "resume": "Resume",
-                "start": "Start",
+                "start": "Start workout",
                 "create": "Plan a workout"
             },
             "createTitle": "Nothing planned yet",
@@ -60,11 +51,6 @@
         },
         "streak_one": "{{count}} day streak",
         "streak_other": "{{count}} day streak",
-        "quick": {
-            "exercises": "Exercises",
-            "syn": "Syn",
-            "nutrition": "Nutrition"
-        },
         "ai": {
             "title": "Generate your plan with AI",
             "description": "Tell Syn your goal and body stats — get a full week of training in seconds.",
@@ -73,10 +59,14 @@
                 "week": "Training week",
                 "weekIntent": "Build me a training plan for the week around my goal.",
                 "cut": "Fat loss plan",
-                "cutIntent": "Build me a training plan and a food chart for fat loss this week.",
+                "cutIntent": "Build me a training plan and a food chart for fat loss for the next 3 days.",
                 "food": "Food chart",
-                "foodIntent": "Build me a food chart for the week."
-            }
+                "foodIntent": "Build me a food chart for the next 3 days."
+            },
+            "finished_one": "{{count}} plan finished",
+            "finished_other": "{{count}} plans finished",
+            "nextTitle": "Ready for your next plan?",
+            "nextDescription": "Syn builds the next week from where you are now."
         },
         "plan": {
             "eyebrow": "Active plan",
@@ -96,7 +86,13 @@
                 "confirmBody": "Syn writes a new plan rather than editing this one, and applying it replaces your schedule. It uses one of your plans for this month.",
                 "confirm": "Generate"
             }
-        }
+        },
+        "tiles": {
+            "streak": "Day streak",
+            "month": "This month"
+        },
+        "recentActivity": "Recent activity",
+        "viewAll": "View all"
     },
     "results": {
         "title": "Results",
@@ -205,7 +201,11 @@
                 "description": "This build has no exercise source configured. You can still create your own exercises."
             }
         },
-        "subtitle": "Search the library, then open one for form, history and stats."
+        "subtitle": "Search the library, then open one for form, history and stats.",
+        "favorites": "Favourites",
+        "recentlyUsed": "Recently used",
+        "favorite": "Add to favourites",
+        "unfavorite": "Remove from favourites"
     },
     "filter": {
         "title": "Filter",
@@ -249,7 +249,11 @@
             "empty": {
                 "title": "Your history starts here",
                 "description": "Start a workout with this exercise to see your history."
-            }
+            },
+            "lastPerformed": "Last performed",
+            "setCount_one": "{{count}} set",
+            "setCount_other": "{{count}} sets",
+            "best": "Your best"
         },
         "guide": {
             "instructions": "Instructions",
@@ -325,7 +329,9 @@
                     }
                 }
             }
-        }
+        },
+        "play": "Play animation",
+        "pause": "Pause animation"
     },
     "exercise-create": {
         "name": "Name",
@@ -629,7 +635,7 @@
             "workout": "Training plan",
             "nutrition": "Food chart",
             "workoutIntent": "Build me a training plan for the week.",
-            "nutritionIntent": "Build me a food chart for the week.",
+            "nutritionIntent": "Build me a food chart for the next 3 days.",
             "explain": "Explain an exercise",
             "explainIntent": "Explain how to perform an exercise properly — the setup, the form cues, and the mistakes to avoid.",
             "progress": "Analyse my progress",
@@ -796,14 +802,12 @@
         }
     },
     "timer": {
-        "inProgress": "In progress",
         "elapsed": "Elapsed",
-        "done": "Done",
         "phase": {
             "work": "Work",
             "rest": "Rest",
             "paused": "Paused",
-            "complete": "Complete"
+            "between": "Up next"
         },
         "exerciseProgress": "Exercise {{current}} of {{total}}",
         "setProgress": "Set {{current}} of {{total}}",
@@ -811,15 +815,12 @@
         "setElapsed": "Set time",
         "open": "Open timer",
         "restRemaining": "Rest remaining",
-        "stop": "Stop",
-        "continue": "Continue",
         "completeSet": "Complete set",
         "skipRest": "Skip rest",
         "newBest": "New best · {{value}}",
         "endWorkout": "End workout",
         "minimize": "Back to workout",
         "completedTitle": "Workout complete",
-        "completedHint": "Finish up to save it to your history.",
         "emptyTitle": "No workout running",
         "emptyHint": "Start a workout to use the timer.",
         "emptyAction": "Close",
@@ -829,7 +830,18 @@
             "completeSet": "Mark this set complete",
             "skipRest": "End rest early and start the next set",
             "endWorkout": "End the workout and save it",
-            "minimize": "Go back to the workout"
+            "minimize": "Go back to the workout",
+            "startNext": "Start the next set"
+        },
+        "weight": "Weight",
+        "reps": "Reps",
+        "setLabel": "Set {{number}}",
+        "startNext": "Start next set",
+        "finish": "Finish workout",
+        "summary": {
+            "sets": "Sets",
+            "time": "Time",
+            "exercises": "Exercises"
         }
     },
     "workout-feedback": {
@@ -870,7 +882,8 @@
         "againstPlan": "Today's plan",
         "againstTarget": "Daily target",
         "itemsEaten": "{{consumed}} of {{total}} eaten",
-        "buildPlan": "Build my meal plan"
+        "buildPlan": "Build my meal plan",
+        "eaten": "Eaten"
     },
     "forgotPassword": {
         "eyebrow": "FitSync",

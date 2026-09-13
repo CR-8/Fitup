@@ -74,6 +74,24 @@ export const useDayProgress = (meals: MealWithItems[]): DayProgress => {
     );
 };
 
+/**
+ * What the day is measured against: the profile's targets when set, otherwise
+ * the day's own plan. Nothing in the app writes targets today, so in practice
+ * this is the plan — `hasTargets` lets a caption say which.
+ */
+export const nutritionBasis = (progress: DayProgress) => {
+    const hasTargets =
+        typeof progress.targets.calories === 'number' && progress.targets.calories > 0;
+
+    return {
+        hasTargets,
+        calories: hasTargets ? progress.targets.calories : progress.planned.calories,
+        proteinG: hasTargets ? progress.targets.proteinG : progress.planned.proteinG,
+        carbsG: hasTargets ? progress.targets.carbsG : progress.planned.carbsG,
+        fatG: hasTargets ? progress.targets.fatG : progress.planned.fatG,
+    };
+};
+
 const useInvalidateMeals = () => {
     const queryClient = useQueryClient();
     return () => queryClient.invalidateQueries({ queryKey: [MEALS_KEY] });

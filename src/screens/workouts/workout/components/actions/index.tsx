@@ -127,6 +127,7 @@ export const Actions: FC<ActionsProps> = ({ workout }) => {
                     <Box style={styles.startButtonContainer}>
                         <Button
                             title={mainButtonTitle}
+                            type="primary"
                             textStyle={styles.customStartButtonText}
                             loading={isPendingStartWorkout || isPendingCompleteWorkout}
                             disabled={!workout}

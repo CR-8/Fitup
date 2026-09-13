@@ -77,10 +77,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(4),
     },
     sectionLabel: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     macroRow: {
@@ -142,14 +139,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     setupText: {
         textAlign: 'center',
         color: theme.colors.mutedTypography,
-    },
-    // Matches the accent CTA on the home card rather than the app's default
-    // black/white button, since this is the screen's primary action.
-    cta: {
-        backgroundColor: theme.colors.brand[600],
-    },
-    ctaText: {
-        color: theme.colors.white,
     },
 }));
 
@@ -294,12 +283,11 @@ const DietScreen: FC = () => {
     const planCta = aiAvailable ? (
         <Button
             title={t('diet.buildPlan', { ns: 'screens' })}
+            type="primary"
             onPress={handleBuildPlan}
             disabled={isBusy}
             loading={isBusy}
             spinnerColor={theme.colors.white}
-            containerStyle={styles.cta}
-            textStyle={styles.ctaText}
             prefix={
                 isBusy ? undefined : (
                     <Sparkles size={theme.space(4.5)} color={theme.colors.white} strokeWidth={2} />

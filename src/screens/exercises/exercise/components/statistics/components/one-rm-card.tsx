@@ -16,6 +16,7 @@ import { MetricCardShell } from './metric-card-shell';
 import { MetricStatCard } from './metric-stat-card';
 import {
     type MetricChartPoint,
+    estimateOneRm,
     resolveWorkoutDate,
     roundOneDecimal,
     sortMetricPoints,
@@ -61,7 +62,7 @@ export const OneRmCard = ({ history, exercise }: OneRmCardProps) => {
                     sourceWeightUnits === displayWeightUnits
                         ? set.weight
                         : convertWeight(set.weight, sourceWeightUnits, displayWeightUnits);
-                const oneRm = normalizedWeight * (1 + set.reps / 30);
+                const oneRm = estimateOneRm(normalizedWeight, set.reps);
 
                 if (Number.isFinite(oneRm) && oneRm > workoutExerciseOneRm) {
                     workoutExerciseOneRm = oneRm;

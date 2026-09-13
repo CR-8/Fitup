@@ -44,10 +44,7 @@ const styles = StyleSheet.create((theme) => ({
         justifyContent: 'space-between',
     },
     eyebrow: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     week: {
@@ -84,10 +81,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(1),
     },
     reviseLabel: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
         marginTop: theme.space(1),
     },

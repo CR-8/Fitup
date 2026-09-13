@@ -162,7 +162,7 @@ const MealDay: FC<{ dayOffset: number; meals: AiPlanMeal[] }> = ({ dayOffset, me
 
 export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
     const { t } = useTranslation('screens');
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const [expanded, setExpanded] = useState(false);
     const { apply, revert, isApplying, isReverting } = useApplyAiPlan();
 
@@ -291,14 +291,11 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                     ) : (
                         <Button
                             size="sm"
+                            type="primary"
                             title={t('syn.plan.addToSchedule')}
                             loading={isApplying}
                             onPress={handleApply}
-                            spinnerColor={
-                                rt.themeName === 'dark'
-                                    ? theme.colors.neutral[950]
-                                    : theme.colors.neutral[50]
-                            }
+                            spinnerColor={theme.colors.primaryTypography}
                         />
                     )}
                 </Box>

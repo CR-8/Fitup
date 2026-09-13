@@ -7,6 +7,13 @@ export interface MetricChartPoint {
     label: string;
 }
 
+/**
+ * Epley-family estimate, shared so the three places that estimate a 1RM
+ * (this exercise's history chart, a workout's live exercise stats, and the
+ * timer's personal-best check) can't quietly drift apart from each other.
+ */
+export const estimateOneRm = (weight: number, reps: number): number => weight * (1 + reps / 30);
+
 export const roundOneDecimal = (value: number): number => Math.round(value * 10) / 10;
 
 export const roundTwoDecimals = (value: number): number => Math.round(value * 100) / 100;

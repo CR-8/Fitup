@@ -52,12 +52,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         height: theme.space(5),
         width: theme.space(5),
     },
-    // The selected tab was distinguished by opacity alone, which reads as
-    // "slightly less faded" rather than as the place you are. The accent is
-    // already the app's colour for the active thing, so it says it directly.
+    // Inactive tabs used to be `typography` faded by opacity, which reads as
+    // "slightly less faded" rather than as the place you are not. Using the
+    // muted colour at full opacity says it directly, and matches every other
+    // secondary label in the app rather than inventing a bar-specific fade.
     itemText: (isFocused: boolean) => ({
-        color: isFocused ? theme.colors.primary : theme.colors.typography,
-        opacity: isFocused ? 1 : 0.6,
+        color: isFocused ? theme.colors.primary : theme.colors.mutedTypography,
     }),
 }));
 
@@ -80,8 +80,7 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
                     <Box style={styles.itemIconWrapper}>
                         <Icon
                             size={theme.space(5)}
-                            color={isFocused ? theme.colors.primary : theme.colors.typography}
-                            opacity={isFocused ? 1 : 0.7}
+                            color={isFocused ? theme.colors.primary : theme.colors.mutedTypography}
                         />
                     </Box>
                     <Box>

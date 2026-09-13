@@ -52,10 +52,7 @@ const styles = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.primarySoft,
     },
     eyebrow: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.6,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     copy: {

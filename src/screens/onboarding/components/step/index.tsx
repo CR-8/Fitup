@@ -40,10 +40,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     // The eyebrow/icon/title stack is the Home card vocabulary: uppercase
     // micro-label, coral-tinted glyph, then the heading.
     eyebrow: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     intro: {
@@ -100,19 +97,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     actions: {
         gap: theme.space(2),
-    },
-    /**
-     * Coral, like every other "do the thing" control in the app.
-     *
-     * `brand[600]`, not `colors.primary`: the label is 16px, which is below the
-     * large-text allowance, so it has to clear 4.5:1. White on `brand[500]` is
-     * 3.41:1 and on `brand[600]` is 4.48:1.
-     */
-    primaryAction: {
-        backgroundColor: theme.colors.brand[600],
-    },
-    primaryActionText: {
-        color: theme.colors.primaryTypography,
     },
     secondaryRow: {
         justifyContent: 'space-between',
@@ -217,10 +201,9 @@ export const OnboardingStep: FC<StepProps> = ({
             <VStack style={styles.actions}>
                 <Button
                     title={nextLabel}
+                    type="primary"
                     loading={isSubmitting}
                     onPress={onNext}
-                    containerStyle={styles.primaryAction}
-                    textStyle={styles.primaryActionText}
                     spinnerColor={theme.colors.primaryTypography}
                 />
 

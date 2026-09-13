@@ -42,6 +42,14 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingTop: theme.space(5),
         paddingBottom: rt.insets.bottom + theme.space(5),
     },
+    // The title bar in `Handle` is absolutely positioned over the sheet rather
+    // than laid out inline, so it never pushes content down on its own — a
+    // sheet opened with a title needs its own top padding or the title bar
+    // covers the first item(s).
+    sheetContentContainerWithTitle: {
+        paddingTop: theme.space(5) + theme.sheetHeaderHeight(),
+        paddingBottom: rt.insets.bottom + theme.space(5),
+    },
 }));
 
 const ActionsSheet: FC = () => {
@@ -114,7 +122,11 @@ const ActionsSheet: FC = () => {
             handleStyle={styles.sheetHandle}
             handleIndicatorStyle={styles.sheetHandleIndicator}
         >
-            <BottomSheetView style={styles.sheetContentContainer}>{renderMenu()}</BottomSheetView>
+            <BottomSheetView
+                style={title ? styles.sheetContentContainerWithTitle : styles.sheetContentContainer}
+            >
+                {renderMenu()}
+            </BottomSheetView>
         </BottomSheetModal>
     );
 };

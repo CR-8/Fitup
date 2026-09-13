@@ -1,6 +1,8 @@
 import { FC, useMemo, useCallback, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Sortable from 'react-native-sortables';
 
@@ -266,6 +268,7 @@ const coalesceAllGroups = (
 };
 
 const WorkoutScreen: FC = () => {
+    const { t } = useTranslation(['common', 'screens']);
     const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
     const { user } = useUser();
 
@@ -373,28 +376,40 @@ const WorkoutScreen: FC = () => {
             if (!workoutId) return;
             if (deletingExerciseIdsRef.current.has(id)) return;
 
-            deletingExerciseIdsRef.current.add(id);
-            setDeletingExerciseIds((prev) => {
-                const next = new Set(prev);
-                next.add(id);
-                return next;
-            });
-
-            deleteWorkoutExercise.mutate(
-                { id, workoutId },
+            // The swipe gesture that lands here is easy to trigger by accident
+            // mid-scroll, and there is no undo once the exercise's sets are
+            // gone — same guard the exercise library's own delete already has.
+            Alert.alert(t('workout.removeExerciseAlert', { ns: 'screens' }), undefined, [
+                { text: t('cancel', { ns: 'common' }), style: 'cancel' },
                 {
-                    onSettled: () => {
-                        deletingExerciseIdsRef.current.delete(id);
+                    text: t('delete', { ns: 'common' }),
+                    style: 'destructive',
+                    onPress: () => {
+                        deletingExerciseIdsRef.current.add(id);
                         setDeletingExerciseIds((prev) => {
                             const next = new Set(prev);
-                            next.delete(id);
+                            next.add(id);
                             return next;
                         });
+
+                        deleteWorkoutExercise.mutate(
+                            { id, workoutId },
+                            {
+                                onSettled: () => {
+                                    deletingExerciseIdsRef.current.delete(id);
+                                    setDeletingExerciseIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(id);
+                                        return next;
+                                    });
+                                },
+                            },
+                        );
                     },
                 },
-            );
+            ]);
         },
-        [deleteWorkoutExercise, workoutId],
+        [deleteWorkoutExercise, t, workoutId],
     );
 
     const handleReorder = useCallback(

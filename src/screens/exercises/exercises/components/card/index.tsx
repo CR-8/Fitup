@@ -22,14 +22,11 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(4),
         backgroundColor: theme.colors.background,
     },
-    // The eyebrow treatment from the design: small, quiet and spaced out, so it
-    // labels the section without competing with the muscle groups under it.
+    // The shared eyebrow token, so this reads the same as every other section
+    // label in the app rather than its own one-off tracking.
     categoryEyebrow: {
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
-        fontSize: theme.fontSize['2xs'].fontSize,
-        lineHeight: theme.fontSize['2xs'].lineHeight,
-        letterSpacing: 1.8,
-        textTransform: 'uppercase',
     },
     sectionDivider: {
         height: StyleSheet.hairlineWidth,
@@ -82,12 +79,16 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.mutedTypography,
     },
     exerciseItemContainer: (left: boolean, right: boolean) => ({
-        paddingVertical: theme.space(2),
+        paddingVertical: theme.space(2.5),
         paddingLeft: left ? theme.space(0) : theme.space(4),
         paddingRight: right ? theme.space(0) : theme.space(4),
     }),
+    // Medium rather than the body default: the name is what someone scanning
+    // this list is reading for, and it was previously indistinguishable in
+    // weight from its own muted metadata line below it.
     exerciseName: {
         color: theme.colors.typography,
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     exerciseTracking: {
         color: theme.colors.mutedTypography,

@@ -54,10 +54,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.typography,
     },
     label: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     hint: {

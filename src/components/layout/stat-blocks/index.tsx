@@ -52,16 +52,40 @@ const styles = StyleSheet.create((theme) => ({
         marginVertical: theme.space(1),
         backgroundColor: theme.colors.border,
     },
+    // The 'split' look: each figure is its own bordered tile with a gap
+    // between, rather than one row divided by hairlines. Absorbed from
+    // Home's former `StatsRow`, which was this component in every way but
+    // its surface treatment.
+    splitRow: {
+        gap: theme.space(3),
+    },
+    splitBlock: {
+        flex: 1,
+        alignItems: 'center',
+        gap: theme.space(0.5),
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        paddingVertical: theme.space(3.5),
+        paddingHorizontal: theme.space(2),
+    },
     value: {
         ...theme.fontSize.xl,
         fontWeight: theme.fontWeight.bold.fontWeight,
         color: theme.colors.typography,
+        ...theme.typography.metric,
     },
     valueEmphasised: {
         color: theme.colors.primary,
     },
     label: {
         ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
+        textAlign: 'center',
+    },
+    splitLabel: {
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
         textAlign: 'center',
     },
@@ -74,15 +98,19 @@ export const StatBlocks: FC<{
      * does; Results already pads its scroll view, so it does not.
      */
     inset?: boolean;
-}> = ({ blocks, inset = true }) => {
+    /** 'grouped' (default): one row, hairline dividers. 'split': bordered tiles. */
+    variant?: 'grouped' | 'split';
+}> = ({ blocks, inset = true, variant = 'grouped' }) => {
+    const isSplit = variant === 'split';
+
     return (
         <Box style={inset ? styles.container : undefined}>
-            <HStack style={styles.row}>
+            <HStack style={isSplit ? styles.splitRow : styles.row}>
                 {blocks.map((block, index) => (
                     <Fragment key={block.key}>
-                        {index > 0 ? <Box style={styles.divider} /> : null}
+                        {!isSplit && index > 0 ? <Box style={styles.divider} /> : null}
                         <VStack
-                            style={styles.block}
+                            style={isSplit ? styles.splitBlock : styles.block}
                             accessibilityRole="text"
                             accessibilityLabel={`${block.value} ${block.label}`}
                         >
@@ -93,7 +121,10 @@ export const StatBlocks: FC<{
                             >
                                 {block.value}
                             </Text>
-                            <Text style={styles.label} numberOfLines={2}>
+                            <Text
+                                style={isSplit ? styles.splitLabel : styles.label}
+                                numberOfLines={2}
+                            >
                                 {block.label}
                             </Text>
                         </VStack>

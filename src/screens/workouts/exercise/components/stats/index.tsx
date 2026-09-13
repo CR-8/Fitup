@@ -14,6 +14,7 @@ import { useUser } from '@/hooks/use-user';
 import { useMeasurementTimeline } from '@/hooks/use-measurements';
 import { useExerciseHistory } from '@/hooks/use-exercises';
 import {
+    estimateOneRm,
     isWeightUnit,
     resolveWorkoutDate,
     roundOneDecimal,
@@ -112,7 +113,7 @@ export const WorkoutExerciseStats: FC<WorkoutExerciseStatsProps> = ({
             let totalReps = 0;
 
             for (const set of workingSets) {
-                const oneRm = set.weight * (1 + set.reps / 30);
+                const oneRm = estimateOneRm(set.weight, set.reps);
                 if (Number.isFinite(oneRm) && oneRm > bestOneRm) bestOneRm = oneRm;
 
                 totalVolume += set.weight * set.reps;
@@ -140,7 +141,7 @@ export const WorkoutExerciseStats: FC<WorkoutExerciseStatsProps> = ({
                         sourceUnits === displayWeightUnits
                             ? set.weight
                             : convertWeight(set.weight, sourceUnits, displayWeightUnits);
-                    const oneRm = normalizedWeight * (1 + set.reps / 30);
+                    const oneRm = estimateOneRm(normalizedWeight, set.reps);
                     if (Number.isFinite(oneRm) && oneRm > (referenceOneRm ?? 0))
                         referenceOneRm = oneRm;
                 }

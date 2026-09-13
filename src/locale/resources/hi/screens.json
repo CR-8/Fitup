@@ -359,6 +359,7 @@
     },
     "workout": {
         "deleteWorkoutAlert": "क्या आप वाकई इस वर्कआउट को हटाना चाहते हैं?",
+        "removeExerciseAlert": "इस एक्सरसाइज को वर्कआउट से हटाएं?",
         "repeat": {
             "now": "अभी",
             "plan": "योजना बनाएं",
@@ -814,6 +815,7 @@
         "continue": "जारी रखें",
         "completeSet": "सेट पूरा करें",
         "skipRest": "विश्राम छोड़ें",
+        "newBest": "नया सर्वश्रेष्ठ · {{value}}",
         "endWorkout": "वर्कआउट समाप्त करें",
         "minimize": "वर्कआउट पर वापस",
         "completedTitle": "वर्कआउट पूरा हुआ",

@@ -8,7 +8,6 @@ import { VStack } from '@/components/primitives/vstack';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
-import { Label } from '@/components/forms/label';
 import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
 import { useWorkoutStats, useWorkouts } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
@@ -48,8 +47,15 @@ const styles = StyleSheet.create((theme) => ({
     statTitleContainer: {
         gap: theme.space(2),
     },
-    statTitle: {
+    // Label and value were the same style, which is why a row of figures read
+    // as two columns of identical text rather than a caption and its number.
+    statLabel: {
+        color: theme.colors.mutedTypography,
+    },
+    statValue: {
         color: theme.colors.typography,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.metric,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
@@ -58,12 +64,6 @@ const styles = StyleSheet.create((theme) => ({
     },
     fieldContainer: {
         gap: theme.space(3),
-    },
-    label: {
-        ...theme.fontSize['2xl'],
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
-        opacity: 1,
     },
 }));
 
@@ -129,6 +129,8 @@ const ResultsScreen = () => {
         ];
     }, [stats.trainingHours, stats.workoutsCount, t, workouts]);
 
+    // `workoutsCount` and `trainingHours` are already the hero blocks above —
+    // repeating them here was the same two figures shown twice on one screen.
     const statsData = useMemo(() => {
         return [
             {
@@ -141,18 +143,6 @@ const ResultsScreen = () => {
                 title: t('results.stats.trainingDays.title', { ns: 'screens' }),
                 value: stats.trainingDays
                     ? t('number', { value: stats.trainingDays, ns: 'common' })
-                    : '-',
-            },
-            {
-                title: t('results.stats.trainingHours.title', { ns: 'screens' }),
-                value: stats.trainingHours
-                    ? t('number', { value: stats.trainingHours, ns: 'common' })
-                    : '-',
-            },
-            {
-                title: t('results.stats.workoutsCount.title', { ns: 'screens' }),
-                value: stats.workoutsCount
-                    ? t('number', { value: stats.workoutsCount, ns: 'common' })
                     : '-',
             },
             {
@@ -200,7 +190,7 @@ const ResultsScreen = () => {
             <StrengthStats />
             <Scale />
             <VStack style={styles.fieldContainer}>
-                <Label style={styles.label}>{t('results.stats.title', { ns: 'screens' })}</Label>
+                <Title type="h4">{t('results.stats.title', { ns: 'screens' })}</Title>
                 <VStack style={styles.statsContainer}>
                     <VStack style={styles.statsWrapper}>
                         {statsData.map((stat, index) => (
@@ -208,15 +198,11 @@ const ResultsScreen = () => {
                                 <HStack style={styles.statContainer}>
                                     <VStack style={styles.statTitleContainer}>
                                         <Box>
-                                            <Text fontWeight="medium" style={styles.statTitle}>
-                                                {stat.title}
-                                            </Text>
+                                            <Text style={styles.statLabel}>{stat.title}</Text>
                                         </Box>
                                     </VStack>
                                     <Box>
-                                        <Text fontWeight="medium" style={styles.statTitle}>
-                                            {stat.value}
-                                        </Text>
+                                        <Text style={styles.statValue}>{stat.value}</Text>
                                     </Box>
                                 </HStack>
                                 {index < statsData.length - 1 && <Box style={styles.divider} />}

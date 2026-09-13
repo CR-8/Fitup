@@ -3,6 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import { ChevronDown, Pause, Play, Check, SkipForward } from 'lucide-react-native';
 
 import { VStack } from '@/components/primitives/vstack';
@@ -18,8 +19,12 @@ import {
     useWorkoutWithDetails,
 } from '@/hooks/use-workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
+import { useExerciseHistory } from '@/hooks/use-exercises';
+import { useUser } from '@/hooks/use-user';
 import { formatSet } from '@/helpers/workouts';
 import { buildPauseUpdate, buildResumeUpdate, isSetPaused } from '@/helpers/pause';
+import { isWarmupSetType } from '@/helpers/set-type';
+import { convertWeight } from '@/helpers/units';
 import {
     getStopwatchElapsedSeconds,
     getWorkElapsedSeconds,
@@ -29,6 +34,7 @@ import { getRestSecondsPlanned } from '@/helpers/rest';
 import { finalizeRestNow, startNextSetOrExercise } from '@/services/set-transitions';
 import { reportError } from '@/services/error-reporting';
 import { buildExerciseGifUrl, EXERCISE_GIF_PREVIEW_RESOLUTION } from '@/constants/fitup';
+import { estimateOneRm } from '@/screens/exercises/exercise/components/statistics/components/metric-utils';
 
 const styles = StyleSheet.create((theme, rt) => ({
     /**
@@ -62,10 +68,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     // The eyebrow/pill pair follows the Home "Up Next" card, which is the
     // contrast-audited coral treatment in this app.
     eyebrow: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     phasePill: {
@@ -88,10 +91,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         backgroundColor: theme.colors.elevated,
     },
     phaseText: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
     },
     phaseTextOnCoral: {
         color: theme.colors.primaryTypography,
@@ -106,6 +106,15 @@ const styles = StyleSheet.create((theme, rt) => ({
     metaRow: {
         color: theme.colors.mutedTypography,
         fontVariant: ['tabular-nums'],
+    },
+    // Text, not a pill — it sits for a few seconds next to the line it
+    // follows and then is gone, so it reads as a passing note rather than a
+    // badge earning a container of its own.
+    personalBest: {
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.primary,
+        marginTop: theme.space(0.5),
     },
     /**
      * The only flexible row on the screen. `minHeight: 0` is what lets it give
@@ -174,12 +183,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     action: {
         flex: 1,
         width: 'auto',
-    },
-    primaryAction: {
-        backgroundColor: theme.colors.brand[600],
-    },
-    primaryActionText: {
-        color: theme.colors.primaryTypography,
     },
     secondaryAction: {
         backgroundColor: theme.colors.foreground,
@@ -257,11 +260,68 @@ const TimerScreen: FC = () => {
     const timeOptions = currentExercise?.timeOptions ?? 'log';
     const paused = isSetPaused(currentSet);
 
+    const { user } = useUser();
+    const displayWeightUnits = user?.weightUnits ?? currentExercise?.weightUnits ?? 'kg';
+    const { data: exerciseHistory = [] } = useExerciseHistory(currentExercise?.id ?? '');
+
+    // The bar to beat: the best estimated 1RM this exercise has on record
+    // before this session — same estimate, same normalization, as the
+    // exercise's own stats card, so "best" means the same thing everywhere
+    // it's shown. Only ever compared against, never displayed directly.
+    const historicalBestOneRm = useMemo(() => {
+        if (!currentExercise) return null;
+
+        let best = 0;
+        for (const item of exerciseHistory) {
+            if (item.workout.id === runningWorkout?.id) continue;
+
+            for (const set of item.sets) {
+                if (isWarmupSetType(set.type)) continue;
+                if (set.weight == null || set.reps == null) continue;
+                if (set.weight <= 0 || set.reps <= 0) continue;
+
+                const sourceUnits =
+                    set.weightUnits ?? currentExercise.weightUnits ?? displayWeightUnits;
+                const normalizedWeight =
+                    sourceUnits === displayWeightUnits
+                        ? set.weight
+                        : convertWeight(set.weight, sourceUnits, displayWeightUnits);
+                const oneRm = estimateOneRm(normalizedWeight, set.reps);
+                if (Number.isFinite(oneRm) && oneRm > best) best = oneRm;
+            }
+        }
+
+        return best > 0 ? best : null;
+    }, [currentExercise, displayWeightUnits, exerciseHistory, runningWorkout?.id]);
+
+    // A real personal best, surfaced briefly and then gone — not a badge that
+    // sits on screen, just a moment of "that one counted" while it's true.
+    const [personalBestLabel, setPersonalBestLabel] = useState<string | null>(null);
+    const personalBestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (personalBestTimeoutRef.current) clearTimeout(personalBestTimeoutRef.current);
+        };
+    }, []);
+
     const phase: Phase = useMemo(() => {
         if (!currentSet) return 'complete';
         if (paused) return 'paused';
         return runningWorkoutRestingSet ? 'rest' : 'work';
     }, [currentSet, paused, runningWorkoutRestingSet]);
+
+    // A tap on "done" (below) already buzzes for a set finishing; this covers
+    // the other way a set's cycle ends — rest running out, whether the clock
+    // reached zero on its own or the user skipped it. Both routes leave this
+    // screen with the same signal: rest was showing, and now it is not.
+    const previousPhaseRef = useRef(phase);
+    useEffect(() => {
+        if (previousPhaseRef.current === 'rest' && phase !== 'rest') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        previousPhaseRef.current = phase;
+    }, [phase]);
 
     /**
      * Exercise, set and elapsed collapsed onto one line.
@@ -429,6 +489,39 @@ const TimerScreen: FC = () => {
                 source: 'phone',
             });
 
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Only a genuine beat of real history counts — never on the first
+            // time an exercise is ever logged, when every set would trivially
+            // "win" against nothing.
+            if (
+                historicalBestOneRm != null &&
+                currentExercise &&
+                !isWarmupSetType(activeSet.type) &&
+                activeSet.weight != null &&
+                activeSet.reps != null &&
+                activeSet.weight > 0 &&
+                activeSet.reps > 0
+            ) {
+                const sourceUnits =
+                    activeSet.weightUnits ?? currentExercise.weightUnits ?? displayWeightUnits;
+                const normalizedWeight =
+                    sourceUnits === displayWeightUnits
+                        ? activeSet.weight
+                        : convertWeight(activeSet.weight, sourceUnits, displayWeightUnits);
+
+                if (estimateOneRm(normalizedWeight, activeSet.reps) > historicalBestOneRm) {
+                    if (personalBestTimeoutRef.current) {
+                        clearTimeout(personalBestTimeoutRef.current);
+                    }
+                    setPersonalBestLabel(formatSet(currentExercise, activeSet));
+                    personalBestTimeoutRef.current = setTimeout(
+                        () => setPersonalBestLabel(null),
+                        3500,
+                    );
+                }
+            }
+
             // Sets with rest hand over to the provider's rest transition; the
             // ones without it have nothing else to advance them.
             const restTime = activeSet.restTime;
@@ -444,6 +537,9 @@ const TimerScreen: FC = () => {
         }, 'Failed to complete set from the timer screen:');
     }, [
         completeSet,
+        currentExercise,
+        displayWeightUnits,
+        historicalBestOneRm,
         runAction,
         runningWorkoutActiveExercise?.id,
         runningWorkoutActiveSet,
@@ -569,6 +665,11 @@ const TimerScreen: FC = () => {
                 <Text fontSize="sm" style={styles.metaRow}>
                     {metaLine}
                 </Text>
+                {personalBestLabel ? (
+                    <Text style={styles.personalBest}>
+                        {t('timer.newBest', { ns: 'screens', value: personalBestLabel })}
+                    </Text>
+                ) : null}
             </VStack>
 
             {gifUrl ? (
@@ -658,8 +759,8 @@ const TimerScreen: FC = () => {
                         }
                         onPress={handleTogglePause}
                         disabled={controlsDisabled || !currentSet}
-                        containerStyle={[styles.action, styles.primaryAction]}
-                        textStyle={styles.primaryActionText}
+                        type="primary"
+                        containerStyle={styles.action}
                         accessibilityRole="button"
                         accessibilityLabel={t(paused ? 'timer.a11y.continue' : 'timer.a11y.stop', {
                             ns: 'screens',

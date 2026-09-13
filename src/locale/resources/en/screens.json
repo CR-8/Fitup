@@ -359,6 +359,7 @@
     },
     "workout": {
         "deleteWorkoutAlert": "Are you sure you want to delete this workout?",
+        "removeExerciseAlert": "Remove this exercise from the workout?",
         "repeat": {
             "now": "Now",
             "plan": "Plan",
@@ -814,6 +815,7 @@
         "continue": "Continue",
         "completeSet": "Complete set",
         "skipRest": "Skip rest",
+        "newBest": "New best · {{value}}",
         "endWorkout": "End workout",
         "minimize": "Back to workout",
         "completedTitle": "Workout complete",

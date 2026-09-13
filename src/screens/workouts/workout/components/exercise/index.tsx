@@ -11,7 +11,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Separator } from '@/components/layout/separator';
 import { Pressable } from '@/components/primitives/pressable';
-import { Trash2 } from 'lucide-react-native';
+import { Check, Trash2 } from 'lucide-react-native';
 import { WorkoutItem } from '../../types';
 import { WorkoutSelect } from '@/db/schema';
 import { ExerciseSet } from '../exercise-set';
@@ -34,27 +34,45 @@ interface ExerciseProps {
 }
 
 const styles = StyleSheet.create((theme, rt) => ({
-    exercise: {
+    // The row currently under way. A tint across the whole row plus a rail at
+    // its leading edge — the two together are what make it unmistakable
+    // beside its siblings, rather than the index number alone having to do it.
+    exercise: (isActive: boolean) => ({
+        position: 'relative',
         paddingTop: theme.space(1.5),
+        backgroundColor: isActive ? theme.colors.primarySoft : 'transparent',
+    }),
+    activeRail: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: theme.space(0.75),
+        backgroundColor: theme.colors.brand[500],
     },
     orderContainer: {
         width: theme.space(12),
         alignItems: 'center',
     },
-    orderTitle: (isActive: boolean, isCompleted: boolean) => ({
+    orderTitle: (isActive: boolean) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: isActive ? theme.colors.brand[500] : theme.colors.typography,
-        opacity: isActive || isCompleted ? 1 : 0.45,
+        opacity: isActive ? 1 : 0.45,
     }),
     exerciseContainer: {
         flex: 1,
         marginRight: theme.space(4),
         paddingBottom: theme.space(3),
     },
-    exerciseName: {
-        color: theme.colors.typography,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
+    // Completed drops to the muted colour so it recedes; active goes bold
+    // rather than just full-strength, since full-strength is also what an
+    // untouched upcoming exercise already looks like.
+    exerciseName: (isActive: boolean, isCompleted: boolean) => ({
+        color: isCompleted && !isActive ? theme.colors.mutedTypography : theme.colors.typography,
+        fontWeight: isActive
+            ? theme.fontWeight.bold.fontWeight
+            : theme.fontWeight.semibold.fontWeight,
+    }),
     exerciseMeta: {
         color: theme.colors.typography,
         opacity: 0.6,
@@ -164,18 +182,24 @@ const ExerciseContent: FC<{
     showGroupIndicator,
 }) => {
     const { t } = useTranslation(['common']);
+    const { theme } = useUnistyles();
 
     return (
-        <HStack style={styles.exercise}>
+        <HStack style={styles.exercise(isExerciseActive)}>
+            {isExerciseActive && <Box style={styles.activeRail} />}
             <Box style={styles.orderContainer}>
                 <VStack style={styles.groupIndicatorContainer}>
                     {isEditMode ? (
                         <Box style={styles.selectCircle(!!isSelected)} />
+                    ) : isExerciseCompleted && !isExerciseActive ? (
+                        <Check
+                            size={theme.space(4)}
+                            color={theme.colors.brand[500]}
+                            strokeWidth={2.5}
+                        />
                     ) : (
                         <Box>
-                            <Text style={styles.orderTitle(isExerciseActive, isExerciseCompleted)}>
-                                {index + 1}
-                            </Text>
+                            <Text style={styles.orderTitle(isExerciseActive)}>{index + 1}</Text>
                         </Box>
                     )}
                     {showGroupIndicator && <Box style={styles.groupIndicator} />}
@@ -183,7 +207,9 @@ const ExerciseContent: FC<{
             </Box>
             <VStack style={styles.exerciseContainer}>
                 <Box>
-                    <Text style={styles.exerciseName}>{item.name}</Text>
+                    <Text style={styles.exerciseName(isExerciseActive, isExerciseCompleted)}>
+                        {item.name}
+                    </Text>
                 </Box>
                 {item.tracking && item.tracking.length > 0 ? (
                     <Box>

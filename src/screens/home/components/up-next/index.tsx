@@ -32,22 +32,22 @@ const styles = StyleSheet.create((theme, rt) => ({
     container: {
         paddingHorizontal: theme.space(4),
     },
+    // Slightly more generous than its siblings on this screen — it is the
+    // answer to "what do I do now", so it earns a touch more room than the
+    // cards around it rather than matching them exactly.
     card: (isResume: boolean) => ({
         backgroundColor: isResume ? theme.colors.primary : theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
-        padding: theme.space(5),
+        padding: theme.space(6),
         gap: theme.space(4),
     }),
     eyebrow: (isResume: boolean) => ({
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase' as const,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: isResume ? theme.colors.primaryTypography : theme.colors.mutedTypography,
         opacity: isResume ? 0.9 : 1,
     }),
     title: (isResume: boolean) => ({
-        ...theme.fontSize['2xl'],
+        ...theme.fontSize['3xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
         color: isResume ? theme.colors.primaryTypography : theme.colors.typography,
     }),

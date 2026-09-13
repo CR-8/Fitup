@@ -15,7 +15,10 @@ const common = {
         xl: 12,
         '2xl': 16,
         '3xl': 24,
-        '4xl': 32,
+        // Was 32. The app's best-built surfaces (up-next, timer, stat-blocks)
+        // already ship at 24 — this collapses the 32/24/16 three-way split
+        // that had crept into the other ~34 files onto that same value.
+        '4xl': 24,
         full: 9999,
     },
     fontSize: {
@@ -76,6 +79,22 @@ const common = {
             fontWeight: 900,
         },
     } as const,
+    typography: {
+        // The eyebrow label, declared once. It was being re-derived in 11
+        // files with three different letter-spacings for the same element.
+        eyebrow: {
+            fontSize: FONT_SIZE_BASE * 0.625,
+            lineHeight: FONT_SIZE_BASE * 1,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase' as const,
+            fontWeight: 600 as const,
+        },
+        // Any figure that changes in place — timers, weights, reps, volume —
+        // so a running clock doesn't jitter and stat columns line up.
+        metric: {
+            fontVariant: ['tabular-nums' as const],
+        },
+    },
 };
 
 const func = {

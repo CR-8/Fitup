@@ -55,6 +55,18 @@ const styles = StyleSheet.create((theme, rt) => ({
                         rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
                     borderRadius: theme.radius.full,
                 },
+                // The one filled coral button. `brand[600]`, not `brand[500]`:
+                // the title is a 16px label, below the large-text allowance, so
+                // white on it has to clear 4.5:1 — `brand[500]` is 3.41:1,
+                // `brand[600]` is 4.48:1. Same reasoning as the Home "Up Next"
+                // card and the workout timer's primary action.
+                primary: {
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: '100%',
+                    backgroundColor: theme.colors.brand[600],
+                    borderRadius: theme.radius.full,
+                },
                 link: {
                     backgroundColor: 'transparent',
                     justifyContent: 'flex-start',
@@ -92,6 +104,9 @@ const styles = StyleSheet.create((theme, rt) => ({
                             ? theme.colors.neutral[950]
                             : theme.colors.neutral[50],
                 },
+                primary: {
+                    color: theme.colors.primaryTypography,
+                },
                 link: {
                     color: theme.colors.typography,
                 },
@@ -118,6 +133,12 @@ const styles = StyleSheet.create((theme, rt) => ({
                     alignItems: 'center',
                     height: '100%',
                 },
+                primary: {
+                    position: title ? 'absolute' : 'relative',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100%',
+                },
             },
             size: {},
         },
@@ -126,6 +147,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         variants: {
             type: {
                 default: {
+                    left: title ? theme.space(4) : 0,
+                },
+                primary: {
                     left: title ? theme.space(4) : 0,
                 },
                 link: {

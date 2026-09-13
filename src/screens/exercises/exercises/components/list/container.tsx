@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
+import { Alert, StyleProp, ViewStyle } from 'react-native';
 import { ViewToken } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
@@ -79,7 +79,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     activeFilterCount = 0,
     ...rest
 }) => {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation(['common', 'screens']);
     const { track } = useAnalytics();
     const [stickyHeaderState, setStickyHeaderState] = useState<StickyHeaderState>({});
     const lastTrackedSearchRef = useRef<string | null>(null);
@@ -205,11 +205,22 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
         return `${rawCount}:${data.map(getListItemIdentity).join('|')}`;
     }, [data, rawExercises?.length]);
 
+    // Same confirm the exercise detail screen's own delete menu already
+    // requires — this is the other way to reach the identical, permanent
+    // `useDeleteExercise` mutation, and a swipe is far easier to trigger by
+    // accident than a menu item.
     const handleDelete = useCallback(
         (exerciseId: string) => {
-            deleteExercise.mutate(exerciseId);
+            Alert.alert(t('exercise.deleteExerciseAlert', { ns: 'screens' }), undefined, [
+                { text: t('cancel', { ns: 'common' }), style: 'cancel' },
+                {
+                    text: t('delete', { ns: 'common' }),
+                    style: 'destructive',
+                    onPress: () => deleteExercise.mutate(exerciseId),
+                },
+            ]);
         },
-        [deleteExercise],
+        [deleteExercise, t],
     );
 
     const mode = rest.mode;

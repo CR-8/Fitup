@@ -68,10 +68,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: rt.themeName === 'dark' ? theme.colors.primary : theme.colors.brand[700],
     },
     caption: {
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
     },
     captionValue: {

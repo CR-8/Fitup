@@ -38,10 +38,12 @@ const FALLBACK_HORIZON_DAYS = 3;
  * How many `need_info` turns this conversation gets before `generatePlan`
  * forces a plan out under conservative assumptions instead of asking again —
  * see `ASSESSMENT_SCHEMA_HINT` in src/ai/prompt.ts and the `FORCE_READY` line
- * it looks for. A cautious plan the user did not fully brief beats a fourth
- * question they may never answer.
+ * it looks for. A cautious plan the user did not fully brief beats a second
+ * question they may never answer — one round is enough to catch an injury or
+ * missing equipment; asking twice just reads as the app not listening the
+ * first time.
  */
-const INTAKE_QUESTION_LIMIT = 2;
+const INTAKE_QUESTION_LIMIT = 1;
 
 /** How far back to look when counting prior intake turns. Generous on purpose: a
  *  short window could undercount across a conversation with other chat in between

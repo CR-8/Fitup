@@ -49,10 +49,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
     },
     eyebrow: (status: WorkoutSelect['status']) => ({
-        ...theme.fontSize['2xs'],
-        letterSpacing: 1.1,
-        textTransform: 'uppercase' as const,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+        ...theme.typography.eyebrow,
         color:
             status === 'in_progress'
                 ? theme.colors.primaryTypography

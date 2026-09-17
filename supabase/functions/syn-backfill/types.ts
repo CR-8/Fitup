@@ -50,6 +50,17 @@ export interface CatalogueInstructionRow {
     steps: string[];
 }
 
+export interface CatalogueFoodRow {
+    id: string;
+    name: string;
+    category: string;
+    serving_size: string;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+}
+
 export interface BackfillProgress {
     processed: number;
     nextCursor: string | null;

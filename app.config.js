@@ -5,12 +5,12 @@
 const easProjectId = process.env.APP_EAS_PROJECT_ID || '91cedf58-1db7-4972-813a-eca58acc014e';
 
 module.exports = {
-    name: process.env.APP_NAME || 'FitSync',
+    name: process.env.APP_NAME || 'FitSyn',
     version: process.env.APP_VERSION || '1.0',
     owner: 'fitup2026',
     slug: 'fitup2026',
     orientation: 'portrait',
-    scheme: 'fitup',
+    scheme: 'fitsyn',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     experiments: {
@@ -52,7 +52,10 @@ module.exports = {
         config: {
             usesNonExemptEncryption: false,
         },
-        associatedDomains: ['applinks:fitup.app', 'webcredentials:fitup.app'],
+        // NOTE: fitsyn.app must actually be owned and hosting an
+        // apple-app-site-association file before universal links work — this
+        // is a rename of the literal, not a guarantee the domain exists yet.
+        associatedDomains: ['applinks:fitsyn.app', 'webcredentials:fitsyn.app'],
         infoPlist: {
             CFBundleAllowMixedLocalizations: true,
             UIBackgroundModes: ['audio', 'remote-notification'],
@@ -159,9 +162,9 @@ module.exports = {
         },
     },
     // The launcher label, per language. These override the `name` above on a
-    // device set to that language — which is why an app called FitSync sat in
-    // the drawer as "Fitup", and in Russian as "Скульпт", a name from two
-    // renames ago. Every entry must be updated with the app name, not just
+    // device set to that language — which is why an app called FitSyn once
+    // sat in the drawer as "Fitup" (and, two renames ago, "Скульпт" in
+    // Russian). Every entry must be updated with the app name, not just
     // `name`.
     locales: {
         en: './src/locale/translations/meta/en.json',
@@ -184,8 +187,8 @@ module.exports = {
         [
             '@kingstinct/react-native-healthkit',
             {
-                NSHealthShareUsageDescription: 'FitSync reads your heart rate during workouts',
-                NSHealthUpdateUsageDescription: 'FitSync saves your completed workouts to Health',
+                NSHealthShareUsageDescription: 'FitSyn reads your heart rate during workouts',
+                NSHealthUpdateUsageDescription: 'FitSyn saves your completed workouts to Health',
             },
         ],
         'expo-health-connect',

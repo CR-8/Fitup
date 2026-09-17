@@ -1,7 +1,7 @@
 ---
 title: "Software Requirements Specification"
-subtitle: "Fitup --- Workout Planner, Training Log, and AI Training Assistant"
-author: "Fitup Engineering"
+subtitle: "FitSyn --- Workout Planner, Training Log, and AI Training Assistant"
+author: "FitSyn Engineering"
 date: "Version 1.0 (Draft) --- 7 August 2026"
 lang: en
 toc: true
@@ -25,7 +25,7 @@ toccolor: "black"
 ## Purpose
 
 This Software Requirements Specification (SRS) defines the complete functional and
-non-functional requirements for **Fitup**, a local-first workout planner and training log
+non-functional requirements for **FitSyn**, a local-first workout planner and training log
 for iOS, watchOS, and Android, together with the **AI Training Assistant** module and the
 supporting content-management and service infrastructure required to operate it.
 
@@ -51,7 +51,7 @@ Section 5.13, where the arrangement of components is the control.
 
 ### In scope
 
-Fitup consists of five deliverable components:
+FitSyn consists of five deliverable components:
 
 | ID | Component | Status |
 | :--- | :--- | :--- |
@@ -89,7 +89,7 @@ The following are explicitly excluded from this specification:
 | **Plan** | An AI-generated proposal of workouts and, optionally, meals across a horizon of days. |
 | **Sync (feature)** | The user action committing a generated plan into the workout schedule. |
 | **SyncLayer** | The optional server-side data synchronisation provider. |
-| **System exercise** | A catalogue exercise owned by Fitup, identified by the reserved user ID `__fitup__`. |
+| **System exercise** | A catalogue exercise owned by FitSyn, identified by the reserved user ID `__fitup__`. |
 | **Validator** | The deterministic, non-AI component that verifies a generated plan against constraints. |
 | **BMR / TDEE** | Basal Metabolic Rate / Total Daily Energy Expenditure. |
 | **RPE** | Rate of Perceived Exertion, a subjective intensity scale recorded per set. |
@@ -127,7 +127,7 @@ in RFC 2119.
 
 ## Product perspective
 
-Fitup is a self-contained mobile product rather than a component of a larger system. It
+FitSyn is a self-contained mobile product rather than a component of a larger system. It
 depends on no external system for its core function, and it is this independence that the
 specification is principally concerned with preserving.
 
@@ -184,7 +184,7 @@ At the highest level the system provides:
 | **Rehabilitation-constrained user** | Trains around a declared condition. Highest safety sensitivity. | Low | Variable |
 | **Content editor** | Client staff authoring catalogue entries and conditional rules. | Medium | Daily |
 | **Content reviewer** | Senior staff approving safety-relevant rules before publication. | Medium; domain-qualified | Weekly |
-| **Support and operations** | Fitup staff investigating generations, quota, and failures. | High | As required |
+| **Support and operations** | FitSyn staff investigating generations, quota, and failures. | High | As required |
 
 The rehabilitation-constrained class deserves particular emphasis. It is the class the AI
 Assistant is most valuable to and the class it can most harm. Requirements throughout this
@@ -235,7 +235,7 @@ document.
 
 ```
 +-------------------+       +---------------------+       +------------------+
-|   Fitup CMS       | write |  Content database   |  read |   AI service     |
+|   FitSyn CMS       | write |  Content database   |  read |   AI service     |
 |   (web, staff)    +------>+  (PostgreSQL)       +<------+   (container)    |
 +-------------------+       +----------+----------+       +--------+---------+
                                        |                           |
@@ -248,7 +248,7 @@ document.
                         HTTPS + bearer | x-fitup-sync-schema: 2
                                        v
 +----------------------------------------------------------------------+
-|                        Fitup mobile client                            |
+|                        FitSyn mobile client                            |
 |                                                                       |
 |  routes / screens  ->  hooks  ->  CRUD + services  ->  Drizzle/SQLite |
 |                                        |                              |
@@ -1117,7 +1117,7 @@ deny-list fails open, silently transmitting every field added thereafter.
 
 # Compliance, Legal, and Store Policy
 
-The AI Assistant materially changes Fitup's regulatory and store-review posture. These
+The AI Assistant materially changes FitSyn's regulatory and store-review posture. These
 requirements are launch blockers, not follow-up work.
 
 ## Medical positioning
@@ -1156,7 +1156,7 @@ is not built to satisfy. Every piece of copy must respect this line.
 
 ## Licensing
 
-The Fitup client is licensed under GPL-3.0 (R9), and is a rebranded derivative of the
+The FitSyn client is licensed under GPL-3.0 (R9), and is a rebranded derivative of the
 Skulpt workout tracker distributed under the same licence.
 
 | ID | Requirement |

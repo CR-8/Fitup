@@ -1,7 +1,7 @@
 import i18n from '@/locale/i18n';
 
 /**
- * FitSync's two typefaces, and the one thing that stops them breaking the app.
+ * FitSyn's two typefaces, and the one thing that stops them breaking the app.
  *
  * Space Grotesk carries headings and figures; DM Sans carries everything else.
  * Both are Latin-only — DM Sans ships latin and latin-ext, Space Grotesk adds

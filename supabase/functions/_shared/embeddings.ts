@@ -91,3 +91,21 @@ export const buildExercisePassage = (input: {
 
     return lines.filter((line): line is string => line !== null).join('\n');
 };
+
+/** Same idea as `buildExercisePassage`, for a catalogue food. */
+export const buildFoodPassage = (input: {
+    name: string;
+    category: string;
+    servingSize: string;
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+}): string =>
+    [
+        input.name,
+        `Category: ${input.category}`,
+        `Serving: ${input.servingSize}`,
+        `Per serving: ${input.caloriesKcal} kcal, ${input.proteinG}g protein, ` +
+            `${input.carbsG}g carbs, ${input.fatG}g fat`,
+    ].join('\n');

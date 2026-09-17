@@ -1,0 +1,28 @@
+{
+    "kind": "collectionType",
+    "collectionName": "foods",
+    "info": {
+        "singularName": "food",
+        "pluralName": "foods",
+        "displayName": "Food",
+        "description": "The food catalogue. Publishing syncs to Supabase's catalogue_foods and refreshes its embedding. Does not touch how a user logs a meal by hand — that stays freeform text."
+    },
+    "options": {
+        "draftAndPublish": true
+    },
+    "pluginOptions": {},
+    "attributes": {
+        "catalogueId": {
+            "type": "string",
+            "unique": true,
+            "description": "The nanoid this food has in catalogue_foods. Auto-generated on creation (see lifecycles.ts) unless supplied."
+        },
+        "name": { "type": "string", "required": true },
+        "category": { "type": "string", "default": "other" },
+        "servingSize": { "type": "string", "required": true, "description": "e.g. \"100 g\" or \"1 cup\"" },
+        "calories": { "type": "float", "default": 0 },
+        "proteinG": { "type": "float", "default": 0 },
+        "carbsG": { "type": "float", "default": 0 },
+        "fatG": { "type": "float", "default": 0 }
+    }
+}

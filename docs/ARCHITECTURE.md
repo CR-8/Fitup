@@ -1,6 +1,6 @@
 # Architecture
 
-Fitup is a local-first React Native and Expo application. Its product database is SQLite on the device. Network services, native platform APIs, and the watchOS target sit around that local core.
+FitSyn is a local-first React Native and Expo application. Its product database is SQLite on the device. Network services, native platform APIs, and the watchOS target sit around that local core.
 
 ## Data flow
 
@@ -59,7 +59,7 @@ Restore runs on the first sign-in on a new device, rebuilding the local user row
 
 ### Exercise catalogue
 
-The maintained Fitup exercise catalogue lives in Supabase, in `catalogue_exercises` and `catalogue_instructions`. The client reads it through the `catalogue_page` function, which applies the requested locale and falls back to English for anything untranslated. User-created exercises remain separate through their source and identifiers.
+The maintained FitSyn exercise catalogue lives in Supabase, in `catalogue_exercises` and `catalogue_instructions`. The client reads it through the `catalogue_page` function, which applies the requested locale and falls back to English for anything untranslated. User-created exercises remain separate through their source and identifiers.
 
 The catalogue is public reference data: its row-level security policy grants `select` to `anon`, so a signed-out install can still fill its library. Nothing has a write policy, so only the seeder and the CMS — which authenticate with the service-role key — can change it.
 
@@ -71,7 +71,7 @@ The catalogue is not bundled with the client. A clean build with no Supabase con
 
 The iOS client reads authorised HealthKit data and can write completed workouts. Android uses Health Connect. Missing services or denied permissions must not break the local workout flow.
 
-Authorised body measurements copied into Fitup are stored in the local `measurement` table. Rows with `source: "health"` are backed up in the same way as manual measurement rows.
+Authorised body measurements copied into FitSyn are stored in the local `measurement` table. Rows with `source: "health"` are backed up in the same way as manual measurement rows.
 
 ### Apple Watch and Live Activities
 

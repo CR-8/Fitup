@@ -1,8 +1,8 @@
 # Release process
 
-Fitup uses Expo Application Services for mobile builds, OTA updates, and store submission. GitHub Actions checks pull requests but does not build or publish the applications.
+FitSyn uses Expo Application Services for mobile builds, OTA updates, and store submission. GitHub Actions checks pull requests but does not build or publish the applications.
 
-This document is for maintainers. Contributors do not need store credentials, signing files, or access to Fitup's EAS project.
+This document is for maintainers. Contributors do not need store credentials, signing files, or access to FitSyn's EAS project.
 
 ## Configuration
 
@@ -68,7 +68,7 @@ This publishes to the production EAS channel and then uploads source maps. Use a
 Tag the exact source commit used for a public version:
 
 ```bash
-git tag -a v8.0 -m "Fitup 8.0"
+git tag -a v8.0 -m "FitSyn 8.0"
 git push origin v8.0
 ```
 

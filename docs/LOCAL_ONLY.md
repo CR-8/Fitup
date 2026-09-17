@@ -1,6 +1,6 @@
 # Build a local-only client
 
-Fitup's workout core uses SQLite on the device. Everything that leaves the device — accounts,
+FitSyn's workout core uses SQLite on the device. Everything that leaves the device — accounts,
 backup, and the exercise catalogue — hangs off one variable, `EXPO_PUBLIC_SUPABASE_URL`.
 
 ## Configure the environment

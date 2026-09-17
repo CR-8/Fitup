@@ -174,7 +174,7 @@ const func = {
 };
 
 /**
- * FitSync's palette, taken from the design's own stylesheet rather than sampled
+ * FitSyn's palette, taken from the design's own stylesheet rather than sampled
  * by eye.
  *
  * The ramps matter as much as the semantic tokens below them: around 150 places
@@ -188,7 +188,7 @@ export const colors = {
 
     /**
      * Rebuilt around the design's surfaces, so the steps the app already uses
-     * land on real FitSync colours: 50 and 950 are the two page grounds, 900 the
+     * land on real FitSyn colours: 50 and 950 are the two page grounds, 900 the
      * dark card, 200 the light border, 400 and 500 the muted text.
      */
     neutral: {

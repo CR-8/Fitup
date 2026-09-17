@@ -2,27 +2,33 @@ import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { HTTPException } from 'hono/http-exception';
 
-import { buildExercisePassage, embed } from '../_shared/embeddings.ts';
-import { listEnglishInstructions, listExercisePage, upsertEmbeddings } from './supabase.ts';
+import { buildExercisePassage, buildFoodPassage, embed } from '../_shared/embeddings.ts';
+import {
+    listEnglishInstructions,
+    listExercisePage,
+    listFoodPage,
+    upsertEmbeddings,
+    upsertFoodEmbeddings,
+} from './supabase.ts';
 import { readEnv, type BackfillProgress } from './types.ts';
 
 /**
- * Embeds the catalogue, one page at a time.
+ * Embeds the catalogue, one page at a time — or one row at a time, targeted.
  *
- * A one-off maintenance job, run by a human from a terminal after the
- * catalogue changes materially — a full backfill, or a re-run after the CMS
- * edits a batch of exercises. It is not wired to run automatically on every
- * CMS write: `supabase/functions/cms` and this function both exist and both
- * work today, and connecting them is a small, separate change once the
- * cadence of catalogue edits after launch makes clear whether "automatic" or
- * "reviewed before it costs an embedding call" is the one actually wanted.
+ * Two callers, two modes:
  *
- * Paged rather than one request that walks the whole catalogue: Edge
- * Functions have an execution time ceiling, and ~1,300 sequential embedding
- * calls does not reliably fit under it. Call `POST /syn-backfill/run` with the
- * `nextCursor` each response returns until `done` is `true` — the same
- * "call again with the cursor you were handed" shape the app's own catalogue
- * sync already uses.
+ *   * A human, running a full or partial re-backfill from a terminal after a
+ *     bulk catalogue change. Paged rather than one request that walks the
+ *     whole thing: Edge Functions have an execution time ceiling, and ~1,300
+ *     sequential embedding calls does not reliably fit under it. Call
+ *     `POST /syn-backfill/run` (or `/run-foods`) with the `nextCursor` each
+ *     response returns until `done` is `true`.
+ *
+ *   * The CMS's publish hook, passing `?ids=id1,id2`, right after it writes
+ *     those rows to `catalogue_exercises` / `catalogue_foods`. `cursor` is
+ *     ignored in this mode, and the response is always `done: true` — there
+ *     is nothing to page through when the caller already knows exactly which
+ *     rows changed.
  */
 
 const env = readEnv();
@@ -37,14 +43,29 @@ app.use('*', basicAuth({ username: env.ADMIN_USER, password: env.ADMIN_PASSWORD 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 50;
 
+/**
+ * `ids`, comma-separated: embed exactly those rows and ignore `cursor`.
+ * This is the path the CMS's publish hook uses — it just wrote one row and
+ * wants it embedded now, not queued behind a walk of the whole catalogue.
+ */
+const parseIds = (c: { req: { query: (name: string) => string | undefined } }): string[] | undefined => {
+    const raw = c.req.query('ids');
+    if (!raw) return undefined;
+    return raw
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+};
+
 app.post('/run', async (c) => {
     const cursor = c.req.query('cursor') ?? null;
     const limit = Math.min(
         MAX_PAGE_SIZE,
         Math.max(1, Number(c.req.query('limit')) || DEFAULT_PAGE_SIZE),
     );
+    const ids = parseIds(c);
 
-    const exercises = await listExercisePage(env, cursor, limit);
+    const exercises = await listExercisePage(env, cursor, limit, ids);
 
     if (exercises.length === 0) {
         return c.json<BackfillProgress>({ processed: 0, nextCursor: null, done: true });
@@ -78,12 +99,54 @@ app.post('/run', async (c) => {
 
     await upsertEmbeddings(env, rows);
 
+    // Targeted mode has no pages to walk: it is always the last (and only) one.
     const lastId = exercises[exercises.length - 1]?.id ?? null;
 
     return c.json<BackfillProgress>({
         processed: rows.length,
-        nextCursor: exercises.length < limit ? null : lastId,
-        done: exercises.length < limit,
+        nextCursor: ids || exercises.length < limit ? null : lastId,
+        done: Boolean(ids) || exercises.length < limit,
+    });
+});
+
+app.post('/run-foods', async (c) => {
+    const cursor = c.req.query('cursor') ?? null;
+    const limit = Math.min(
+        MAX_PAGE_SIZE,
+        Math.max(1, Number(c.req.query('limit')) || DEFAULT_PAGE_SIZE),
+    );
+    const ids = parseIds(c);
+
+    const foods = await listFoodPage(env, cursor, limit, ids);
+
+    if (foods.length === 0) {
+        return c.json<BackfillProgress>({ processed: 0, nextCursor: null, done: true });
+    }
+
+    const rows: { food_id: string; content: string; embedding: number[] }[] = [];
+    for (const food of foods) {
+        const content = buildFoodPassage({
+            name: food.name,
+            category: food.category,
+            servingSize: food.serving_size,
+            caloriesKcal: food.calories,
+            proteinG: food.protein_g,
+            carbsG: food.carbs_g,
+            fatG: food.fat_g,
+        });
+
+        const embedding = await embed(content);
+        rows.push({ food_id: food.id, content, embedding });
+    }
+
+    await upsertFoodEmbeddings(env, rows);
+
+    const lastId = foods[foods.length - 1]?.id ?? null;
+
+    return c.json<BackfillProgress>({
+        processed: rows.length,
+        nextCursor: ids || foods.length < limit ? null : lastId,
+        done: Boolean(ids) || foods.length < limit,
     });
 });
 

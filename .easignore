@@ -7,16 +7,16 @@
 
 # --- server-side code, never part of the app bundle -------------------------
 #
-# `workers/` is the retired Cloudflare pair — `exercise-media` served the
-# catalogue and `cms` was the admin dashboard. Both target the Workers runtime,
-# both have their own package.json, lockfile and tsconfig, and neither is
-# imported from `src/`. Kept only until the cutover to Supabase is complete.
-workers/
+# `cms/` is Strapi, the admin dashboard. Its own Node app, own package.json,
+# lockfile and tsconfig, never imported from `src/`. Must never reach the app
+# bundle — this is one of three layers guaranteeing that; see also the root
+# tsconfig `exclude` and `metro.config.js`'s `blockList`.
+cms/
 
-# Postgres migrations, applied by hand in the Supabase SQL editor, and the CMS —
-# which is a Deno Edge Function now, with its own `deno.json`. The root tsconfig
-# excludes both from typecheck for the same reason this excludes them from the
-# upload: neither is React Native, and neither may reach the app bundle.
+# Postgres migrations, applied by hand in the Supabase SQL editor, and retired
+# CMS-era Deno Edge Function code pending deletion. The root tsconfig excludes
+# both from typecheck for the same reason this excludes them from the upload:
+# neither is React Native, and neither may reach the app bundle.
 supabase/
 
 # --- everything from .gitignore ---------------------------------------------
@@ -67,7 +67,7 @@ yarn-error.*
 .cache/
 
 # Local build guide — generated, not tracked
-FitSync-Build-Guide.pdf
+FitSyn-Build-Guide.pdf
 
 # Supabase CLI link state — machine-local, never part of a build.
 supabase/.temp/

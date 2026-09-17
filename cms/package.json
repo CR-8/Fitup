@@ -1,0 +1,24 @@
+{
+    "name": "fitsyn-cms",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Strapi admin dashboard for the exercise and food catalogues. Never imported by the mobile app — see README.",
+    "scripts": {
+        "dev": "strapi develop",
+        "start": "strapi start",
+        "build": "strapi build",
+        "strapi": "strapi"
+    },
+    "dependencies": {
+        "@strapi/strapi": "5.12.4",
+        "@strapi/plugin-users-permissions": "5.12.4",
+        "better-sqlite3": "11.3.0",
+        "pg": "8.13.1"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3"
+    },
+    "engines": {
+        "node": ">=18.0.0 <=22.x.x"
+    }
+}

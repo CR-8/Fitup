@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from '@jest/globals';
 
 /**
- * Guards the FitSync palette.
+ * Guards the FitSyn palette.
  *
  * `unistyles.ts` configures the native runtime on import and reads the stored
  * theme from MMKV, neither of which exists here — but the tokens themselves are
@@ -73,7 +73,7 @@ describe('the palette', () => {
         }
     });
 
-    // The brand was cyan before FitSync, and 54 places reach for it by name.
+    // The brand was cyan before FitSyn, and 54 places reach for it by name.
     test('no cyan survives anywhere in either theme', () => {
         const cyan = ['#06b6d4', '#22d3ee', '#0891b2', '#67e8f9', '#cffafe'];
         const everything = JSON.stringify([lightTheme.colors, darkTheme.colors]).toLowerCase();

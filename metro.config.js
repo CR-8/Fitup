@@ -14,14 +14,14 @@ config.resolver.sourceExts.push('sql');
 // that later. The root tsconfig excludes both for the same reason, and
 // `.easignore` keeps them out of the build upload.
 //
-// `supabase/functions` is the CMS, which runs on Deno. `workers` is the retired
-// Cloudflare pair, kept until the cutover is done.
+// `supabase/functions` is retired CMS-era Deno code, pending deletion. `cms`
+// is Strapi, a separate Node app with its own package.json and node_modules.
 //
 // Appended rather than assigned: the default already blocks `.expo/types` and
 // the native build directories, and replacing it would quietly un-block those.
 config.resolver.blockList = [
     ...config.resolver.blockList,
-    /[\\/]workers[\\/].*/,
+    /[\\/]cms[\\/].*/,
     /[\\/]supabase[\\/]functions[\\/].*/,
 ];
 

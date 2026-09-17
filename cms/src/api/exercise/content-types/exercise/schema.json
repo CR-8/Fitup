@@ -1,0 +1,32 @@
+{
+    "kind": "collectionType",
+    "collectionName": "exercises",
+    "info": {
+        "singularName": "exercise",
+        "pluralName": "exercises",
+        "displayName": "Exercise",
+        "description": "Editorial copy of the exercise catalogue. Publishing syncs to Supabase's catalogue_exercises and refreshes its embedding."
+    },
+    "options": {
+        "draftAndPublish": true
+    },
+    "pluginOptions": {},
+    "attributes": {
+        "catalogueId": {
+            "type": "string",
+            "unique": true,
+            "description": "The nanoid this exercise has in catalogue_exercises. Auto-generated on creation (see lifecycles.ts) unless supplied; changing it after creation would orphan the Supabase row."
+        },
+        "name": { "type": "string", "required": true },
+        "category": {
+            "type": "enumeration",
+            "enum": ["strength", "cardio", "flexibility", "yoga", "pilates", "other"],
+            "required": true
+        },
+        "equipment": { "type": "json", "default": [] },
+        "primaryMuscleGroups": { "type": "json", "default": [] },
+        "secondaryMuscleGroups": { "type": "json", "default": [] },
+        "instructions": { "type": "json", "default": [] },
+        "gifFilename": { "type": "string" }
+    }
+}

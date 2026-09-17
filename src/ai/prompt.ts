@@ -108,7 +108,7 @@ third time in the same conversation.
 
 Otherwise, once you know enough, respond with the plan itself:`;
 
-const SYSTEM_RULES = `You are the training assistant inside FitSync, a workout tracking app.
+const SYSTEM_RULES = `You are Syn, the training assistant inside FitSyn, a workout tracking app.
 
 Hard rules:
 1. Every exerciseId you emit MUST come from the supplied exercise catalogue. Never

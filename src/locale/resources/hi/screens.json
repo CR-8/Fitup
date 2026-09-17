@@ -5,7 +5,7 @@
         "workoutsCount_one": "{{count}} वर्कआउट",
         "workoutsCount_other": "{{count}} वर्कआउट्स",
         "empty": {
-            "title": "यह है FitSync",
+            "title": "यह है FitSyn",
             "description": "आपकी वर्कआउट्स को आसानी से ट्रैक करने का ऐप।",
             "button": {
                 "title": "प्लान करें",
@@ -226,7 +226,7 @@
         }
     },
     "appReview": {
-        "title": "क्या आपको FitSync पसंद है?",
+        "title": "क्या आपको FitSyn पसंद है?",
         "options": {
             "bad": "बहुत खराब",
             "notBad": "ठीक है",
@@ -513,7 +513,7 @@
             }
         },
         "supportFitup": {
-            "title": "FitSync को सपोर्ट करें",
+            "title": "FitSyn को सपोर्ट करें",
             "items": {
                 "tellFriend": {
                     "title": "दोस्त को बताएं"
@@ -707,8 +707,8 @@
         }
     },
     "signIn": {
-        "eyebrow": "FitSync",
-        "title": "FitSync में आपका स्वागत है",
+        "eyebrow": "FitSyn",
+        "title": "FitSyn में आपका स्वागत है",
         "subtitle": "ट्रेनिंग शुरू करने के लिए साइन इन करें। फ़ोन बदलने पर आपका खाता आपके वर्कआउट सुरक्षित रखता है।",
         "google": "Google से जारी रखें",
         "apple": "Apple से जारी रखें",
@@ -886,13 +886,13 @@
         "eaten": "खाया गया"
     },
     "forgotPassword": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "पासवर्ड रीसेट करें",
         "subtitle": "अपना ईमेल पता डालें, हम आपको नया पासवर्ड बनाने का लिंक भेजेंगे।",
         "action": "लिंक भेजें"
     },
     "checkEmail": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "अपना ईमेल देखें",
         "subtitleSignUp": "हमने आपका पता पक्का करने के लिए लिंक भेजा है। सेटअप पूरा करने के लिए इसे इसी फ़ोन पर खोलें।",
         "subtitleReset": "हमने नया पासवर्ड बनाने के लिए लिंक भेजा है। इसे इसी फ़ोन पर खोलें।",
@@ -903,7 +903,7 @@
         "back": "दूसरा पता इस्तेमाल करें"
     },
     "newPassword": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "नया पासवर्ड बनाएँ",
         "titleChange": "पासवर्ड बदलें",
         "subtitle": "कम से कम {{min}} अक्षर।",

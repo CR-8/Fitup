@@ -1,5 +1,5 @@
 {
-    "name": "fitup-app",
+    "name": "fitsyn-app",
     "main": "index.ts",
     "scripts": {
         "start": "expo start",

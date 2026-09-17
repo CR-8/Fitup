@@ -54,7 +54,7 @@ const readBoolean = (value: string | undefined, fallback: boolean): boolean => {
  * Extra headers as a JSON object, for gateways that require them. OpenRouter, for
  * example, attributes traffic with HTTP-Referer and X-Title.
  *
- * EXPO_PUBLIC_AI_HEADERS='{"HTTP-Referer":"https://fitup.app","X-Title":"Fitup"}'
+ * EXPO_PUBLIC_AI_HEADERS='{"HTTP-Referer":"https://fitsyn.app","X-Title":"FitSyn"}'
  */
 const readHeaders = (value: string | undefined): Record<string, string> => {
     const raw = readString(value);

@@ -113,11 +113,11 @@ describe('AI configuration', () => {
     test('parses extra headers from a JSON blob', () => {
         const { AI_CONFIG } = loadConfig({
             EXPO_PUBLIC_AI_BASE_URL: 'https://openrouter.ai/api/v1',
-            EXPO_PUBLIC_AI_HEADERS: '{"HTTP-Referer":"https://fitup.app","X-Title":"Fitup"}',
+            EXPO_PUBLIC_AI_HEADERS: '{"HTTP-Referer":"https://fitsyn.app","X-Title":"FitSyn"}',
         });
         expect(AI_CONFIG.headers).toEqual({
-            'HTTP-Referer': 'https://fitup.app',
-            'X-Title': 'Fitup',
+            'HTTP-Referer': 'https://fitsyn.app',
+            'X-Title': 'FitSyn',
         });
     });
 

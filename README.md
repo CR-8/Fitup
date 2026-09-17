@@ -9,15 +9,15 @@
   A workout tracker for iPhone, Apple Watch, and Android.
 </p>
 
-# Fitup
+# FitSyn
 
-Fitup is a workout planner and training log built with React Native, Expo, SQLite, and native platform integrations. Its working database lives on the device, so planning a workout, logging sets, and reviewing history do not depend on a server connection.
+FitSyn is a workout planner and training log built with React Native, Expo, SQLite, and native platform integrations. Its working database lives on the device, so planning a workout, logging sets, and reviewing history do not depend on a server connection.
 
 Signing in with an account adds backup and cross-device restore on top of that local database, through Supabase. Training, logging and history work without one.
 
 The repository contains the mobile client that ships through the stores. It is licensed under GPL-3.0.
 
-## Why Fitup
+## Why FitSyn
 
 - Free to use, with no subscription
 - Open source under GPL-3.0
@@ -30,7 +30,7 @@ The repository contains the mobile client that ships through the stores. It is l
 
 ## Get the app
 
-Fitup is not published to the App Store or Google Play yet. Build it from source with the
+FitSyn is not published to the App Store or Google Play yet. Build it from source with the
 steps under [Development](#development).
 
 Store builds are intended to be free and subscription-free. Analytics and diagnostics depend
@@ -67,9 +67,9 @@ The backup is separate from the other optional network integrations. PostHog and
 have their own environment variable. Leave those unset when building without analytics or
 diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md).
 
-Fitup can copy authorised body measurements from HealthKit or Health Connect into its own
+FitSyn can copy authorised body measurements from HealthKit or Health Connect into its own
 `measurement` table. Those rows follow the same optional backup path as measurements entered
-by hand. Fitup does not copy or upload the complete contents of either health store.
+by hand. FitSyn does not copy or upload the complete contents of either health store.
 
 ## Roadmap
 
@@ -79,7 +79,7 @@ Polish and harden the full workout experience, from planning and logging to revi
 
 ### ② Whoop-level health intelligence
 
-Deep tracking of recovery, readiness, and training load on par with dedicated wearables. Metrics come from Apple Health on iOS and Google Health Connect on Android. Both collect data from connected devices such as Apple Watch, Garmin, Whoop, Oura, and Polar, so Fitup works with the hardware the user already owns.
+Deep tracking of recovery, readiness, and training load on par with dedicated wearables. Metrics come from Apple Health on iOS and Google Health Connect on Android. Both collect data from connected devices such as Apple Watch, Garmin, Whoop, Oura, and Polar, so FitSyn works with the hardware the user already owns.
 
 ### ③ AI-ready tool layer
 
@@ -87,11 +87,11 @@ A set of composable, privacy-first tools designed for AI agents: each tool compu
 
 ### ④ Agentic protocol
 
-An open, vendor-neutral protocol for connecting AI agents to Fitup. An agent can query the tool layer, reason over computed metrics, and surface personalised recommendations regardless of its model or platform. The protocol is deliberately model-agnostic: it defines a contract rather than an implementation, so it can work with a local on-device model, a self-hosted LLM, or a cloud AI service.
+An open, vendor-neutral protocol for connecting AI agents to FitSyn. An agent can query the tool layer, reason over computed metrics, and surface personalised recommendations regardless of its model or platform. The protocol is deliberately model-agnostic: it defines a contract rather than an implementation, so it can work with a local on-device model, a self-hosted LLM, or a cloud AI service.
 
 ### ⑤ First-class agent UI
 
-A native interface for managing and interacting with connected agents inside the app. Users will be able to configure agent access, inspect what each agent can see, and have conversations grounded in their training data without leaving Fitup.
+A native interface for managing and interacting with connected agents inside the app. Users will be able to configure agent access, inspect what each agent can see, and have conversations grounded in their training data without leaving FitSyn.
 
 ## Architecture
 
@@ -135,7 +135,7 @@ Read [Architecture](docs/ARCHITECTURE.md) for the data flow and platform boundar
 - Android Studio and the Android SDK for Android development
 - EAS CLI for remote device builds and store submissions
 
-Fitup uses custom native modules. Expo Go cannot run this project; use a native development build.
+FitSyn uses custom native modules. Expo Go cannot run this project; use a native development build.
 
 ### Install
 
@@ -146,7 +146,7 @@ cp .env.local.example .env.local
 bun install --frozen-lockfile
 ```
 
-The example file uses a development bundle identifier. Set `APP_APPLE_TEAM_ID` to your own Apple Developer team before building the iOS targets. Contributors do not need Fitup production credentials.
+The example file uses a development bundle identifier. Set `APP_APPLE_TEAM_ID` to your own Apple Developer team before building the iOS targets. Contributors do not need FitSyn production credentials.
 
 ### Run
 
@@ -244,7 +244,7 @@ See [assets/exercises/ATTRIBUTION.md](assets/exercises/ATTRIBUTION.md).
 
 ## License
 
-Fitup is licensed under the [GNU General Public License v3.0](LICENSE).
+FitSyn is licensed under the [GNU General Public License v3.0](LICENSE).
 
-Fitup is a rebranded derivative of the Skulpt workout tracker, which is distributed under the
+FitSyn is a rebranded derivative of the Skulpt workout tracker, which is distributed under the
 same license. The GPL-3.0 terms carry over to this project and to anything derived from it.

@@ -85,7 +85,7 @@ const styles = StyleSheet.create((theme) => ({
 interface AuthHeroProps {
     /** Left out on sign-in, where the badge is the app's own logo instead. */
     icon?: LucideIcon;
-    /** Short, uppercase context tag above the title — e.g. "FitSync". */
+    /** Short, uppercase context tag above the title — e.g. "FitSyn". */
     eyebrow: string;
     title: string;
     subtitle?: string;

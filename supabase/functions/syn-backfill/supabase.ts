@@ -1,4 +1,4 @@
-import type { CatalogueExerciseRow, CatalogueInstructionRow, Env } from './types.ts';
+import type { CatalogueExerciseRow, CatalogueFoodRow, CatalogueInstructionRow, Env } from './types.ts';
 
 /**
  * Reads and writes over PostgREST, same shape as every other function's
@@ -45,7 +45,22 @@ export const listExercisePage = (
     env: Env,
     cursor: string | null,
     limit: number,
+    /**
+     * Targeted mode: embed exactly these ids instead of paging the whole
+     * catalogue. `cursor` is ignored when this is given. Used by the CMS's
+     * publish hook, which just wrote one or a few rows and wants them
+     * embedded now, not queued behind a full backfill.
+     */
+    ids?: string[],
 ): Promise<CatalogueExerciseRow[]> => {
+    if (ids && ids.length > 0) {
+        const idList = ids.map((id) => encodeURIComponent(id)).join(',');
+        return request<CatalogueExerciseRow[]>(
+            env,
+            `catalogue_exercises?select=id,name,category,primary_muscle_groups,secondary_muscle_groups,equipment&is_active=is.true&id=in.(${idList})`,
+        );
+    }
+
     const cursorFilter = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : '';
 
     return request<CatalogueExerciseRow[]>(
@@ -74,6 +89,42 @@ export const upsertEmbeddings = (
     rows: { exercise_id: string; content: string; embedding: number[] }[],
 ): Promise<void> =>
     request(env, 'exercise_embeddings?on_conflict=exercise_id', {
+        method: 'POST',
+        headers: { prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(rows.map((row) => ({ ...row, updated_at: new Date().toISOString() }))),
+        returning: false,
+    });
+
+/** Same shape as `listExercisePage`, over `catalogue_foods`. */
+export const listFoodPage = (
+    env: Env,
+    cursor: string | null,
+    limit: number,
+    ids?: string[],
+): Promise<CatalogueFoodRow[]> => {
+    const columns = 'id,name,category,serving_size,calories,protein_g,carbs_g,fat_g';
+
+    if (ids && ids.length > 0) {
+        const idList = ids.map((id) => encodeURIComponent(id)).join(',');
+        return request<CatalogueFoodRow[]>(
+            env,
+            `catalogue_foods?select=${columns}&is_active=is.true&id=in.(${idList})`,
+        );
+    }
+
+    const cursorFilter = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : '';
+
+    return request<CatalogueFoodRow[]>(
+        env,
+        `catalogue_foods?select=${columns}&is_active=is.true&order=id.asc&limit=${limit}${cursorFilter}`,
+    );
+};
+
+export const upsertFoodEmbeddings = (
+    env: Env,
+    rows: { food_id: string; content: string; embedding: number[] }[],
+): Promise<void> =>
+    request(env, 'food_embeddings?on_conflict=food_id', {
         method: 'POST',
         headers: { prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(rows.map((row) => ({ ...row, updated_at: new Date().toISOString() }))),

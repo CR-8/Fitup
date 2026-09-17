@@ -5,7 +5,7 @@
         "workoutsCount_one": "{{count}} workout",
         "workoutsCount_other": "{{count}} workouts",
         "empty": {
-            "title": "This is FitSync",
+            "title": "This is FitSyn",
             "description": "App for easy and efficient workout tracking.",
             "button": {
                 "title": "Plan",
@@ -226,7 +226,7 @@
         }
     },
     "appReview": {
-        "title": "Do you like FitSync?",
+        "title": "Do you like FitSyn?",
         "options": {
             "bad": "Terrible",
             "notBad": "It's okay",
@@ -513,7 +513,7 @@
             }
         },
         "supportFitup": {
-            "title": "Support FitSync",
+            "title": "Support FitSyn",
             "items": {
                 "tellFriend": {
                     "title": "Tell a Friend"
@@ -707,8 +707,8 @@
         }
     },
     "signIn": {
-        "eyebrow": "FitSync",
-        "title": "Welcome to FitSync",
+        "eyebrow": "FitSyn",
+        "title": "Welcome to FitSyn",
         "subtitle": "Sign in to start training. Your account keeps your workouts if you change phones.",
         "google": "Continue with Google",
         "apple": "Continue with Apple",
@@ -886,13 +886,13 @@
         "eaten": "Eaten"
     },
     "forgotPassword": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "Reset your password",
         "subtitle": "Enter your email address and we will send you a link to set a new password.",
         "action": "Send the link"
     },
     "checkEmail": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "Check your email",
         "subtitleSignUp": "We sent you a link to confirm your address. Open it on this phone to finish setting up.",
         "subtitleReset": "We sent you a link to set a new password. Open it on this phone.",
@@ -903,7 +903,7 @@
         "back": "Use a different address"
     },
     "newPassword": {
-        "eyebrow": "FitSync",
+        "eyebrow": "FitSyn",
         "title": "Set a new password",
         "titleChange": "Change your password",
         "subtitle": "At least {{min}} characters.",

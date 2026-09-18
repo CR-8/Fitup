@@ -48,6 +48,26 @@ npm run dev            # strapi develop, admin UI at http://localhost:1337/admin
 First run creates the admin user through the UI. After that, `npm run dev`
 again just starts it.
 
+## Deploying to Vercel
+
+Create a separate Vercel project with **Root Directory set to `cms`** — this
+lives in the app's monorepo but is its own deployment.
+
+1. `npm run build` locally once to confirm it compiles (`dist/`, including
+   the admin panel build), same command Vercel runs.
+2. Set every variable below in the Vercel project's Environment Variables.
+3. Deploy. `vercel.json` routes every request through `api/index.js`, which
+   loads Strapi once per cold start and hands it each request — see that
+   file's comment for what this trades away versus a persistent host.
+
+`DATABASE_CLIENT` must be `postgres` here, never the local SQLite default —
+Vercel's filesystem is ephemeral, so a SQLite file is wiped on every cold
+start. Use a Postgres instance dedicated to Strapi's own editorial tables,
+separate from the app's Supabase project (see `config/database.ts`).
+
+`CLOUDINARY_URL` must be set too, for the same reason: local uploads don't
+survive a redeploy there either (see `config/plugins.ts`).
+
 ## Food catalogue
 
 New in this cutover — there was no food catalogue before, only freeform

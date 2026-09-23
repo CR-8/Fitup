@@ -6,7 +6,7 @@
             "src": "api/index.js",
             "use": "@vercel/node",
             "config": {
-                "includeFiles": ["dist/**", "public/**", "src/**", "package.json"]
+                "includeFiles": ["dist/**", "public/**", "src/**", "config/**", "package.json", "node_modules/@strapi/**"]
             }
         }
     ],

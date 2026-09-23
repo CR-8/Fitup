@@ -1,0 +1,35 @@
+{
+    "name": "fitsyn-cms",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Payload admin dashboard for the exercise and food catalogues. Never imported by the mobile app.",
+    "type": "module",
+    "scripts": {
+        "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+        "build": "cross-env NODE_OPTIONS=--no-deprecation payload migrate && cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
+        "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
+        "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
+        "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
+    },
+    "dependencies": {
+        "@payloadcms/db-postgres": "3.90.2",
+        "@payloadcms/next": "3.90.2",
+        "@payloadcms/richtext-lexical": "3.90.2",
+        "@payloadcms/ui": "3.90.2",
+        "cross-env": "^7.0.3",
+        "graphql": "^16.8.1",
+        "next": "16.3.3",
+        "payload": "3.90.2",
+        "react": "19.2.6",
+        "react-dom": "19.2.6"
+    },
+    "devDependencies": {
+        "@types/node": "22.19.9",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "typescript": "5.7.3"
+    },
+    "engines": {
+        "node": "^18.20.2 || >=20.9.0"
+    }
+}

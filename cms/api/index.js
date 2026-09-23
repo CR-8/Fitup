@@ -14,6 +14,11 @@
  * catalogue-editing dashboard; a real reason to move to a persistent host
  * (Railway, Render, a VM) if any of that starts to matter.
  */
+// Strapi resolves package.json, dist/ and config/ from process.cwd(). On Vercel
+// that is the deployment root, which is the repo root when the project's Root
+// Directory isn't `cms` — so pin it to this app before @strapi/core loads.
+process.chdir(require('path').join(__dirname, '..'));
+
 const { createStrapi, compileStrapi } = require('@strapi/strapi');
 
 let strapiPromise;

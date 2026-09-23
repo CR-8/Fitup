@@ -23,6 +23,7 @@ export type Somatotype = NonNullable<AiProfileSelect['somatotype']>;
 export type Goal = NonNullable<AiProfileSelect['goal']>;
 export type ActivityLevel = NonNullable<AiProfileSelect['activityLevel']>;
 export type BiologicalSex = NonNullable<UserSelect['biologicalSex']>;
+export type TrainingEnvironment = NonNullable<AiProfileSelect['trainingEnvironment']>;
 
 export interface OnboardingAnswers {
     displayName?: string | null;
@@ -37,6 +38,7 @@ export interface OnboardingAnswers {
     activityLevel?: ActivityLevel | null;
     sessionsPerWeek?: number | null;
     sessionMinutes?: number | null;
+    trainingEnvironment?: TrainingEnvironment | null;
 }
 
 const isPositive = (value: number | null | undefined): value is number =>
@@ -61,6 +63,7 @@ export const saveOnboardingAnswers = async (
         sessionsPerWeek: answers.sessionsPerWeek ?? null,
         sessionMinutes: answers.sessionMinutes ?? null,
         targetWeightKg: answers.targetWeightKg ?? null,
+        trainingEnvironment: answers.trainingEnvironment ?? null,
         completedAt: new Date(),
     });
 
@@ -109,6 +112,7 @@ export interface ProfileDetails {
     somatotype: Somatotype | null;
     activityLevel: ActivityLevel | null;
     sessionsPerWeek: number | null;
+    trainingEnvironment: TrainingEnvironment | null;
 }
 
 export const readProfileDetails = async (userId: string): Promise<ProfileDetails> => {
@@ -129,6 +133,7 @@ export const readProfileDetails = async (userId: string): Promise<ProfileDetails
         somatotype: profile?.somatotype ?? null,
         activityLevel: profile?.activityLevel ?? null,
         sessionsPerWeek: profile?.sessionsPerWeek ?? null,
+        trainingEnvironment: profile?.trainingEnvironment ?? null,
     };
 };
 
@@ -150,6 +155,7 @@ export const saveProfileDetails = async (
         activityLevel: details.activityLevel ?? null,
         sessionsPerWeek: details.sessionsPerWeek ?? null,
         targetWeightKg: details.targetWeightKg ?? null,
+        trainingEnvironment: details.trainingEnvironment ?? null,
     });
 
     // Weight and height are a time series, so an edit appends a point rather

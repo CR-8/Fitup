@@ -366,6 +366,7 @@
     "workout": {
         "deleteWorkoutAlert": "Are you sure you want to delete this workout?",
         "removeExerciseAlert": "Remove this exercise from the workout?",
+        "needsEquipment": "Needs equipment",
         "repeat": {
             "now": "Now",
             "plan": "Plan",
@@ -750,7 +751,8 @@
             "targetWeight": "Target weight (kg)",
             "somatotype": "Body type",
             "activity": "Daily activity",
-            "sessions": "Training days per week"
+            "sessions": "Training days per week",
+            "trainingEnvironment": "Where do you train?"
         },
         "sex": {
             "female": "Female",
@@ -774,6 +776,10 @@
             "moderate": "Moderate",
             "active": "Active",
             "very_active": "Very active"
+        },
+        "trainingEnvironment": {
+            "home": "Home",
+            "gym": "Gym"
         },
         "next": "Continue",
         "back": "Back",
@@ -811,6 +817,7 @@
         },
         "exerciseProgress": "Exercise {{current}} of {{total}}",
         "setProgress": "Set {{current}} of {{total}}",
+        "needsEquipmentBanner": "This exercise needs equipment — switch to Gym mode.",
         "remaining": "Remaining",
         "setElapsed": "Set time",
         "open": "Open timer",

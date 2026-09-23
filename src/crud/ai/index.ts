@@ -34,6 +34,7 @@ import type {
     AiRequestContext,
 } from '@/types/ai';
 import { retrieveForPlan } from '@/services/syn-retrieval';
+import { isBodyweightOnly } from '@/constants/equipment';
 
 import { queueSyncOperations } from '../sync';
 
@@ -350,6 +351,7 @@ export const upsertProfile = async (
         allergens: null,
         conditions: null,
         equipment: null,
+        trainingEnvironment: null,
         dailyCalorieTarget: null,
         notes: null,
         ...updates,
@@ -417,6 +419,7 @@ const buildProfileContext = async (userId: string): Promise<AiProfileContext> =>
         allergens: profile?.allergens ?? [],
         conditions: profile?.conditions ?? [],
         equipment: profile?.equipment ?? [],
+        trainingEnvironment: profile?.trainingEnvironment ?? null,
         dailyCalorieTarget: profile?.dailyCalorieTarget ?? null,
         bodyWeightKg,
         heightCm,
@@ -450,6 +453,12 @@ const buildCandidates = async (
     userId: string,
     availableEquipment: string[],
     retrievedIds?: string[],
+    /**
+     * `'home'` forces bodyweight-only regardless of `availableEquipment` —
+     * unlike an unset/`'gym'` profile, "home" is an explicit statement that no
+     * equipment is available, not just an empty declaration to fall back from.
+     */
+    trainingEnvironment?: 'home' | 'gym' | null,
 ): Promise<AiExerciseCandidate[]> => {
     const rows = await db
         .select({
@@ -466,6 +475,8 @@ const buildCandidates = async (
     const allowed = new Set(availableEquipment.map((entry) => entry.toLowerCase()));
 
     const isUsable = (row: (typeof rows)[number]): boolean => {
+        if (trainingEnvironment === 'home') return isBodyweightOnly(row.equipment);
+
         const required = row.equipment ?? [];
         // No declared equipment means no filtering — an empty profile should still
         // produce a usable plan rather than an empty candidate set.
@@ -572,7 +583,12 @@ export const buildRequestContext = async (
         : null;
 
     const [candidates, history] = await Promise.all([
-        buildCandidates(userId, profile.equipment, retrieval?.candidateIds),
+        buildCandidates(
+            userId,
+            profile.equipment,
+            retrieval?.candidateIds,
+            profile.trainingEnvironment,
+        ),
         buildHistory(userId),
     ]);
 

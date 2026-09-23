@@ -239,6 +239,14 @@ const formatProfile = (context: AiRequestContext): string => {
     push('Dietary pattern', profile.dietaryPattern);
     push('Allergens to avoid', profile.allergens);
     push('Declared conditions', profile.conditions);
+    push(
+        'Training environment',
+        profile.trainingEnvironment === 'home'
+            ? 'home, bodyweight only — no equipment available'
+            : profile.trainingEnvironment === 'gym'
+              ? 'gym, with equipment'
+              : null,
+    );
     push('Available equipment', profile.equipment);
     push('Notes', profile.notes);
 

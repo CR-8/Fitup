@@ -111,6 +111,14 @@ export const aiProfile = sqliteTable('ai_profile', {
     activityLevel: text('activity_level', {
         enum: ['sedentary', 'light', 'moderate', 'active', 'very_active'],
     }),
+    /**
+     * Where the user actually trains. Distinct from `equipment` below: null
+     * here means "never asked" (candidates and the prompt fall back to no
+     * filtering, same as before this field existed), while `home` is an
+     * explicit answer that forces bodyweight-only regardless of whatever is
+     * in `equipment` — see `buildCandidates` in src/crud/ai/index.ts.
+     */
+    trainingEnvironment: text('training_environment', { enum: ['home', 'gym'] }),
     sessionsPerWeek: integer('sessions_per_week'),
     sessionMinutes: integer('session_minutes'),
     dietaryPattern: text('dietary_pattern', {

@@ -14,3 +14,12 @@
 /** `"ez barbell"` → `"ez_barbell"`, the key under `common:equipment`. */
 export const equipmentTranslationKey = (value: string): string =>
     value.trim().toLowerCase().replace(/\s+/g, '_');
+
+/**
+ * True when an exercise needs nothing beyond the user's own body — no
+ * equipment listed, or every listed item is `body weight`. This is the
+ * definition "home mode" filters candidates by; see `buildCandidates` in
+ * src/crud/ai/index.ts and the workout/timer equipment badge.
+ */
+export const isBodyweightOnly = (equipment: string[] | null | undefined): boolean =>
+    (equipment ?? []).every((value) => equipmentTranslationKey(value) === 'body_weight');

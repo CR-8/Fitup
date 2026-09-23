@@ -63,6 +63,8 @@ export const profileSchema = z.object({
         .max(14, 'errors.profile.sessionsPerWeek.range')
         .optional()
         .nullable(),
+    /** Where the assistant should assume plans are trained — see ai_profile.trainingEnvironment. */
+    trainingEnvironment: z.enum(['home', 'gym']).optional().nullable(),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;

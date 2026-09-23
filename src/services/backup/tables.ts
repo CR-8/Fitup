@@ -169,6 +169,7 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             allergens: 'allergens',
             conditions: 'conditions',
             equipment: 'equipment',
+            trainingEnvironment: 'training_environment',
             dailyCalorieTarget: 'daily_calorie_target',
             dailyProteinTargetG: 'daily_protein_target_g',
             dailyCarbsTargetG: 'daily_carbs_target_g',

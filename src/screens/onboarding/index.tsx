@@ -65,6 +65,9 @@ const DEFAULT_VALUES: OnboardingForm = {
     somatotype: null,
     activityLevel: 'moderate',
     sessionsPerWeek: GUIDELINE_SESSIONS_PER_WEEK,
+    // Gym preserves prior behaviour (no equipment filtering) for anyone who
+    // taps straight through — home is an active, narrowing choice.
+    trainingEnvironment: 'gym',
 };
 
 /**
@@ -79,7 +82,7 @@ const STEP_FIELDS: readonly (keyof OnboardingForm)[][] = [
     ['displayName', 'age', 'biologicalSex'],
     ['bodyWeightKg', 'heightCm', 'somatotype'],
     ['goal', 'targetWeightKg'],
-    ['activityLevel', 'sessionsPerWeek'],
+    ['activityLevel', 'sessionsPerWeek', 'trainingEnvironment'],
 ];
 
 const STEP_COUNT = STEP_FIELDS.length;
@@ -166,6 +169,7 @@ const OnboardingScreen = () => {
                     somatotype: values.somatotype ?? null,
                     activityLevel: values.activityLevel ?? null,
                     sessionsPerWeek: values.sessionsPerWeek ?? null,
+                    trainingEnvironment: values.trainingEnvironment ?? null,
                 });
 
                 finish();
@@ -356,6 +360,18 @@ const OnboardingScreen = () => {
                                 valueType="number"
                                 placeholder={String(GUIDELINE_SESSIONS_PER_WEEK)}
                                 error={errors.sessionsPerWeek}
+                            />
+                        </VStack>
+
+                        <VStack style={styles.fieldContainer}>
+                            <Label>
+                                {t('onboarding.fields.trainingEnvironment', { ns: 'screens' })}
+                            </Label>
+                            <Buttons
+                                control={control}
+                                name="trainingEnvironment"
+                                choices={choices('trainingEnvironment', ['home', 'gym'])}
+                                error={errors.trainingEnvironment}
                             />
                         </VStack>
                     </>

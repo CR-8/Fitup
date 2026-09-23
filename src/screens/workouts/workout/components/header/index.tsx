@@ -9,6 +9,8 @@ import { useWorkout } from '@/hooks/use-workouts';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { Text } from '@/components/primitives/text';
 import { useSupersetEditStore } from '@/stores/superset-edit';
+import { useAiProfile } from '@/hooks/use-ai';
+import { BaseButtons } from '@/components/forms/fields/base/buttons';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -38,6 +40,10 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: theme.fontSize.default.fontSize,
         color: theme.colors.neutral[950],
     },
+    environmentToggle: {
+        marginTop: theme.space(3),
+        alignSelf: 'flex-start',
+    },
 }));
 
 export const Header: FC = () => {
@@ -49,6 +55,18 @@ export const Header: FC = () => {
     const { elapsedSeconds, elapsedFormated } = useRunningWorkoutTicker();
 
     const isEditMode = useSupersetEditStore((state) => state.workoutId === workoutId);
+
+    // Doesn't regenerate the plan already on this workout — it filters which
+    // of its exercises get the "needs equipment" badge (see the Exercise
+    // component) and sets what the next AI plan assumes by default.
+    const { profile, save: saveProfile } = useAiProfile();
+    const environmentChoices = useMemo(
+        () => [
+            { value: 'home', title: t('onboarding.trainingEnvironment.home', { ns: 'screens' }) },
+            { value: 'gym', title: t('onboarding.trainingEnvironment.gym', { ns: 'screens' }) },
+        ],
+        [t],
+    );
 
     const title = useMemo(() => {
         if (isEditMode) {
@@ -71,6 +89,15 @@ export const Header: FC = () => {
             <Title type="h3" style={styles.title}>
                 {workout?.name}
             </Title>
+            <BaseButtons
+                size="small"
+                choicesContainerStyle={styles.environmentToggle}
+                choices={environmentChoices}
+                value={profile?.trainingEnvironment ?? 'gym'}
+                onChange={(value) =>
+                    saveProfile({ trainingEnvironment: value as 'home' | 'gym' })
+                }
+            />
         </Box>
     );
 };

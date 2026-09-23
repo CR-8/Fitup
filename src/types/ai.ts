@@ -87,6 +87,8 @@ export interface AiProfileContext {
     allergens: string[];
     conditions: string[];
     equipment: string[];
+    /** Null means never asked — see the field's own comment in src/db/schema/ai.ts. */
+    trainingEnvironment: 'home' | 'gym' | null;
     dailyCalorieTarget: number | null;
     bodyWeightKg: number | null;
     heightCm: number | null;

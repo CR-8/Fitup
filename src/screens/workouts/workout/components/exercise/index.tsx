@@ -16,6 +16,8 @@ import { WorkoutItem } from '../../types';
 import { WorkoutSelect } from '@/db/schema';
 import { ExerciseSet } from '../exercise-set';
 import { isRestFinalized } from '@/helpers/rest';
+import { useAiProfile } from '@/hooks/use-ai';
+import { isBodyweightOnly } from '@/constants/equipment';
 
 interface ExerciseProps {
     item: WorkoutItem;
@@ -79,6 +81,19 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontSize: theme.fontSize.sm.fontSize,
         marginTop: -theme.space(0.5),
         marginBottom: theme.space(1),
+    },
+    equipmentBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: theme.space(2),
+        paddingVertical: theme.space(0.5),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.red[100],
+        marginBottom: theme.space(1),
+    },
+    equipmentBadgeText: {
+        color: theme.colors.red[500],
+        fontSize: theme.fontSize['2xs'].fontSize,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
     },
     setsContainer: {
         gap: theme.space(1),
@@ -181,8 +196,11 @@ const ExerciseContent: FC<{
     restingSetId,
     showGroupIndicator,
 }) => {
-    const { t } = useTranslation(['common']);
+    const { t } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
+    const { profile } = useAiProfile();
+    const showEquipmentBadge =
+        profile?.trainingEnvironment === 'home' && !isBodyweightOnly(item.exercise?.equipment);
 
     return (
         <HStack style={styles.exercise(isExerciseActive)}>
@@ -211,6 +229,13 @@ const ExerciseContent: FC<{
                         {item.name}
                     </Text>
                 </Box>
+                {showEquipmentBadge ? (
+                    <Box style={styles.equipmentBadge}>
+                        <Text style={styles.equipmentBadgeText}>
+                            {t('workout.needsEquipment', { ns: 'screens' })}
+                        </Text>
+                    </Box>
+                ) : null}
                 {item.tracking && item.tracking.length > 0 ? (
                     <Box>
                         <Text style={styles.exerciseMeta}>

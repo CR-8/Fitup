@@ -366,6 +366,7 @@
     "workout": {
         "deleteWorkoutAlert": "क्या आप वाकई इस वर्कआउट को हटाना चाहते हैं?",
         "removeExerciseAlert": "इस एक्सरसाइज को वर्कआउट से हटाएं?",
+        "needsEquipment": "उपकरण चाहिए",
         "repeat": {
             "now": "अभी",
             "plan": "योजना बनाएं",
@@ -750,7 +751,8 @@
             "targetWeight": "लक्ष्य वज़न (kg)",
             "somatotype": "शरीर का प्रकार",
             "activity": "दैनिक गतिविधि",
-            "sessions": "प्रति सप्ताह ट्रेनिंग दिन"
+            "sessions": "प्रति सप्ताह ट्रेनिंग दिन",
+            "trainingEnvironment": "आप कहाँ ट्रेनिंग करते हैं?"
         },
         "sex": {
             "female": "महिला",
@@ -774,6 +776,10 @@
             "moderate": "मध्यम",
             "active": "सक्रिय",
             "very_active": "बहुत सक्रिय"
+        },
+        "trainingEnvironment": {
+            "home": "घर",
+            "gym": "जिम"
         },
         "next": "जारी रखें",
         "back": "पीछे",
@@ -811,6 +817,7 @@
         },
         "exerciseProgress": "व्यायाम {{total}} में से {{current}}",
         "setProgress": "सेट {{total}} में से {{current}}",
+        "needsEquipmentBanner": "इस एक्सरसाइज के लिए उपकरण चाहिए — जिम मोड पर स्विच करें।",
         "remaining": "शेष",
         "setElapsed": "सेट का समय",
         "open": "टाइमर खोलें",

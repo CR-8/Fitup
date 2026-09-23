@@ -42,8 +42,10 @@ import { getRestSecondsPlanned } from '@/helpers/rest';
 import { finalizeRestNow, startNextSetOrExercise, startSet } from '@/services/set-transitions';
 import { reportError } from '@/services/error-reporting';
 import { buildExerciseGifUrl, EXERCISE_GIF_PREVIEW_RESOLUTION } from '@/constants/fitup';
-import { equipmentTranslationKey } from '@/constants/equipment';
+import { equipmentTranslationKey, isBodyweightOnly } from '@/constants/equipment';
 import { estimateOneRm } from '@/screens/exercises/exercise/components/statistics/components/metric-utils';
+import { useAiProfile } from '@/hooks/use-ai';
+import { BaseButtons } from '@/components/forms/fields/base/buttons';
 
 const styles = StyleSheet.create((theme, rt) => ({
     /**
@@ -130,6 +132,15 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.primary,
         marginTop: theme.space(0.5),
+    },
+    environmentToggle: {
+        marginTop: theme.space(2),
+        alignSelf: 'flex-start',
+    },
+    equipmentWarning: {
+        ...theme.fontSize.xs,
+        color: theme.colors.red[500],
+        marginTop: theme.space(1),
     },
     /**
      * Grows into spare height up to a cap, rather than all of it — uncapped, a
@@ -389,6 +400,19 @@ const TimerScreen: FC = () => {
         currentExercise?.equipment?.some(
             (value) => equipmentTranslationKey(value) === 'body_weight',
         ) ?? false;
+    // Doesn't swap the exercise mid-workout — there's no gym-free alternative
+    // to substitute it with. Just tells the user why, and lets them flip back
+    // to Gym for future plans without leaving the timer.
+    const { profile, save: saveProfile } = useAiProfile();
+    const environmentChoices = useMemo(
+        () => [
+            { value: 'home', title: t('onboarding.trainingEnvironment.home', { ns: 'screens' }) },
+            { value: 'gym', title: t('onboarding.trainingEnvironment.gym', { ns: 'screens' }) },
+        ],
+        [t],
+    );
+    const needsEquipmentWarning =
+        profile?.trainingEnvironment === 'home' && !isBodyweightOnly(currentExercise?.equipment);
     const showWeight = tracksWeight && !(isBodyweight && !runningWorkoutActiveSet?.weight);
     // Only while a set is being worked: resting, there is nothing to adjust.
     const stepperSet =
@@ -955,6 +979,20 @@ const TimerScreen: FC = () => {
                     {personalBestLabel ? (
                         <Text style={styles.personalBest}>
                             {t('timer.newBest', { ns: 'screens', value: personalBestLabel })}
+                        </Text>
+                    ) : null}
+                    <BaseButtons
+                        size="small"
+                        choicesContainerStyle={styles.environmentToggle}
+                        choices={environmentChoices}
+                        value={profile?.trainingEnvironment ?? 'gym'}
+                        onChange={(value) =>
+                            saveProfile({ trainingEnvironment: value as 'home' | 'gym' })
+                        }
+                    />
+                    {needsEquipmentWarning ? (
+                        <Text style={styles.equipmentWarning}>
+                            {t('timer.needsEquipmentBanner', { ns: 'screens' })}
                         </Text>
                     ) : null}
                 </VStack>

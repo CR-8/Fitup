@@ -124,6 +124,7 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
             somatotype: details.somatotype,
             activityLevel: details.activityLevel,
             sessionsPerWeek: details.sessionsPerWeek,
+            trainingEnvironment: details.trainingEnvironment,
         },
     });
 
@@ -154,6 +155,10 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
         () => choices('activity', ['sedentary', 'light', 'moderate', 'active', 'very_active']),
         [choices],
     );
+    const trainingEnvironmentChoices = useMemo(
+        () => choices('trainingEnvironment', ['home', 'gym']),
+        [choices],
+    );
 
     const onSubmit = handleSubmit(async (values) => {
         try {
@@ -168,6 +173,7 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
                 somatotype: values.somatotype ?? null,
                 activityLevel: values.activityLevel ?? null,
                 sessionsPerWeek: values.sessionsPerWeek ?? null,
+                trainingEnvironment: values.trainingEnvironment ?? null,
             });
 
             // The name shows on Home and the weight drives the charts, so both
@@ -318,6 +324,18 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
                         valueType="number"
                         placeholder={String(GUIDELINE_SESSIONS_PER_WEEK)}
                         error={errors.sessionsPerWeek}
+                    />
+                </VStack>
+
+                <VStack style={styles.field}>
+                    <Label>
+                        {t('onboarding.fields.trainingEnvironment', { ns: 'screens' })}
+                    </Label>
+                    <Buttons
+                        control={control}
+                        name="trainingEnvironment"
+                        choices={trainingEnvironmentChoices}
+                        error={errors.trainingEnvironment}
                     />
                 </VStack>
             </VStack>

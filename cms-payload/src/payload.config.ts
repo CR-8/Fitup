@@ -20,6 +20,9 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({
+    // Schema comes from src/migrations only. Dev-mode push would introspect and
+    // alter the shared Supabase database, which also holds the app's own tables.
+    push: false,
     // Small pool: every serverless instance opens its own.
     pool: { connectionString: process.env.DATABASE_URL, max: 3 },
   }),

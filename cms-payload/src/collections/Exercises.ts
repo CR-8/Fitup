@@ -17,8 +17,8 @@ export const Exercises: CollectionConfig = {
         operation === 'create' ? { ...data, catalogueId: data?.catalogueId || newCatalogueId() } : data,
     ],
     afterChange: [
-      async ({ doc }) => {
-        if (doc._status !== 'published') return doc
+      async ({ doc, context }) => {
+        if (context?.skipSync || doc._status !== 'published') return doc
         await syncExercise({
           id: doc.catalogueId,
           name: doc.name,
@@ -57,6 +57,7 @@ export const Exercises: CollectionConfig = {
     { name: 'primaryMuscleGroups', type: 'text', hasMany: true },
     { name: 'secondaryMuscleGroups', type: 'text', hasMany: true },
     { name: 'instructions', type: 'text', hasMany: true },
-    { name: 'gifFilename', type: 'text' },
+    // Required: catalogue_exercises.gif_filename is NOT NULL and UNIQUE, so blanks would collide.
+    { name: 'gifFilename', type: 'text', required: true },
   ],
 }

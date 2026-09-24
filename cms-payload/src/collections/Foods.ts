@@ -17,8 +17,8 @@ export const Foods: CollectionConfig = {
         operation === 'create' ? { ...data, catalogueId: data?.catalogueId || newCatalogueId() } : data,
     ],
     afterChange: [
-      async ({ doc }) => {
-        if (doc._status !== 'published') return doc
+      async ({ doc, context }) => {
+        if (context?.skipSync || doc._status !== 'published') return doc
         await syncFood({
           id: doc.catalogueId,
           name: doc.name,

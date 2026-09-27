@@ -470,7 +470,7 @@ const useNotificationsProvider = () => {
 
                     const url = notification.request.content.data?.url;
                     if (typeof url === 'string') {
-                        // The stored URL is a full deep link (e.g. fitup:///workout/id/exerciseId).
+                        // The stored URL is a full deep link (e.g. fitsyn:///workout/id/exerciseId).
                         // Passing it directly to router.push makes Expo Router call Linking.openURL
                         // which fails when the app is already in the foreground (iOS won't re-open
                         // its own URL scheme). Extract just the path and navigate within the app.

@@ -328,9 +328,7 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
                 </VStack>
 
                 <VStack style={styles.field}>
-                    <Label>
-                        {t('onboarding.fields.trainingEnvironment', { ns: 'screens' })}
-                    </Label>
+                    <Label>{t('onboarding.fields.trainingEnvironment', { ns: 'screens' })}</Label>
                     <Buttons
                         control={control}
                         name="trainingEnvironment"

@@ -15,13 +15,15 @@ config.resolver.sourceExts.push('sql');
 // `.easignore` keeps them out of the build upload.
 //
 // `supabase/functions` is retired CMS-era Deno code, pending deletion. `cms`
-// is Strapi, a separate Node app with its own package.json and node_modules.
+// (Strapi) and `cms-payload` (Payload on Next.js) are separate Node apps, each
+// with its own package.json and node_modules.
 //
 // Appended rather than assigned: the default already blocks `.expo/types` and
 // the native build directories, and replacing it would quietly un-block those.
 config.resolver.blockList = [
     ...config.resolver.blockList,
     /[\\/]cms[\\/].*/,
+    /[\\/]cms-payload[\\/].*/,
     /[\\/]supabase[\\/]functions[\\/].*/,
 ];
 

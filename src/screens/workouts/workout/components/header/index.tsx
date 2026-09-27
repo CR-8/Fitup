@@ -94,9 +94,7 @@ export const Header: FC = () => {
                 choicesContainerStyle={styles.environmentToggle}
                 choices={environmentChoices}
                 value={profile?.trainingEnvironment ?? 'gym'}
-                onChange={(value) =>
-                    saveProfile({ trainingEnvironment: value as 'home' | 'gym' })
-                }
+                onChange={(value) => saveProfile({ trainingEnvironment: value as 'home' | 'gym' })}
             />
         </Box>
     );

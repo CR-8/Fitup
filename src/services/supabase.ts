@@ -40,6 +40,17 @@ const createSupabaseClient = (): SupabaseClient | null => {
     return createClient(AUTH_CONFIG.supabaseUrl!, AUTH_CONFIG.supabaseAnonKey!, {
         auth: {
             storage: mmkvStorageAdapter,
+            /**
+             * The link carries a one-time code, not the session.
+             *
+             * Under the implicit flow Supabase put `access_token` and
+             * `refresh_token` straight into the redirect URL, so a reset email
+             * opened in a browser — or screenshotted — handed over a live
+             * session. PKCE sends a code instead, useless without the verifier
+             * this client keeps in storage, and `completeOAuthRedirect` trades
+             * it for the session over HTTPS.
+             */
+            flowType: 'pkce',
             autoRefreshToken: true,
             persistSession: true,
             // There is no browser URL to read a session back from on a device;

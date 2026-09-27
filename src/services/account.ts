@@ -1,4 +1,5 @@
 import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import type { Session } from '@supabase/supabase-js';
 
@@ -145,12 +146,63 @@ const AUTH_REDIRECT_PATH = 'auth/callback';
  * that list is silently replaced with the project's Site URL, which opens a
  * browser instead of the app and looks exactly like a broken email.
  */
-export const authRedirectUri = (): string =>
-    AuthSession.makeRedirectUri({ scheme: 'fitup', path: AUTH_REDIRECT_PATH });
+export const authRedirectUri = (flow?: AuthRedirectType): string => {
+    const uri = AuthSession.makeRedirectUri({ scheme: appScheme(), path: AUTH_REDIRECT_PATH });
 
-/** Supabase reports every outcome of a redirect in the callback fragment. */
-const authResultParams = (url: string): URLSearchParams =>
-    new URLSearchParams(url.split('#')[1] ?? '');
+    // A PKCE callback carries only `?code=`, never the `type=recovery` the old
+    // token-bearing links had — so the flow is marked on the address the link is
+    // asked to come back to. Every value used here has to be on the project's
+    // Redirect URLs list, marker and all.
+    return flow ? `${uri}?flow=${flow}` : uri;
+};
+
+/**
+ * The scheme the running app actually registered, read from its own config
+ * rather than written out a second time here.
+ *
+ * It was the literal `'fitup'` until the app was renamed and `app.config.js`
+ * moved to `fitsyn` — leaving this pointing at an address the new build no
+ * longer answers to, so sign-in left for the browser and never came back. A
+ * second copy of a value the config already owns can only drift again.
+ */
+const appScheme = (): string => {
+    const scheme = Constants.expoConfig?.scheme;
+
+    return (Array.isArray(scheme) ? scheme[0] : scheme) ?? 'fitsyn';
+};
+
+/**
+ * The two halves of a callback URL, kept apart on purpose.
+ *
+ * PKCE answers in the query (`?code=…`); the older links answered in the
+ * fragment (`#access_token=…`). Which half a value arrives in is part of what
+ * makes it trustworthy: a session token has no business in a query string, where
+ * it would be logged by every proxy on the way, so tokens are read only from the
+ * fragment and the code only from the query. Errors can legitimately come back
+ * in either.
+ */
+const authResultParts = (url: string): { query: URLSearchParams; fragment: URLSearchParams } => {
+    const [beforeHash, fragment = ''] = url.split('#');
+
+    return {
+        query: new URLSearchParams(beforeHash.split('?')[1] ?? ''),
+        fragment: new URLSearchParams(fragment),
+    };
+};
+
+/** The older links carried every outcome in the fragment. */
+const authResultParams = (url: string): URLSearchParams => authResultParts(url).fragment;
+
+/** An error can come back either way round, so both halves are asked. */
+const authError = (url: string): URLSearchParams | null => {
+    const { query, fragment } = authResultParts(url);
+
+    for (const params of [fragment, query]) {
+        if (params.has('error') || params.has('error_description')) return params;
+    }
+
+    return null;
+};
 
 /**
  * Whether a URL carries an auth outcome at all.
@@ -160,8 +212,9 @@ const authResultParams = (url: string): URLSearchParams =>
  * has to be able to tell "not the callback" from "the callback, and it failed".
  */
 export const isOAuthRedirectUrl = (url: string): boolean => {
-    const params = authResultParams(url);
-    return params.has('access_token') || params.has('error') || params.has('error_description');
+    const { query, fragment } = authResultParts(url);
+
+    return query.has('code') || fragment.has('access_token') || authError(url) !== null;
 };
 
 /** What a redirect is for. Every landing carries tokens; only this tells them apart. */
@@ -181,7 +234,10 @@ export type AuthRedirectType = 'recovery' | 'signup';
  * lands the ordinary way.
  */
 export const redirectType = (url: string): AuthRedirectType | null => {
-    const type = authResultParams(url).get('type');
+    const { query, fragment } = authResultParts(url);
+    // `type` in the fragment on the old token links, `flow` in the query on the
+    // PKCE ones — see `authRedirectUri`.
+    const type = fragment.get('type') ?? query.get('flow');
 
     return type === 'recovery' || type === 'signup' ? type : null;
 };
@@ -301,8 +357,10 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 
     try {
         const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim(), {
-            // Same reason as sign-up: without it the link leaves the app.
-            redirectTo: authRedirectUri(),
+            // Same reason as sign-up: without it the link leaves the app. Marked
+            // as recovery so the callback lands on "set a new password" rather
+            // than signing the person into the account they are locked out of.
+            redirectTo: authRedirectUri('recovery'),
         });
 
         if (error) throw error;
@@ -392,18 +450,19 @@ export const consumeOAuthReturnTo = (): string | null => {
 export const completeOAuthRedirect = async (url: string): Promise<Session> => {
     try {
         const params = authResultParams(url);
+        const failure = authError(url);
 
         // Backing out of the provider sheet comes back as an error, not an absence.
-        if (params.has('error') || params.has('error_description')) {
-            const reason = params.get('error');
-            const description = params.get('error_description') ?? undefined;
+        if (failure) {
+            const reason = failure.get('error');
+            const description = failure.get('error_description') ?? undefined;
 
             // Checked before `access_denied`, which an expired email link also
             // reports. Reading it as a cancellation is what made a stale link
             // bounce to sign-in with nothing said — the screen stays quiet about
             // CANCELLED on purpose, because that one is a choice.
             const expired =
-                params.get('error_code') === 'otp_expired' ||
+                failure.get('error_code') === 'otp_expired' ||
                 (description?.toLowerCase().includes('expired') ?? false);
 
             if (expired) throw new AuthError('LINK_EXPIRED', description);
@@ -414,6 +473,22 @@ export const completeOAuthRedirect = async (url: string): Promise<Session> => {
             );
         }
 
+        // PKCE: the code is traded for the session over HTTPS, against the
+        // verifier this device kept. Checked first — a link that carries one
+        // carries nothing else worth reading.
+        const code = authResultParts(url).query.get('code');
+
+        if (code) {
+            const { data, error } = await requireSupabase().auth.exchangeCodeForSession(code);
+
+            if (error) throw error;
+            if (!data.session) throw new AuthError('UNKNOWN');
+
+            return data.session;
+        }
+
+        // The older shape, kept for links already sent: the session itself, in
+        // the fragment.
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
 

@@ -7,11 +7,13 @@
 
 # --- server-side code, never part of the app bundle -------------------------
 #
-# `cms/` is Strapi, the admin dashboard. Its own Node app, own package.json,
-# lockfile and tsconfig, never imported from `src/`. Must never reach the app
+# `cms/` is Strapi and `cms-payload/` is Payload on Next.js — the admin
+# dashboards. Each is its own Node app with its own package.json, lockfile and
+# tsconfig, and neither is imported from `src/`. Must never reach the app
 # bundle — this is one of three layers guaranteeing that; see also the root
 # tsconfig `exclude` and `metro.config.js`'s `blockList`.
 cms/
+cms-payload/
 
 # Postgres migrations, applied by hand in the Supabase SQL editor, and retired
 # CMS-era Deno Edge Function code pending deletion. The root tsconfig excludes

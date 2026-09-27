@@ -71,6 +71,16 @@ describe('isOAuthRedirectUrl', () => {
         );
     });
 
+    test('accepts a PKCE callback, whose result is a code in the query', () => {
+        expect(isOAuthRedirectUrl('fitsyn://auth/callback?code=abc-123')).toBe(true);
+    });
+
+    test('accepts a PKCE failure, which comes back in the query too', () => {
+        expect(
+            isOAuthRedirectUrl('fitsyn://auth/callback?error=access_denied&error_code=otp_expired'),
+        ).toBe(true);
+    });
+
     test('accepts a redirect that reports failure', () => {
         expect(
             isOAuthRedirectUrl('fitup://auth/callback#error=access_denied&error_description=no'),
@@ -132,6 +142,13 @@ describe('redirectType', () => {
         expect(redirectType('fitup://auth/callback#access_token=abc&type=recovery')).toBe(
             'recovery',
         );
+    });
+
+    test('recognises a password reset on a PKCE link, which carries no type', () => {
+        // The marker is on the address the reset email was told to come back to
+        // — see `authRedirectUri`. Without it a recovery lands as an ordinary
+        // sign-in, into the account the user just said they were locked out of.
+        expect(redirectType('fitsyn://auth/callback?flow=recovery&code=abc')).toBe('recovery');
     });
 
     test('recognises a confirmed sign-up', () => {

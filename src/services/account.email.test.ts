@@ -74,7 +74,7 @@ describe('the address every email link comes back to', () => {
         // The path half must stay in step with `src/routes/auth/callback.tsx`,
         // and with the Redirect URLs list in the Supabase project. Both are
         // coupled to this string and neither can be checked from here.
-        expect(account.authRedirectUri()).toBe('fitup://auth/callback');
+        expect(account.authRedirectUri()).toBe('fitsyn://auth/callback');
     });
 
     test('sign-up asks for the confirmation to land there', async () => {
@@ -109,7 +109,10 @@ describe('the address every email link comes back to', () => {
 
         const [, options] = argsFor('resetPasswordForEmail');
 
-        expect(options.redirectTo).toBe(account.authRedirectUri());
+        // Marked as recovery: a PKCE callback has no `type`, so the address is
+        // what tells the app to ask for a new password rather than sign in.
+        expect(options.redirectTo).toBe(account.authRedirectUri('recovery'));
+        expect(options.redirectTo).toBe('fitsyn://auth/callback?flow=recovery');
     });
 
     test('the address is trimmed before it is sent', async () => {

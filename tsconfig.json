@@ -19,8 +19,8 @@
     // errors under this config, and it has its own `deno.json` — check it
     // with `deno check`, not this.
     //
-    // `cms` is Strapi: a separate Node app with its own dependency tree and
-    // its own tsconfig, never the app's runtime, so it must never be
-    // type-checked or bundled as part of the client.
-    "exclude": ["cms", "supabase/functions"],
+    // `cms` is Strapi and `cms-payload` is Payload on Next.js: separate Node
+    // apps with their own dependency trees and tsconfigs, never the app's
+    // runtime, so neither may be type-checked or bundled as part of the client.
+    "exclude": ["cms", "cms-payload", "supabase/functions"],
 }

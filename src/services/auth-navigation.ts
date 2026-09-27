@@ -17,7 +17,7 @@ import { currentUserForSession } from '@/services/backup';
  * Only in-app paths are honoured.
  *
  * The destination can be set from a search param, which reaches the app through
- * a deep link. Without this, `fitup:///sign-in?returnTo=https://…` would let an
+ * a deep link. Without this, `fitsyn:///sign-in?returnTo=https://…` would let an
  * external link choose where the app goes after a successful sign-in.
  */
 const isInternalPath = (path: string): boolean => path.startsWith('/') && !path.startsWith('//');

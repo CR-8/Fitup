@@ -10,7 +10,13 @@ module.exports = {
     owner: 'fitup2026',
     slug: 'fitup2026',
     orientation: 'portrait',
-    scheme: 'fitsyn',
+    // Both, first one canonical: the app was renamed from `fitup`, and every
+    // password-reset and confirmation email already sent points at the old
+    // address. Answering only the new one left those links opening a browser
+    // page of redirect markup instead of the app. `authRedirectUri` in
+    // src/services/account.ts reads this list and takes the first entry, so new
+    // links use `fitsyn` while the old ones still land.
+    scheme: ['fitsyn', 'fitup'],
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     experiments: {

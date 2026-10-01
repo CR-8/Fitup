@@ -1,7 +1,7 @@
 import 'react-native-reanimated';
 import { FC, useEffect } from 'react';
 import { useURL } from 'expo-linking';
-import { useFonts } from 'expo-font';
+import { useTranslation } from 'react-i18next';
 import * as SplashScreen from 'expo-splash-screen';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import dayjs from 'dayjs';
@@ -9,7 +9,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import * as Sentry from '@sentry/react-native';
 import { isRunningInExpoGo } from 'expo';
 
@@ -69,6 +68,29 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
+/** Sheets that rise over the app: a page sheet on iOS, a slide-up on Android. */
+const modal = { presentation: 'modal', headerShown: true } as const;
+/** Pushed screens show the native bar, and with it the platform back button. */
+const pushed = { headerShown: true } as const;
+
+const SETTINGS_SCREENS = [
+    ['account', 'account'],
+    ['profile', 'profile'],
+    ['autolock', 'autolock'],
+    ['notifications', 'notifications'],
+    ['theme', 'theme'],
+    ['sound', 'sound'],
+    ['datetime', 'dateTime'],
+    ['units', 'units'],
+    ['language', 'language'],
+    ['heartrate', 'heartRate'],
+] as const;
+
+/** A bare bar carrying only the platform back button. */
+const backOnly = { headerShown: true, title: '' } as const;
+// The timer draws its own now-playing chrome, so it takes the whole screen.
+const fullScreenModal = { presentation: 'fullScreenModal' } as const;
+
 /**
  * Hears the redirect, so a screen that mounts because of it does not have to.
  *
@@ -85,6 +107,7 @@ const useAuthRedirectCapture = (): void => {
 };
 
 const App: FC = () => {
+    const { t } = useTranslation(['screens']);
     const { user } = useUser();
     const { options } = useScreen();
     const { isSignedIn, isReady } = useAccount();
@@ -117,112 +140,58 @@ const App: FC = () => {
         <RunningWorkoutProvider>
             <StoreReviewGateProvider>
                 <PendingStoreReviewCoordinator />
-                <BottomSheetModalProvider>
-                    <Stack
-                        screenOptions={{
-                            ...options,
-                            headerShown: false,
-                        }}
-                    >
-                        {/* Removing these from the navigator — rather than
+                <Stack
+                    screenOptions={{
+                        ...options,
+                        headerShown: false,
+                    }}
+                >
+                    {/* Removing these from the navigator — rather than
                                 redirecting away from them — is what makes signing out a
                                 real logout: their history entries go with them, so back
                                 cannot re-enter the app. */}
-                        <Stack.Protected guard={!authRequired || isSignedIn}>
-                            <Stack.Screen name="(tabs)" />
-                            <Stack.Screen name="onboarding" />
+                    <Stack.Protected guard={!authRequired || isSignedIn}>
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="onboarding" />
+                        <Stack.Screen name="diet" options={modal} />
+                        <Stack.Screen name="timer" options={fullScreenModal} />
+                        <Stack.Screen name="workout/[workoutId]" options={pushed} />
+                        <Stack.Screen
+                            name="workout/[workoutId]/[workoutExerciseId]"
+                            options={modal}
+                        />
+                        <Stack.Screen name="exercises/[exerciseId]" options={pushed} />
+                        <Stack.Screen
+                            name="settings/index"
+                            options={{
+                                ...pushed,
+                                headerLargeTitle: true,
+                                title: t('settings.title'),
+                            }}
+                        />
+                        {SETTINGS_SCREENS.map(([name, key]) => (
                             <Stack.Screen
-                                name="diet"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
+                                key={name}
+                                name={`settings/${name}`}
+                                options={{ ...pushed, title: t(`settings.items.${key}.title`) }}
                             />
-                            <Stack.Screen
-                                name="timer"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen name="workout" />
-                            <Stack.Screen name="settings" />
-                            <Stack.Screen
-                                name="editor"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="select"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="preview"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="guide"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="review"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="day"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                            <Stack.Screen
-                                name="filter"
-                                options={{
-                                    presentation: 'card',
-                                    animationTypeForReplace: 'pop',
-                                    cardOverlayEnabled: false,
-                                    animation: 'slide_from_bottom',
-                                }}
-                            />
-                        </Stack.Protected>
+                        ))}
+                        <Stack.Screen name="editor" options={modal} />
+                        <Stack.Screen name="select" options={modal} />
+                        <Stack.Screen name="preview" options={modal} />
+                        <Stack.Screen name="guide" options={modal} />
+                        <Stack.Screen name="review" options={modal} />
+                        <Stack.Screen name="day" options={modal} />
+                        <Stack.Screen name="filter" options={modal} />
+                    </Stack.Protected>
 
-                        {/* After the protected group, not before: when a navigator has to
+                    {/* After the protected group, not before: when a navigator has to
                                 pick a screen on its own — a development reload did exactly
                                 that — it takes the first one declared. First was sign-in, so
                                 a signed-in user was put in front of the sign-in form with
                                 nothing to move them on. Signed out, the protected screens
                                 are gone and sign-in is first again. */}
-                        {/* Reachable without a session: sign-in itself, the
+                    {/* Reachable without a session: sign-in itself, the
                                 redirect target — which by definition lands before
                                 one exists — and the three screens either side of an
                                 email link.
@@ -232,15 +201,14 @@ const App: FC = () => {
                                 so the guard would admit it, but the screen has to
                                 survive its own sign-out escape hatch, and it is
                                 pre-session in every sense that matters. */}
-                        <Stack.Screen name="sign-in" />
-                        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
-                        <Stack.Screen name="auth/forgot-password" />
-                        <Stack.Screen name="auth/check-email" />
-                        <Stack.Screen name="auth/new-password" />
-                    </Stack>
-                    <Actions />
-                    <RestInput />
-                </BottomSheetModalProvider>
+                    <Stack.Screen name="sign-in" />
+                    <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+                    <Stack.Screen name="auth/forgot-password" options={backOnly} />
+                    <Stack.Screen name="auth/check-email" options={backOnly} />
+                    <Stack.Screen name="auth/new-password" options={backOnly} />
+                </Stack>
+                <Actions />
+                <RestInput />
             </StoreReviewGateProvider>
         </RunningWorkoutProvider>
     );
@@ -273,25 +241,11 @@ const isDrizzleStudioEnabled =
 const RootLayout: FC = () => {
     const { success: dbSuccess, error: dbError } = useMigrations(db, migrations);
 
-    // Keys are the strings `src/theme/fonts.ts` hands to `fontFamily`. The six
-    // Inter faces this replaces were loaded and never used — nothing in the app
-    // set a `fontFamily` at all, so every screen rendered in the system font.
-    const [fontsLoaded, fontsError] = useFonts({
-        DMSans_400Regular: require('../../assets/fonts/DMSans-Regular.ttf'),
-        DMSans_500Medium: require('../../assets/fonts/DMSans-Medium.ttf'),
-        DMSans_600SemiBold: require('../../assets/fonts/DMSans-SemiBold.ttf'),
-        DMSans_700Bold: require('../../assets/fonts/DMSans-Bold.ttf'),
-        SpaceGrotesk_500Medium: require('../../assets/fonts/SpaceGrotesk-Medium.ttf'),
-        SpaceGrotesk_600SemiBold: require('../../assets/fonts/SpaceGrotesk-SemiBold.ttf'),
-        SpaceGrotesk_700Bold: require('../../assets/fonts/SpaceGrotesk-Bold.ttf'),
-    });
-
     useEffect(() => {
-        if (fontsError) throw fontsError;
         if (dbError) throw dbError;
-    }, [dbError, fontsError]);
+    }, [dbError]);
 
-    if (!dbSuccess || !fontsLoaded) {
+    if (!dbSuccess) {
         return null;
     }
 

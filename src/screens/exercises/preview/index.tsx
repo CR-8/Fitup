@@ -2,6 +2,7 @@ import { FC, useMemo } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
@@ -11,9 +12,11 @@ import {
     EXERCISE_MEDIA_ATTRIBUTION,
 } from '@/constants/fitup';
 
-import { Header } from './components/header';
+import { Stack } from '@/navigators/stack';
+import { HeaderTextButton } from '@/components/buttons/header';
 
 const styles = StyleSheet.create((theme, rt) => ({
+    // The animations are drawn on white, so the page is white in both themes.
     container: {
         flex: 1,
         backgroundColor: theme.colors.white,
@@ -33,6 +36,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(4),
         paddingBottom: rt.insets.bottom + theme.space(3),
         textAlign: 'center',
+        // On the white matte in both themes.
         color: theme.colors.neutral[500],
     },
 }));
@@ -45,6 +49,7 @@ const normalizeParam = (value: string | string[] | undefined): string => {
 };
 
 const PreviewScreen: FC = () => {
+    const { t } = useTranslation(['common']);
     const { gifFilename, name } = useLocalSearchParams<{
         gifFilename?: string | string[];
         name?: string;
@@ -62,7 +67,18 @@ const PreviewScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Header exerciseName={name} handleClose={handleClose} />
+            <Stack.Screen
+                options={{
+                    title: name ?? '',
+                    headerRight: () => (
+                        <HeaderTextButton
+                            title={t('done', { ns: 'common' })}
+                            onPress={handleClose}
+                            prominent
+                        />
+                    ),
+                }}
+            />
             {gifUrl ? (
                 <>
                     <Box style={styles.gifContainer}>

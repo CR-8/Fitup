@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import dayjs from 'dayjs';
-import { BarChart3, Flame } from 'lucide-react-native';
 
 import { useWorkouts, useWorkoutsOverviewMeta } from '@/hooks/use-workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
@@ -39,24 +38,13 @@ import { summarisePlans } from '@/helpers/ai-plan';
 /** Home is a glance at recent training, not the archive — that's the Workout tab. */
 const RECENT_LIMIT = 3;
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
     },
     content: {
-        // The screen has no header, so it clears the status bar itself.
-        paddingTop: rt.insets.top + theme.space(4),
-        paddingBottom: theme.screenContentPadding('root').paddingBottom,
+        ...theme.screenContentPadding('root'),
         gap: theme.space(5),
-    },
-    /** Keeps scrolled cards from running under the clock and battery icons. */
-    statusBarScrim: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: rt.insets.top,
-        backgroundColor: theme.colors.background,
     },
     loading: {
         flex: 1,
@@ -131,13 +119,13 @@ const HomeScreen: FC = () => {
         () => [
             {
                 key: 'streak',
-                icon: Flame,
+                icon: 'flame',
                 value: String(streak),
                 label: t('home.tiles.streak', { ns: 'screens' }),
             },
             {
                 key: 'month',
-                icon: BarChart3,
+                icon: 'bar-chart',
                 value: String(monthCount),
                 label: t('home.tiles.month', { ns: 'screens' }),
             },
@@ -222,7 +210,6 @@ const HomeScreen: FC = () => {
                     <AiPlanCard finishedPlans={planSummary.finished} />
                 )}
             </ScrollView>
-            <Box style={styles.statusBarScrim} />
         </Box>
     );
 };

@@ -1,11 +1,11 @@
 import { FC } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Heart } from 'lucide-react-native';
 
 import { useFavoriteExerciseIds, useToggleFavoriteExercise } from '@/hooks/use-exercises';
 
 import { Pressable } from '../primitives/pressable';
+import { Icon } from '../primitives/icon';
 
 interface FavoriteButtonProps {
     exerciseId: string;
@@ -46,11 +46,10 @@ export const FavoriteButton: FC<FavoriteButtonProps> = ({ exerciseId, size }) =>
                 ns: 'screens',
             })}
         >
-            <Heart
+            <Icon
+                name={active ? 'heart-fill' : 'heart'}
                 size={size ?? theme.space(5)}
-                strokeWidth={2}
                 color={active ? theme.colors.primary : theme.colors.mutedTypography}
-                fill={active ? theme.colors.primary : 'transparent'}
             />
         </Pressable>
     );

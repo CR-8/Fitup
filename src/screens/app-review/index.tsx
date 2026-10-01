@@ -1,5 +1,7 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView } from 'react-native';
+
+import { Stack } from '@/navigators/stack';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
@@ -61,26 +63,12 @@ const styles = StyleSheet.create((theme, rt) => ({
             backgroundColor: backgroundByResponse[response],
         };
     },
-    header: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        justifyContent: 'flex-end',
-        height: theme.screenHeaderHeight(),
-        paddingHorizontal: theme.space(4),
-    },
-    headerWrapper: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
     content: {
         flex: 1,
     },
     scroll: {
-        ...theme.screenContentPadding('child'),
         flexGrow: 1,
+        paddingTop: rt.insets.top + theme.space(5),
         paddingBottom: rt.insets.bottom + theme.space(24),
     },
     reviewContent: {
@@ -153,24 +141,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingBottom: theme.space(5) + rt.insets.bottom,
         width: '100%',
     },
-    submitButton: {
-        backgroundColor: theme.colors.neutral[950],
-    },
-    submitButtonText: {
-        color: theme.colors.neutral[50],
-    },
 }));
-
-const Header = () => {
-    return (
-        <Box style={styles.header}>
-            <HStack style={styles.headerWrapper}>
-                <Box />
-                <Box />
-            </HStack>
-        </Box>
-    );
-};
 
 const AppReviewScreen: FC = () => {
     const { promptId: rawPromptId } = useLocalSearchParams<{ promptId?: string | string[] }>();
@@ -226,7 +197,8 @@ const AppReviewScreen: FC = () => {
 
     return (
         <Box style={[styles.container, styles.selectedBackground(selected)]}>
-            <Header />
+            {/* A full-bleed mood screen: no bar over it. */}
+            <Stack.Screen options={{ headerShown: false }} />
             <Box style={styles.content}>
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <VStack style={styles.reviewContent}>
@@ -264,9 +236,7 @@ const AppReviewScreen: FC = () => {
             <Box style={styles.footer}>
                 <Button
                     title={t('appReview.actions.submit')}
-                    containerStyle={styles.submitButton}
-                    textStyle={styles.submitButtonText}
-                    spinnerColor={styles.submitButtonText.color}
+                    type="primary"
                     loading={isSubmitting}
                     disabled={isSubmitting || !promptId}
                     onPress={handleSubmit}

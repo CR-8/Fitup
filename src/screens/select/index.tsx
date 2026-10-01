@@ -1,12 +1,12 @@
 import { FC, useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
-import { Text } from '@/components/primitives/text';
-import { Search } from '@/screens/exercises/exercises/components/search';
+import { Stack } from '@/navigators/stack';
+import { HeaderTextButton } from '@/components/buttons/header';
 import { useExercisesList, useMergeExercise } from '@/hooks/use-exercises';
 import { ExercisesListContainer } from '@/screens/exercises/exercises/components/list/container';
 import { Button } from '@/components/buttons/base';
@@ -37,17 +37,13 @@ type SelectedList = string[];
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
-        paddingTop: rt.insets.top,
     },
     contentWrapper: {
         flexGrow: 1,
     },
-    header: {
-        paddingHorizontal: theme.space(4),
-        paddingTop: theme.space(3),
-        paddingBottom: theme.space(2),
-        backgroundColor: theme.colors.background,
-        gap: theme.space(2),
+    headerActions: {
+        alignItems: 'center',
+        gap: theme.space(3),
     },
     listContainer: {
         flex: 1,
@@ -63,41 +59,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderColor: selected ? theme.colors.typography : theme.colors.border,
         backgroundColor: selected ? theme.colors.typography : 'transparent',
     }),
-    headerContentContainer: {
-        paddingBottom: theme.space(2),
-        justifyContent: 'space-between',
-    },
-    headerLeftContentContainer: {
-        flex: 1,
-        alignItems: 'flex-start',
-    },
-    headerRightContentContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: theme.space(2.5),
-    },
-    headerTitleContainer: {
-        flexGrow: 1,
-        alignItems: 'center',
-    },
     bottomActionsContainer: {
         position: 'absolute',
         bottom: 0,
         paddingHorizontal: theme.space(4),
         paddingBottom: theme.space(5) + rt.insets.bottom,
         width: '100%',
-    },
-    createButton: {
-        width: theme.space(6),
-        height: theme.space(6),
-        backgroundColor: theme.colors.background,
-    },
-    filterButton: {
-        paddingTop: theme.space(0),
-    },
-    filterDot: {
-        right: 0,
     },
 }));
 
@@ -149,8 +116,6 @@ const SelectExercisesScreen: FC = () => {
     const deferredQuery = useDeferredValue(query);
     const [selected, setSelected] = useState<SelectedList>([]);
     const [submitting, setSubmitting] = useState(false);
-
-    const { theme } = useUnistyles();
 
     const { navigate } = useEditor();
     const { track } = useAnalytics();
@@ -355,44 +320,31 @@ const SelectExercisesScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Box style={styles.header}>
-                <HStack style={styles.headerContentContainer}>
-                    <Box style={styles.headerLeftContentContainer}>
-                        <Button
-                            type="link"
+            <Stack.Screen
+                options={{
+                    title: headerTitle,
+                    headerLeft: () => (
+                        <HeaderTextButton
                             title={t('cancel', { ns: 'common' })}
                             onPress={handleCancel}
                         />
-                    </Box>
-                    <Box style={styles.headerTitleContainer}>
-                        <Text fontWeight="bold">{headerTitle}</Text>
-                    </Box>
-                    <HStack style={styles.headerRightContentContainer}>
-                        <FilterButton
-                            onPress={handleFilterOpen}
-                            active={hasActiveFilters(filterState)}
-                            containerStyle={[styles.createButton, styles.filterButton]}
-                            dotStyle={styles.filterDot}
-                            iconColor={theme.colors.typography}
-                            iconSize={theme.space(5)}
-                        />
-                        {!isMergeMode && (
-                            <CreateButton
-                                onPressHandler={handleExerciseCreate}
-                                containerStyle={styles.createButton}
-                                iconColor={theme.colors.typography}
-                                iconSize={theme.space(6)}
+                    ),
+                    headerRight: () => (
+                        <HStack style={styles.headerActions}>
+                            <FilterButton
+                                onPress={handleFilterOpen}
+                                active={hasActiveFilters(filterState)}
                             />
-                        )}
-                    </HStack>
-                </HStack>
-                <Search
-                    value={query}
-                    onChange={setQuery}
-                    placeholder={t('placeholder.search', { ns: 'common' })}
-                    dismissText={t('done', { ns: 'common' })}
-                />
-            </Box>
+                            {!isMergeMode && <CreateButton onPressHandler={handleExerciseCreate} />}
+                        </HStack>
+                    ),
+                    headerSearchBarOptions: {
+                        placeholder: t('placeholder.search', { ns: 'common' }),
+                        hideWhenScrolling: false,
+                        onChangeText: (event) => setQuery(event.nativeEvent.text),
+                    },
+                }}
+            />
             <ExercisesListContainer
                 mode="select"
                 rawExercises={filteredExercises}

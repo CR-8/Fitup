@@ -1,36 +1,20 @@
-import { useUnistyles, StyleSheet } from 'react-native-unistyles';
-import { Ellipsis } from 'lucide-react-native';
+import { FC, ReactNode } from 'react';
+import { MenuView, type MenuAction } from '@expo/ui/community/menu';
 
-import { Pressable } from '../primitives/pressable';
-import { Box } from '../primitives/box';
+import { HeaderButton } from './header';
 
-interface BackButtonProps {
-    backgroundColor?: string;
-    iconColor?: string;
-    onPressHandler: () => void;
+export type { MenuAction };
+
+interface ActionsMenuProps {
+    actions: MenuAction[];
+    onAction: (id: string) => void;
+    /** The trigger; defaults to the header "…" glyph. */
+    children?: ReactNode;
 }
 
-const styles = StyleSheet.create((theme) => ({
-    container: (backgroundColor?: string) => ({
-        height: theme.space(11),
-        width: theme.space(11),
-        backgroundColor: backgroundColor || theme.colors.foreground,
-        borderRadius: theme.radius.full,
-        justifyContent: 'center',
-        alignItems: 'center',
-    }),
-}));
-
-const ActionsButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonProps) => {
-    const { theme } = useUnistyles();
-
-    return (
-        <Pressable onPress={onPressHandler}>
-            <Box style={styles.container(backgroundColor)}>
-                <Ellipsis size={theme.space(7)} color={iconColor || theme.colors.typography} />
-            </Box>
-        </Pressable>
-    );
-};
-
-export { ActionsButton };
+/** A native menu: UIMenu on iOS, a Material dropdown on Android. */
+export const ActionsMenu: FC<ActionsMenuProps> = ({ actions, onAction, children }) => (
+    <MenuView actions={actions} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
+        {children ?? <HeaderButton icon="ellipsis" />}
+    </MenuView>
+);

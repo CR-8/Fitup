@@ -13,7 +13,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: theme.space(1.5),
     },
     error: {
-        color: theme.colors.red[500],
+        color: theme.colors.destructive,
     },
 }));
 

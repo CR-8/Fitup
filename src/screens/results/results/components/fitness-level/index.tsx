@@ -1,13 +1,13 @@
 import { FC } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import type { FitnessLevel } from '@/helpers/fitness-level';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * The measured read of how far along someone's training is — computed by
@@ -76,7 +76,7 @@ export const FitnessLevelCard: FC<{ level: FitnessLevel | null }> = ({ level }) 
         <Box style={styles.card}>
             <HStack style={styles.body}>
                 <Box style={styles.icon}>
-                    <TrendingUp size={theme.space(5.5)} strokeWidth={2} color={accent} />
+                    <Icon name="trending-up" size={theme.space(5.5)} color={accent} />
                 </Box>
 
                 <VStack style={styles.text}>

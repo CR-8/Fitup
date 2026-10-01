@@ -204,7 +204,7 @@ const RECOVERY_SCALE_BOUNDS_BY_AGE: readonly {
 const styles = StyleSheet.create((theme) => ({
     container: {
         marginHorizontal: theme.space(4),
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.solid.background,
         paddingTop: theme.space(5),
         paddingBottom: theme.space(3),
         gap: theme.space(5),
@@ -215,11 +215,11 @@ const styles = StyleSheet.create((theme) => ({
     sectionTitle: {
         fontSize: theme.fontSize.lg.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
-        backgroundColor: theme.colors.border,
+        backgroundColor: theme.solid.border,
     },
     zonesContainer: {
         gap: theme.space(5),
@@ -247,7 +247,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     zoneLabel: {
         flexShrink: 1,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create((theme) => ({
     zonePercent: {
         minWidth: theme.space(12),
         textAlign: 'right',
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create((theme) => ({
     zoneDuration: {
         minWidth: theme.space(14),
         textAlign: 'right',
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
@@ -298,11 +298,11 @@ const styles = StyleSheet.create((theme) => ({
     heartRateChartAverageValue: {
         ...theme.fontSize['2xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     heartRateChartAverageLabel: {
         ...theme.fontSize.sm,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     heartRateChartZone: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create((theme) => ({
     heartRateChartYAxisLabel: {
         position: 'absolute',
         right: 0,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.35,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: -theme.space(1.5),
     },
     heartRateChartMetaLabel: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(2.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.solid.foreground,
     },
     heartRateZoneScaleGradient: {
         flex: 1,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create((theme) => ({
         bottom: 0,
         width: theme.space(0.5),
         marginLeft: -theme.space(0.25),
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.solid.foreground,
     },
     heartRateZoneScaleMarker: {
         position: 'absolute',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingRight: theme.space(0.5),
     },
     heartRateZoneScaleTick: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -407,6 +407,7 @@ const styles = StyleSheet.create((theme) => ({
     recoveryCard: {
         width: '100%',
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         gap: theme.space(3),
     },
     recoveryContent: {
@@ -427,7 +428,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: -theme.space(1.5),
     },
     recoveryChartMetaLabel: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -456,7 +457,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(2.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.solid.foreground,
     },
     recoveryScaleGradient: {
         flex: 1,
@@ -467,7 +468,7 @@ const styles = StyleSheet.create((theme) => ({
         bottom: 0,
         width: theme.space(0.5),
         marginLeft: -theme.space(0.25),
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.solid.background,
     },
     recoveryScaleDivider1: {
         left: '20%',
@@ -500,7 +501,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingRight: theme.space(0.5),
     },
     recoveryScaleTick: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -510,19 +511,20 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(1),
         paddingVertical: theme.space(1.5),
         borderRadius: theme.radius['2xl'],
-        backgroundColor: theme.colors.background,
+        borderCurve: 'continuous',
+        backgroundColor: theme.solid.foreground,
         borderWidth: stableOutlineWidth,
-        borderColor: theme.colors.border,
+        borderColor: theme.solid.border,
         gap: theme.space(0.5),
     },
     recoveryPointerValue: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
     },
     recoveryPointerTime: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
         fontSize: theme.fontSize['2xs'].fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -1596,19 +1598,19 @@ export const Stats: FC<StatsProps> = ({
                                                     heartRateZoneScaleModel?.markerColor ??
                                                     HEART_RATE_ZONE_LABEL_COLORS[1]
                                                 }
-                                                endFillColor={theme.colors.foreground}
+                                                endFillColor={theme.solid.foreground}
                                                 startOpacity={0.18}
                                                 endOpacity={0}
                                                 hideYAxisText
                                                 yAxisLabelWidth={0}
                                                 yAxisThickness={0}
                                                 xAxisThickness={1}
-                                                xAxisColor={theme.colors.border}
+                                                xAxisColor={theme.solid.border}
                                                 xAxisLabelsHeight={0}
                                                 xAxisLabelsVerticalShift={0}
                                                 labelsExtraHeight={0}
                                                 hideRules={false}
-                                                rulesColor={theme.colors.border}
+                                                rulesColor={theme.solid.border}
                                                 rulesThickness={1}
                                                 hideDataPoints={true}
                                             />
@@ -1793,12 +1795,12 @@ export const Stats: FC<StatsProps> = ({
                                             yAxisLabelWidth={0}
                                             yAxisThickness={0}
                                             xAxisThickness={1}
-                                            xAxisColor={theme.colors.border}
+                                            xAxisColor={theme.solid.border}
                                             xAxisLabelsHeight={0}
                                             xAxisLabelsVerticalShift={0}
                                             labelsExtraHeight={0}
                                             hideRules={false}
-                                            rulesColor={theme.colors.border}
+                                            rulesColor={theme.solid.border}
                                             rulesThickness={1}
                                             hideDataPoints={true}
                                         />

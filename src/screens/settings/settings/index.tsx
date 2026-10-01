@@ -1,37 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Share } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import * as MailComposer from 'expo-mail-composer';
-import {
-    ChevronRight,
-    Bell,
-    Lock,
-    Sun,
-    Volume2,
-    Clock,
-    Languages,
-    Ruler,
-    Heart,
-    Megaphone,
-    Mail,
-    MessageCircle,
-    Star,
-    Undo2,
-    UserRound,
-    KeyRound,
-} from 'lucide-react-native';
+import { FieldGroup, Text as UIText } from '@expo/ui';
 
-import { Title } from '@/components/typography/title';
-import { ScrollView } from '@/components/primitives/scrollview';
-import { VStack } from '@/components/primitives/vstack';
-import { Box } from '@/components/primitives/box';
-import { Pressable } from '@/components/primitives/pressable';
-import { HStack } from '@/components/primitives/hstack';
-import { Text } from '@/components/primitives/text';
-import { Label } from '@/components/forms/label';
+import { Host } from '@/components/native/host';
+import { SettingsRow } from '@/components/native/settings-row';
+import type { IconName } from '@/components/primitives/icon';
 import { isAuthConfigured } from '@/constants/auth';
 import { useUser } from '@/hooks/use-user';
 import { localeNames, normalizeLanguage } from '@/locale/constants';
@@ -40,82 +17,12 @@ import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
 import { useAnalytics } from '@/hooks/use-analytics';
 
-const styles = StyleSheet.create((theme, rt) => ({
-    container: {
-        flex: 1,
-        paddingHorizontal: theme.space(4),
-    },
-    content: {
-        ...theme.screenContentPadding('root'),
-        gap: theme.space(5),
-    },
-    settingsContainer: {
-        flex: 1,
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.radius['4xl'],
-        padding: theme.space(5),
-    },
-    settingsWrapper: {
-        flex: 1,
-    },
-    settingContainer: {
-        height: theme.space(8),
-        alignItems: 'center',
-        gap: theme.space(3),
-    },
-    iconContainer: {
-        height: theme.space(8),
-        width: theme.space(8),
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius.lg,
-    },
-    settingContentContainer: {
-        flex: 1,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: theme.space(3),
-    },
-    settingTitleContainer: {
-        gap: theme.space(2),
-    },
-    settingTitle: {
-        color: theme.colors.typography,
-    },
-    settingValueRow: {
-        alignItems: 'center',
-        gap: theme.space(1.5),
-    },
-    settingValue: {
-        ...theme.fontSize.sm,
-        color: theme.colors.mutedTypography,
-    },
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: theme.colors.border,
-        marginLeft: theme.space(11),
-        marginVertical: theme.space(2),
-    },
-    versionContainer: {
-        gap: theme.space(1),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    versionText: {
-        color: theme.colors.neutral[500],
-        fontSize: theme.fontSize.sm.fontSize,
-    },
-    fieldContainer: {
-        gap: theme.space(3),
-    },
-}));
+type Row = { icon: IconName; title: string; value?: string; onPress: () => void };
 
 const SettingsScreen = () => {
     const { user } = useUser();
     const { resetWatchSync } = useRunningWorkoutStatic();
     const { t } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
     const { track } = useAnalytics();
 
     const [isMailAvailable, setIsMailAvailable] = useState(false);
@@ -197,80 +104,80 @@ const SettingsScreen = () => {
         );
     };
 
-    const settings = [
+    const settings: Row[] = [
         {
-            icon: UserRound,
+            icon: 'person-circle',
             title: t('settings.items.profile.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/profile'),
         },
         // Hidden entirely in a build shipped without accounts, where the row
         // would lead to a screen that can only say "unavailable".
         ...(isAuthConfigured()
-            ? [
+            ? ([
                   {
-                      icon: KeyRound,
+                      icon: 'key',
                       title: t('settings.items.account.title', { ns: 'screens' }),
                       onPress: () => router.navigate('/settings/account'),
                   },
-              ]
+              ] satisfies Row[])
             : []),
         {
-            icon: Bell,
+            icon: 'bell',
             title: t('settings.items.notifications.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/notifications'),
         },
         {
-            icon: Lock,
+            icon: 'lock',
             title: t('settings.items.autolock.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/autolock'),
         },
         {
-            icon: Sun,
+            icon: 'appearance',
             title: t('settings.items.theme.title', { ns: 'screens' }),
-            // Unset means the first-launch default, which is dark.
-            value: t(`settings.items.theme.${user?.theme ?? 'dark'}`, { ns: 'screens' }),
+            // Unset means the first-launch default, which follows the system.
+            value: t(`settings.items.theme.${user?.theme ?? 'auto'}`, { ns: 'screens' }),
             onPress: () => router.navigate('/settings/theme'),
         },
         {
-            icon: Volume2,
+            icon: 'volume-high',
             title: t('settings.items.sound.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/sound'),
         },
         {
-            icon: Clock,
+            icon: 'clock',
             title: t('settings.items.dateTime.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/datetime'),
         },
         {
-            icon: Ruler,
+            icon: 'ruler',
             title: t('settings.items.units.title', { ns: 'screens' }),
             value: [user?.weightUnits, user?.measurementUnits].filter(Boolean).join(', '),
             onPress: () => router.navigate('/settings/units'),
         },
         {
-            icon: Languages,
+            icon: 'language',
             title: t('settings.items.language.title', { ns: 'screens' }),
             value: localeNames[normalizeLanguage(user?.lng)],
             onPress: () => router.navigate('/settings/language'),
         },
         {
-            icon: Heart,
+            icon: 'heart',
             title: t('settings.items.heartRate.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/heartrate' as any),
         },
     ];
 
-    const watch = [
+    const watch: Row[] = [
         {
-            icon: Undo2,
+            icon: 'undo',
             title: t('settings.items.resetWatchSync.title', { ns: 'screens' }),
             onPress: handleResetWatchSync,
         },
     ];
 
-    const help = [
+    const help: Row[] = [
         {
-            icon: Megaphone,
+            icon: 'megaphone',
             title: t('settings.help.items.reportProblem.title', { ns: 'screens' }),
             onPress: () =>
                 handleComposeEmail({
@@ -280,7 +187,7 @@ const SettingsScreen = () => {
                 }),
         },
         {
-            icon: Mail,
+            icon: 'mail',
             title: t('settings.help.items.sendFeedback.title', { ns: 'screens' }),
             onPress: () =>
                 handleComposeEmail({
@@ -291,184 +198,55 @@ const SettingsScreen = () => {
         },
     ];
 
-    const supportFitup = [
+    const supportFitup: Row[] = [
         {
-            icon: MessageCircle,
+            icon: 'message',
             title: t('settings.supportFitup.items.tellFriend.title', { ns: 'screens' }),
             onPress: handleShare,
         },
         {
-            icon: Star,
+            icon: 'star',
             title: t('settings.supportFitup.items.reviewAppStore.title', { ns: 'screens' }),
             onPress: handleManualReviewRequest,
         },
     ];
 
+    const section = (rows: Row[], disclosure: boolean) =>
+        rows.map((row) => (
+            <SettingsRow
+                key={row.title}
+                icon={row.icon}
+                title={row.title}
+                value={row.value}
+                disclosure={disclosure}
+                onPress={row.onPress}
+            />
+        ));
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Title type="h1">{t('settings.title', { ns: 'screens' })}</Title>
-            <VStack style={styles.settingsContainer}>
-                <VStack style={styles.settingsWrapper}>
-                    {settings.map((setting, index) => (
-                        <VStack key={index}>
-                            <Pressable onPress={setting.onPress}>
-                                <HStack style={styles.settingContainer}>
-                                    <Box style={styles.iconContainer}>
-                                        <setting.icon
-                                            size={theme.space(5)}
-                                            strokeWidth={theme.space(0.375)}
-                                            opacity={0.8}
-                                            color={theme.colors.typography}
-                                        />
-                                    </Box>
-                                    <HStack style={styles.settingContentContainer}>
-                                        <VStack style={styles.settingTitleContainer}>
-                                            <Box>
-                                                <Text
-                                                    fontWeight="medium"
-                                                    style={styles.settingTitle}
-                                                >
-                                                    {setting.title}
-                                                </Text>
-                                            </Box>
-                                        </VStack>
-                                        <HStack style={styles.settingValueRow}>
-                                            {'value' in setting && setting.value ? (
-                                                <Text style={styles.settingValue} numberOfLines={1}>
-                                                    {setting.value}
-                                                </Text>
-                                            ) : null}
-                                            <ChevronRight
-                                                size={theme.space(5)}
-                                                color={theme.colors.typography}
-                                                opacity={0.8}
-                                            />
-                                        </HStack>
-                                    </HStack>
-                                </HStack>
-                            </Pressable>
-                            {index < settings.length - 1 && <Box style={styles.divider} />}
-                        </VStack>
-                    ))}
-                </VStack>
-            </VStack>
-            {Platform.OS === 'ios' && (
-                <VStack style={styles.fieldContainer}>
-                    <Label>{t('settings.watch.title', { ns: 'screens' })}</Label>
-                    <VStack style={styles.settingsContainer}>
-                        <VStack style={styles.settingsWrapper}>
-                            {watch.map((setting, index) => (
-                                <VStack key={index}>
-                                    <Pressable onPress={setting.onPress}>
-                                        <HStack style={styles.settingContainer}>
-                                            <Box style={styles.iconContainer}>
-                                                <setting.icon
-                                                    size={theme.space(5)}
-                                                    strokeWidth={theme.space(0.375)}
-                                                    opacity={0.8}
-                                                    color={theme.colors.typography}
-                                                />
-                                            </Box>
-                                            <HStack style={styles.settingContentContainer}>
-                                                <VStack style={styles.settingTitleContainer}>
-                                                    <Box>
-                                                        <Text
-                                                            fontWeight="medium"
-                                                            style={styles.settingTitle}
-                                                        >
-                                                            {setting.title}
-                                                        </Text>
-                                                    </Box>
-                                                </VStack>
-                                            </HStack>
-                                        </HStack>
-                                    </Pressable>
-                                </VStack>
-                            ))}
-                        </VStack>
-                    </VStack>
-                </VStack>
-            )}
-            {isMailAvailable && (
-                <VStack style={styles.fieldContainer}>
-                    <Label>{t('settings.help.title', { ns: 'screens' })}</Label>
-                    <VStack style={styles.settingsContainer}>
-                        <VStack style={styles.settingsWrapper}>
-                            {help.map((setting, index) => (
-                                <VStack key={index}>
-                                    <Pressable onPress={setting.onPress}>
-                                        <HStack style={styles.settingContainer}>
-                                            <Box style={styles.iconContainer}>
-                                                <setting.icon
-                                                    size={theme.space(5)}
-                                                    strokeWidth={theme.space(0.375)}
-                                                    opacity={0.8}
-                                                    color={theme.colors.typography}
-                                                />
-                                            </Box>
-                                            <HStack style={styles.settingContentContainer}>
-                                                <VStack style={styles.settingTitleContainer}>
-                                                    <Box>
-                                                        <Text
-                                                            fontWeight="medium"
-                                                            style={styles.settingTitle}
-                                                        >
-                                                            {setting.title}
-                                                        </Text>
-                                                    </Box>
-                                                </VStack>
-                                            </HStack>
-                                        </HStack>
-                                    </Pressable>
-                                    {index < help.length - 1 && <Box style={styles.divider} />}
-                                </VStack>
-                            ))}
-                        </VStack>
-                    </VStack>
-                </VStack>
-            )}
-            <VStack style={styles.fieldContainer}>
-                <Label>{t('settings.supportFitup.title', { ns: 'screens' })}</Label>
-                <VStack style={styles.settingsContainer}>
-                    <VStack style={styles.settingsWrapper}>
-                        {supportFitup.map((setting, index) => (
-                            <VStack key={index}>
-                                <Pressable onPress={setting.onPress}>
-                                    <HStack style={styles.settingContainer}>
-                                        <Box style={styles.iconContainer}>
-                                            <setting.icon
-                                                size={theme.space(5)}
-                                                strokeWidth={theme.space(0.375)}
-                                                opacity={0.8}
-                                                color={theme.colors.typography}
-                                            />
-                                        </Box>
-                                        <HStack style={styles.settingContentContainer}>
-                                            <VStack style={styles.settingTitleContainer}>
-                                                <Box>
-                                                    <Text
-                                                        fontWeight="medium"
-                                                        style={styles.settingTitle}
-                                                    >
-                                                        {setting.title}
-                                                    </Text>
-                                                </Box>
-                                            </VStack>
-                                        </HStack>
-                                    </HStack>
-                                </Pressable>
-                                {index < help.length - 1 && <Box style={styles.divider} />}
-                            </VStack>
-                        ))}
-                    </VStack>
-                </VStack>
-            </VStack>
-            <HStack style={styles.versionContainer}>
-                <Text style={styles.versionText}>{t('settings.version', { ns: 'screens' })}</Text>
-                <Text style={styles.versionText}>{appVersion}</Text>
-                <Text style={styles.versionText}>({buildVersion})</Text>
-            </HStack>
-        </ScrollView>
+        <Host style={{ flex: 1 }}>
+            <FieldGroup>
+                <FieldGroup.Section>{section(settings, true)}</FieldGroup.Section>
+                {Platform.OS === 'ios' && (
+                    <FieldGroup.Section title={t('settings.watch.title', { ns: 'screens' })}>
+                        {section(watch, false)}
+                    </FieldGroup.Section>
+                )}
+                {isMailAvailable && (
+                    <FieldGroup.Section title={t('settings.help.title', { ns: 'screens' })}>
+                        {section(help, false)}
+                    </FieldGroup.Section>
+                )}
+                <FieldGroup.Section title={t('settings.supportFitup.title', { ns: 'screens' })}>
+                    {section(supportFitup, false)}
+                    <FieldGroup.SectionFooter>
+                        <UIText>
+                            {`${t('settings.version', { ns: 'screens' })} ${appVersion} (${buildVersion})`}
+                        </UIText>
+                    </FieldGroup.SectionFooter>
+                </FieldGroup.Section>
+            </FieldGroup>
+        </Host>
     );
 };
 

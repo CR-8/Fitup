@@ -20,17 +20,18 @@ const styles = StyleSheet.create((theme, rt) => ({
     bubble: {
         maxWidth: '88%',
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         paddingHorizontal: theme.space(4),
         paddingVertical: theme.space(3),
     },
     // The user's own turn uses the app's primary fill, the same treatment as its
     // primary buttons, so the thread reads with the rest of the interface.
     userBubble: {
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        backgroundColor: theme.colors.primary,
         borderBottomRightRadius: theme.radius.sm,
     },
     userText: {
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
+        color: theme.colors.primaryTypography,
     },
     assistantBubble: {
         backgroundColor: theme.colors.background,

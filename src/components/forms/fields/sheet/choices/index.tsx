@@ -1,26 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    BottomSheetFooter,
-    BottomSheetFooterProps,
-    BottomSheetModal,
-    BottomSheetScrollView,
-} from '@gorhom/bottom-sheet';
+import { useMemo, useState } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { FieldPath, FieldValues, useController } from 'react-hook-form';
 import { compact } from 'lodash';
-import { ChevronsUpDown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import {
+    BottomSheet,
+    Button as UIButton,
+    Checkbox,
+    Column,
+    FieldGroup,
+    Picker,
+    Row,
+    Spacer,
+    Text as UIText,
+} from '@expo/ui';
 
 import { HStack } from '@/components/primitives/hstack';
-import { Box, BoxProps } from '@/components/primitives/box';
+import { BoxProps } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
-import { Backdrop } from '@/components/overlays/backdrop';
-import { Handle } from '@/components/overlays/handle';
 import { VStack } from '@/components/primitives/vstack';
+import { Icon } from '@/components/primitives/icon';
+import { Host } from '@/components/native/host';
+import { brandTint } from '@/components/native/modifiers';
 import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 
-import { ChoiceType, ChoicesFieldType, Choices as ChoicesField, ValueType } from '../../choices';
+import { ChoiceType, ChoicesFieldType, ValueType } from '../../choices';
 import { Error } from '../../components';
 
 interface SheetChoicesFieldType<
@@ -33,99 +38,53 @@ interface SheetChoicesFieldType<
     containerStyle?: BoxProps['style'];
 }
 
-const flattenChoiceTree = (choices: ChoiceType[]): ChoiceType[] => {
-    return choices.flatMap((choice) => [
+const flattenChoiceTree = (choices: ChoiceType[]): ChoiceType[] =>
+    choices.flatMap((choice) => [
         choice,
         ...(choice.children ? flattenChoiceTree(choice.children) : []),
     ]);
-};
 
-const styles = StyleSheet.create((theme, rt) => ({
+/** Picker items carry strings or numbers; the empty string stands for "none". */
+const NONE = '';
+
+const styles = StyleSheet.create((theme) => ({
     container: {
         paddingVertical: theme.space(3),
-        paddingHorizontal: theme.space(5),
+        paddingHorizontal: theme.space(4),
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: theme.space(3),
     },
     title: (error: boolean) => ({
-        fontWeight: theme.fontWeight.medium.fontWeight,
-        color: error ? theme.colors.red[500] : theme.colors.typography,
+        flexShrink: 1,
+        color: error ? theme.colors.destructive : theme.colors.typography,
     }),
-    sheetBackground: {
-        backgroundColor: theme.colors.foreground,
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    sheetHandle: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    sheetHandleIndicator: {
-        backgroundColor: theme.colors.typography,
-        opacity: 0.2,
-    },
-    sheetFooterContainer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: theme.space(5),
-        paddingBottom: rt.insets.bottom,
-    },
-    sheetFooterActionContainer: {
-        height: theme.space(14),
-    },
-    sheetFooterContainerWrapper: {
-        height: '100%',
-        justifyContent: 'center',
-    },
-    sheetActionTitle: {
-        color: theme.colors.typography,
-    },
-    scrollContainer: {
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    contentContainer: (showActions: boolean) => ({
-        paddingHorizontal: theme.space(4),
-        paddingTop: theme.screenContentPadding('sheet').paddingTop,
-        paddingBottom: showActions
-            ? theme.space(16) + rt.insets.bottom
-            : theme.space(6) + rt.insets.bottom,
-    }),
-    errorContainer: {
-        paddingHorizontal: theme.space(5),
-        marginTop: -theme.space(2),
-        marginBottom: theme.space(3),
-    },
     selectContainer: {
         alignItems: 'center',
-        gap: theme.space(2),
-        flexShrink: 1,
-    },
-    selectPressable: {
+        gap: theme.space(1),
         flexShrink: 1,
         maxWidth: '60%',
     },
     selectTitle: {
         flexShrink: 1,
         textAlign: 'right',
+        color: theme.colors.mutedTypography,
     },
-    selectIcon: {
-        paddingTop: theme.space(0.25),
+    errorContainer: {
+        paddingHorizontal: theme.space(4),
+        marginTop: -theme.space(2),
+        marginBottom: theme.space(3),
     },
 }));
 
+/**
+ * A settings row that picks from a list.
+ *
+ * One choice: the platform's inline picker menu, no sheet. Several: a native
+ * sheet of checkbox rows, grouped by section, with Reset and Done.
+ */
 function SheetChoices<T extends FieldValues, TName extends FieldPath<T>>({
     title,
-    description,
-    showActions = true,
     name,
     control,
     value: defaultValue,
@@ -134,11 +93,9 @@ function SheetChoices<T extends FieldValues, TName extends FieldPath<T>>({
     groups,
     type = 'radio',
     error,
-    ...rest
 }: SheetChoicesFieldType<T, TName>) {
     const [visible, setVisible] = useState(false);
-    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const { t } = useTranslation(['common']);
     useStoreReviewGateBlocker(`sheet-choices:${name}`, visible);
 
@@ -148,138 +105,130 @@ function SheetChoices<T extends FieldValues, TName extends FieldPath<T>>({
 
     const value = fieldValue as ValueType;
 
-    const allChoices = useMemo(() => {
-        if (groups) {
-            return groups.flatMap((group) => flattenChoiceTree(group.choices));
-        }
-        return flattenChoiceTree(choices || []);
-    }, [choices, groups]);
+    const sections = useMemo(
+        () =>
+            groups
+                ? groups.map((group) => ({
+                      title: group.title,
+                      choices: flattenChoiceTree(group.choices),
+                  }))
+                : [{ title: undefined, choices: flattenChoiceTree(choices || []) }],
+        [choices, groups],
+    );
+    const allChoices = useMemo(() => sections.flatMap((section) => section.choices), [sections]);
 
-    const selected = useMemo((): ChoiceType[] | null => {
-        if (!value) return null;
-
-        if (Array.isArray(value)) {
-            return compact(value.map((v) => allChoices.find((choice) => choice.value === v)));
-        } else {
-            const selectedChoice = allChoices.find((choice) => choice.value === value);
-            return selectedChoice ? [selectedChoice] : [];
-        }
-    }, [value, allChoices]);
+    const selectedValues = useMemo(
+        () => (Array.isArray(value) ? value : value == null ? [] : [value]),
+        [value],
+    );
 
     const selectedTitle = useMemo(() => {
-        if (!selected) return null;
-        if (selected.length === 1) return selected[0]?.title;
-        return `${selected[0]?.title}, +${selected.length - 1}`;
-    }, [selected]);
+        const selected = compact(
+            selectedValues.map((v) => allChoices.find((choice) => choice.value === v)),
+        );
+        if (selected.length === 0) return null;
+        if (selected.length === 1) return selected[0].title;
+        return `${selected[0].title}, +${selected.length - 1}`;
+    }, [allChoices, selectedValues]);
 
-    useEffect(() => {
-        if (visible) {
-            bottomSheetModalRef.current?.present();
-        } else {
-            bottomSheetModalRef.current?.close();
-        }
-    }, [visible]);
+    const errorMessage = error?.message ? (
+        <Error containerStyle={styles.errorContainer}>{t(error.message, { ns: 'common' })}</Error>
+    ) : null;
 
-    const handleOnChange = (value: ValueType) => {
-        onChange(value);
-        if (value !== null && type === 'radio') setVisible(!visible);
+    if (type === 'radio') {
+        const current = typeof value === 'string' || typeof value === 'number' ? value : NONE;
+
+        return (
+            <VStack>
+                <HStack style={[styles.container, containerStyle]}>
+                    <Text style={styles.title(!!error)}>{title}</Text>
+                    <Host matchContents>
+                        <Picker
+                            selectedValue={current}
+                            onValueChange={(next) => onChange(next === NONE ? null : next)}
+                        >
+                            {current === NONE ? (
+                                <Picker.Item value={NONE} label={t('select', { ns: 'common' })} />
+                            ) : null}
+                            {allChoices.map((choice) => (
+                                <Picker.Item
+                                    key={String(choice.value)}
+                                    value={choice.value as string | number}
+                                    label={choice.title}
+                                />
+                            ))}
+                        </Picker>
+                    </Host>
+                </HStack>
+                {errorMessage}
+            </VStack>
+        );
+    }
+
+    const toggle = (choiceValue: ChoiceType['value'], on: boolean) => {
+        const rest = selectedValues.filter((v) => v !== choiceValue);
+        const next = on ? [...rest, choiceValue] : rest;
+        onChange(next.length > 0 ? next : null);
     };
-
-    const handleReset = () => onChange(null);
-
-    const handleSheet = () => setVisible(!visible);
-
-    const handleSheetChanges = (index: number) => {
-        if (index === -1 && visible) {
-            handleSheet();
-        }
-    };
-
-    const Footer = (props: BottomSheetFooterProps) => (
-        <BottomSheetFooter {...props}>
-            <HStack style={styles.sheetFooterContainer}>
-                <Box style={styles.sheetFooterActionContainer}>
-                    <Pressable style={styles.sheetFooterContainerWrapper} onPress={handleReset}>
-                        <Text style={styles.sheetActionTitle}>{t('reset', { ns: 'common' })}</Text>
-                    </Pressable>
-                </Box>
-                <Box style={styles.sheetFooterActionContainer}>
-                    <Pressable style={styles.sheetFooterContainerWrapper} onPress={handleSheet}>
-                        <Text fontWeight="bold" style={styles.sheetActionTitle}>
-                            {t('done', { ns: 'common' })}
-                        </Text>
-                    </Pressable>
-                </Box>
-            </HStack>
-        </BottomSheetFooter>
-    );
 
     return (
         <>
             <VStack>
-                <HStack style={[styles.container, containerStyle]}>
-                    <VStack>
-                        <Box>
-                            <Text style={styles.title(!!error)}>{title}</Text>
-                        </Box>
-                        {description && (
-                            <Box>
-                                <Text>{description}</Text>
-                            </Box>
-                        )}
-                    </VStack>
-                    <Pressable style={styles.selectPressable} onPress={handleSheet}>
+                <Pressable onPress={() => setVisible(true)}>
+                    <HStack style={[styles.container, containerStyle]}>
+                        <Text style={styles.title(!!error)}>{title}</Text>
                         <HStack style={styles.selectContainer}>
-                            <Text style={[styles.title(!!error), styles.selectTitle]}>
-                                {selectedTitle ? selectedTitle : t('select', { ns: 'common' })}
+                            <Text style={styles.selectTitle} numberOfLines={1}>
+                                {selectedTitle ?? t('select', { ns: 'common' })}
                             </Text>
-                            <Box style={styles.selectIcon}>
-                                <ChevronsUpDown
-                                    size={theme.space(4)}
-                                    color={
-                                        !!error ? theme.colors.red[500] : theme.colors.typography
-                                    }
-                                />
-                            </Box>
+                            <Icon
+                                name="chevron-right"
+                                size={theme.space(3.5)}
+                                color={theme.colors.mutedTypography}
+                            />
                         </HStack>
-                    </Pressable>
-                </HStack>
-                {error?.message && (
-                    <Error containerStyle={styles.errorContainer}>
-                        {t(error.message, { ns: 'common' })}
-                    </Error>
-                )}
+                    </HStack>
+                </Pressable>
+                {errorMessage}
             </VStack>
-            <BottomSheetModal
-                ref={bottomSheetModalRef}
-                backdropComponent={Backdrop}
-                handleComponent={(props) => (
-                    <Handle title={title} handleClose={handleSheet} {...props} />
-                )}
-                footerComponent={showActions ? Footer : undefined}
-                onChange={handleSheetChanges}
-                stackBehavior="push"
-                backgroundStyle={styles.sheetBackground}
-                topInset={rt.insets.top + theme.space(5)}
-                handleStyle={styles.sheetHandle}
-                handleIndicatorStyle={styles.sheetHandleIndicator}
+            <BottomSheet
+                isPresented={visible}
+                onDismiss={() => setVisible(false)}
+                snapPoints={['half', 'full']}
+                modifiers={brandTint}
             >
-                <BottomSheetScrollView
-                    style={styles.scrollContainer}
-                    contentContainerStyle={styles.contentContainer(showActions)}
-                >
-                    <ChoicesField
-                        name={name}
-                        control={control}
-                        value={defaultValue}
-                        choices={choices}
-                        groups={groups}
-                        type={type}
-                        onChange={handleOnChange}
-                        {...rest}
-                    />
-                </BottomSheetScrollView>
-            </BottomSheetModal>
+                <Column spacing={8}>
+                    <Row alignment="center">
+                        <UIButton
+                            variant="text"
+                            label={t('reset', { ns: 'common' })}
+                            onPress={() => onChange(null)}
+                        />
+                        <Spacer />
+                        <UIText textStyle={{ fontSize: 17, fontWeight: '600' }}>{title}</UIText>
+                        <Spacer />
+                        <UIButton
+                            variant="text"
+                            label={t('done', { ns: 'common' })}
+                            onPress={() => setVisible(false)}
+                        />
+                    </Row>
+                    <FieldGroup>
+                        {sections.map((section, index) => (
+                            <FieldGroup.Section key={section.title ?? index} title={section.title}>
+                                {section.choices.map((choice) => (
+                                    <Checkbox
+                                        key={String(choice.value)}
+                                        label={choice.title}
+                                        value={selectedValues.includes(choice.value as never)}
+                                        onValueChange={(on) => toggle(choice.value, on)}
+                                    />
+                                ))}
+                            </FieldGroup.Section>
+                        ))}
+                    </FieldGroup>
+                </Column>
+            </BottomSheet>
         </>
     );
 }

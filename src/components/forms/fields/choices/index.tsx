@@ -8,7 +8,6 @@ import {
     useController,
 } from 'react-hook-form';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Undo2 } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
@@ -18,10 +17,10 @@ import { Box, BoxProps } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/buttons/base';
-import { stableOutlineWidth } from '@/helpers/styles';
 
 import { Label, Error } from '../components';
 import { ControlledInputType } from '../types';
+import { Icon } from '@/components/primitives/icon';
 
 export type ChoicesType = 'radio' | 'checkbox';
 
@@ -63,9 +62,11 @@ export interface ChoicesFieldType<
 const styles = StyleSheet.create((theme) => ({
     choicesContainer: {
         gap: theme.space(0.5),
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.radius['4xl'],
-        padding: theme.space(5),
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
+        paddingVertical: theme.space(3),
+        paddingHorizontal: theme.space(4),
     },
     choicesWrapper: {
         gap: theme.space(3),
@@ -94,39 +95,39 @@ const styles = StyleSheet.create((theme) => ({
         paddingTop: showTopBorder ? theme.space(3) : 0,
         paddingBottom: showBottomBorder ? theme.space(3) : 0,
     }),
-    iconWrapper: (
-        checked: boolean,
-        error: boolean,
-        uncheckedIndicatorBackgroundColor?: string,
-    ) => ({
-        borderWidth: stableOutlineWidth,
+    // Android's radio: a ring, filled in the primary colour when chosen. iOS
+    // marks the chosen row with a trailing checkmark instead (see `Choice`).
+    iconWrapper: (checked: boolean, error: boolean) => ({
+        borderWidth: 2,
         borderColor: error
-            ? theme.colors.red[500]
+            ? theme.colors.destructive
             : checked
-              ? theme.colors.typography
-              : theme.colors.border,
-        backgroundColor: checked
-            ? theme.colors.typography
-            : (uncheckedIndicatorBackgroundColor ?? theme.colors.background),
+              ? theme.colors.primary
+              : theme.colors.mutedTypography,
         borderRadius: theme.radius.full,
-        height: theme.space(6),
-        width: theme.space(6),
+        height: theme.space(5),
+        width: theme.space(5),
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: theme.space(0.25),
     }),
+    iconDot: {
+        height: theme.space(2.5),
+        width: theme.space(2.5),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.primary,
+    },
+    checkmark: {
+        width: theme.space(5),
+        alignItems: 'center',
+    },
     choiceTitleContainer: (showTopBorder: boolean, showBottomBorder: boolean) => ({
         flex: 1,
         gap: theme.space(2),
         paddingTop: showTopBorder ? theme.space(3) : 0,
         paddingBottom: showBottomBorder ? theme.space(3) : 0,
     }),
-    choiceTitle: (checked: boolean, error: boolean) => ({
-        color: error
-            ? theme.colors.red[500]
-            : checked
-              ? theme.colors.typography
-              : theme.colors.typography,
+    choiceTitle: (error: boolean) => ({
+        color: error ? theme.colors.destructive : theme.colors.typography,
     }),
     selectedContainer: {
         flex: 1,
@@ -191,6 +192,8 @@ const styles = StyleSheet.create((theme) => ({
     }),
 }));
 
+const isIOS = process.env.EXPO_OS === 'ios';
+
 const flattenChoiceTree = (choiceList: ChoiceType[]): ChoiceType[] => {
     return choiceList.flatMap((choice) => {
         return [choice, ...(choice.children ? flattenChoiceTree(choice.children) : [])];
@@ -214,28 +217,35 @@ const Choice: FC<{
     checked,
     error,
     selectPosition = 'left',
-    uncheckedIndicatorBackgroundColor,
 }) => {
+    const { theme } = useUnistyles();
+
     return (
         <Pressable style={styles.choicePressable} onPress={() => onPress(choice)}>
             <VStack>
                 {showTopBorder && <Box style={styles.choiceSeparator} />}
-                <HStack style={styles.choiceContainer(selectPosition)}>
+                <HStack style={styles.choiceContainer(isIOS ? 'right' : selectPosition)}>
                     <Box style={styles.iconContainer(showTopBorder, showBottomBorder)}>
-                        <Box
-                            style={styles.iconWrapper(
-                                checked,
-                                !!error,
-                                uncheckedIndicatorBackgroundColor,
-                            )}
-                        />
+                        {isIOS ? (
+                            <Box style={styles.checkmark}>
+                                {checked ? (
+                                    <Icon
+                                        name="check"
+                                        size={theme.space(4.5)}
+                                        color={
+                                            error ? theme.colors.destructive : theme.colors.primary
+                                        }
+                                    />
+                                ) : null}
+                            </Box>
+                        ) : (
+                            <Box style={styles.iconWrapper(checked, !!error)}>
+                                {checked ? <Box style={styles.iconDot} /> : null}
+                            </Box>
+                        )}
                     </Box>
                     <VStack style={styles.choiceTitleContainer(showTopBorder, showBottomBorder)}>
-                        <Box>
-                            <Text fontWeight="medium" style={styles.choiceTitle(checked, !!error)}>
-                                {choice.title}
-                            </Text>
-                        </Box>
+                        <Text style={styles.choiceTitle(!!error)}>{choice.title}</Text>
                     </VStack>
                 </HStack>
                 {showBottomBorder && <Box style={styles.choiceSeparator} />}
@@ -559,7 +569,6 @@ function Choices<T extends FieldValues, TName extends FieldPath<T>>({
     uncheckedIndicatorBackgroundColor,
     onChange: customOnChange,
 }: ChoicesFieldType<T, TName>) {
-    const { theme } = useUnistyles();
     const { t } = useTranslation(['common']);
 
     const {
@@ -790,12 +799,7 @@ function Choices<T extends FieldValues, TName extends FieldPath<T>>({
                         <Box>
                             <Button
                                 type="link"
-                                prefix={
-                                    <Undo2
-                                        size={theme.space(4.5)}
-                                        color={theme.colors.typography}
-                                    />
-                                }
+                                icon="undo"
                                 title={t('change', { ns: 'common' })}
                                 onPress={handleReset}
                             />

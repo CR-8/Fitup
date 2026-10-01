@@ -20,7 +20,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     container: {
         padding: theme.space(5),
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        backgroundColor: theme.colors.primary,
         borderRadius: theme.radius['4xl'],
         gap: theme.space(5),
     },
@@ -28,10 +28,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1),
     },
     title: {
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        color: theme.colors.primaryTypography,
     },
     descriptionText: {
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        color: theme.colors.primaryTypography,
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
         fontWeight: theme.fontWeight.default.fontWeight,
@@ -43,7 +43,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
     buttonText: {
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        color: theme.colors.primaryTypography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
@@ -106,13 +106,11 @@ export const Pushes = ({ wrapperStyle }: { wrapperStyle?: BoxProps['style'] }) =
                             onPress={handleTurnOn}
                             type="link"
                             title={t('promo.pushes.turnOn', { ns: 'common' })}
-                            textStyle={[styles.buttonText, styles.turnOnButton]}
                         />
                         <Button
                             onPress={handleDelay}
                             type="link"
                             title={t('promo.pushes.delay', { ns: 'common' })}
-                            textStyle={styles.buttonText}
                         />
                     </HStack>
                 </VStack>

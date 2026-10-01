@@ -1,14 +1,12 @@
+import { useTranslation } from 'react-i18next';
+
 import { CreateButton } from '@/components/buttons/create';
 import { useEditor } from '@/hooks/use-editor';
 import { useAnalytics } from '@/hooks/use-analytics';
-import { useScreen } from '@/hooks/use-screen';
 
-/**
- * Mirrors `useHomeTab`: a transparent header carrying the create action, so the
- * `+` that used to live on Home sits on the screen that owns workouts.
- */
+/** The workouts tab owns creating one, so its `+` sits in this header. */
 const useWorkoutHubTab = () => {
-    const { options } = useScreen();
+    const { t } = useTranslation(['screens']);
     const { navigate } = useEditor();
     const { track } = useAnalytics();
 
@@ -20,12 +18,7 @@ const useWorkoutHubTab = () => {
     return {
         name: 'workouts',
         options: {
-            ...options,
-            headerTransparent: true,
-            headerStyle: {
-                ...options.headerStyle,
-                backgroundColor: 'transparent',
-            },
+            title: t('workoutHub.title'),
             headerRight: () => <CreateButton onPressHandler={handleWorkoutCreate} />,
         },
     };

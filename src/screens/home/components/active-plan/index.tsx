@@ -3,7 +3,6 @@ import { Alert, ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Flame } from 'lucide-react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Box } from '@/components/primitives/box';
@@ -16,6 +15,7 @@ import { useActivePlan, useSynActions } from '@/hooks/use-ai';
 import { derivePlanProgress } from '@/helpers/ai-plan';
 import type { AiPlanKind } from '@/constants/ai';
 import type { WorkoutSelect } from '@/db/schema';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * What the user is currently training on, and how far through it they are.
@@ -35,6 +35,7 @@ const styles = StyleSheet.create((theme) => ({
         marginHorizontal: theme.space(4),
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
+        borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,
         padding: theme.space(5),
@@ -99,7 +100,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         paddingHorizontal: theme.space(3),
         paddingVertical: theme.space(1.5),
     },
@@ -216,12 +217,7 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
 
                 {streak > 0 ? (
                     <HStack style={styles.streak}>
-                        <Flame
-                            size={theme.space(3.5)}
-                            strokeWidth={2}
-                            color={theme.colors.primary}
-                            fill={theme.colors.primary}
-                        />
+                        <Icon name="flame" size={theme.space(3.5)} color={theme.colors.primary} />
                         <Text style={styles.meta}>
                             {t('home.streak', { ns: 'screens', count: streak })}
                         </Text>

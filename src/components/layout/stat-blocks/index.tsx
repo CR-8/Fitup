@@ -1,11 +1,11 @@
 import { FC, Fragment } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import type { LucideIcon } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
+import { Icon, type IconName } from '@/components/primitives/icon';
 
 /**
  * A row of headline numbers: a large value over a quiet label.
@@ -31,7 +31,7 @@ export interface StatBlock {
      * A leading glyph, which turns the tile into a row: icon, then the figure
      * over its label. Home's streak and month tiles use it; Results doesn't.
      */
-    icon?: LucideIcon;
+    icon?: IconName;
 }
 
 const styles = StyleSheet.create((theme) => ({
@@ -138,9 +138,9 @@ export const StatBlocks: FC<{
                             accessibilityLabel={`${block.value} ${block.label}`}
                         >
                             {block.icon ? (
-                                <block.icon
+                                <Icon
+                                    name={block.icon}
                                     size={theme.space(6)}
-                                    strokeWidth={2}
                                     color={theme.colors.primary}
                                 />
                             ) : null}

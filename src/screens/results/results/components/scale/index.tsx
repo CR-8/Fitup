@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Plus } from 'lucide-react-native';
 
 import { HStack } from '@/components/primitives/hstack';
 import { Box } from '@/components/primitives/box';
+import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { useLatestMeasurementsByMetric, useMeasurementTimeline } from '@/hooks/use-measurements';
@@ -13,7 +13,7 @@ import { useUser } from '@/hooks/use-user';
 import { WeightChart } from './components/weight-chart';
 import { type MeasurementWithDisplayValue } from './types';
 import { convertToDisplayWeight } from './utils';
-import { Button } from '@/components/buttons/base';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     section: {
@@ -49,7 +49,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.typography,
     },
     prefixBox: {
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        backgroundColor: theme.colors.primary,
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
@@ -63,7 +63,7 @@ const Scale = () => {
     const { t, i18n } = useTranslation(['common', 'screens']);
     const { navigate } = useEditor();
     const { user } = useUser();
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const weightTimeline = useMeasurementTimeline('body_weight');
     const bodyFatTimeline = useMeasurementTimeline('body_fat_percentage');
     const latestByMetric = useLatestMeasurementsByMetric(['body_weight']);
@@ -156,22 +156,19 @@ const Scale = () => {
                             {t('results.scale.metrics.currentWeight', { ns: 'screens' })}
                         </Text>
                     </VStack>
-                    <Button
-                        type="link"
-                        prefix={
-                            <Box style={styles.prefixBox}>
-                                <Plus
-                                    size={theme.space(5.5)}
-                                    color={
-                                        rt.themeName === 'dark'
-                                            ? theme.colors.neutral[950]
-                                            : theme.colors.white
-                                    }
-                                />
-                            </Box>
-                        }
+                    <Pressable
                         onPress={handleOpenMeasurementEditor}
-                    />
+                        accessibilityRole="button"
+                        accessibilityLabel={t('results.scale.actions.weighIn', { ns: 'screens' })}
+                    >
+                        <Box style={styles.prefixBox}>
+                            <Icon
+                                name="plus"
+                                size={theme.space(5.5)}
+                                color={theme.colors.primaryTypography}
+                            />
+                        </Box>
+                    </Pressable>
                 </HStack>
                 <WeightChart
                     timeline={timelineWithDisplayValues}

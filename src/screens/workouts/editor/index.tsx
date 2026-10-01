@@ -78,8 +78,9 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(3),
     },
     fieldWrapper: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         paddingVertical: theme.space(2),
     },
     fieldSeparator: {

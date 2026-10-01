@@ -48,7 +48,6 @@ export interface InputType extends TextEntryProps {
     };
     inputContainerStyle?: BoxProps['style'];
     inputStyle?: InputProps['style'];
-    asSheet?: boolean;
     prefix?: string;
     suffix?: string;
 }

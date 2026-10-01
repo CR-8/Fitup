@@ -25,7 +25,7 @@ export const BootLoader: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
         </Box>
     );
 };

@@ -1,20 +1,21 @@
 import { FC, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
 import { useExercise } from '@/hooks/use-exercises';
 import { Guide } from '@/screens/exercises/exercise/components/guide';
 
-import { Header } from './components/header';
+import { Stack } from '@/navigators/stack';
+import { ScrollView } from '@/components/primitives/scrollview';
+import { HeaderTextButton } from '@/components/buttons/header';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { isFitupExerciseUserId } from '@/constants/fitup';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
     },
     content: {
         flex: 1,
@@ -28,6 +29,7 @@ const GuideScreen: FC = () => {
     const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
     const { data: exercise } = useExercise(exerciseId ?? '');
     const { track } = useAnalytics();
+    const { t } = useTranslation(['common', 'screens']);
     const trackedRef = useRef(false);
 
     useEffect(() => {
@@ -46,7 +48,18 @@ const GuideScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Header handleClose={handleClose} />
+            <Stack.Screen
+                options={{
+                    title: t('exercise.tabs.guide', { ns: 'screens' }),
+                    headerRight: () => (
+                        <HeaderTextButton
+                            title={t('done', { ns: 'common' })}
+                            onPress={handleClose}
+                            prominent
+                        />
+                    ),
+                }}
+            />
             <Box style={styles.content}>
                 {exercise && (
                     <ScrollView contentContainerStyle={styles.scroll}>

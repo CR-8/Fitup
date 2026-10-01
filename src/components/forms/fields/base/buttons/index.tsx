@@ -24,7 +24,7 @@ export type BaseButtonsFieldType = {
     variant?: 'accent';
 } & UnistylesVariants<typeof styles>;
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     labelContainer: {
         marginBottom: theme.space(2),
     },
@@ -35,59 +35,41 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(2),
         flexWrap: 'wrap',
     },
+    // Selection chips: tonal when off, tinted when on — Material's filter chip,
+    // and the tinted capsule iOS uses for a selected option.
     choiceContainer: (checked: boolean, error: boolean) => ({
-        minWidth: theme.space(11),
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: theme.radius.full,
+        borderWidth: error ? 1 : 0,
+        borderColor: theme.colors.destructive,
+        backgroundColor: checked ? theme.colors.primary : theme.colors.elevated,
         variants: {
             variant: {
-                default: {
-                    backgroundColor: error
-                        ? theme.colors.red[100]
-                        : checked
-                          ? rt.themeName === 'dark'
-                              ? theme.colors.white
-                              : theme.colors.neutral[950]
-                          : theme.colors.background,
-                },
-                accent: {
-                    backgroundColor: error
-                        ? theme.colors.red[100]
-                        : checked
-                          ? rt.themeName === 'dark'
-                              ? theme.colors.white
-                              : theme.colors.neutral[950]
-                          : theme.colors.foreground,
-                },
+                default: {},
+                accent: {},
             },
             size: {
                 default: {
-                    height: theme.space(11),
+                    height: theme.space(9),
                     minWidth: theme.space(11),
-                    paddingHorizontal: theme.space(5),
+                    paddingHorizontal: theme.space(4),
                 },
                 small: {
-                    height: theme.space(10),
+                    height: theme.space(8),
                     minWidth: theme.space(10),
-                    paddingHorizontal: theme.space(4),
+                    paddingHorizontal: theme.space(3),
                 },
             },
         },
     }),
     choiceTitle: (checked: boolean, error: boolean) => ({
         color: error
-            ? theme.colors.red[500]
+            ? theme.colors.destructive
             : checked
-              ? rt.themeName === 'dark'
-                  ? theme.colors.neutral[950]
-                  : theme.colors.white
-              : rt.themeName === 'dark'
-                ? theme.colors.white
-                : theme.colors.neutral[950],
-        fontWeight: checked
-            ? theme.fontWeight.medium.fontWeight
-            : theme.fontWeight.medium.fontWeight,
+              ? theme.colors.primaryTypography
+              : theme.colors.typography,
+        fontWeight: theme.fontWeight.medium.fontWeight,
         variants: {
             size: {
                 default: {

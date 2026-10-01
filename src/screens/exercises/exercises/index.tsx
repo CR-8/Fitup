@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 
 import { Box } from '@/components/primitives/box';
-import { Text } from '@/components/primitives/text';
-import { Title } from '@/components/typography/title';
+import { Stack } from '@/navigators/stack';
 import {
     useExercisesList,
     useFavoriteExerciseIds,
@@ -14,26 +13,11 @@ import {
 import { countActiveFilters, useFilterStore } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
-import { Search } from './components/search';
 import { Shelf } from './components/shelf';
 import { ExercisesListContainer } from './components/list/container';
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
-        flex: 1,
-        paddingTop: theme.screenContentPadding('root').paddingTop,
-    },
-    header: {
-        paddingHorizontal: theme.space(4),
-        marginBottom: theme.space(3),
-        backgroundColor: theme.colors.background,
-        gap: theme.space(2),
-    },
-    subtitle: {
-        ...theme.fontSize.sm,
-        color: theme.colors.mutedTypography,
-    },
-    listContainer: {
         flex: 1,
     },
     contentContainer: {
@@ -102,16 +86,14 @@ const Exercises: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Box style={styles.header}>
-                <Title type="h1">{t('exercises.title', { ns: 'screens' })}</Title>
-                <Text style={styles.subtitle}>{t('exercises.subtitle', { ns: 'screens' })}</Text>
-                <Search
-                    value={query}
-                    onChange={setQuery}
-                    placeholder={t('placeholder.search', { ns: 'common' })}
-                    dismissText={t('done', { ns: 'common' })}
-                />
-            </Box>
+            <Stack.Screen
+                options={{
+                    headerSearchBarOptions: {
+                        placeholder: t('placeholder.search', { ns: 'common' }),
+                        onChangeText: (event) => setQuery(event.nativeEvent.text),
+                    },
+                }}
+            />
             <ExercisesListContainer
                 mode="browse"
                 rawExercises={rawExercises}

@@ -1,5 +1,6 @@
 import { storage } from '@/storage';
-import { Platform } from 'react-native';
+import { Appearance, Platform, PlatformColor, type ColorValue } from 'react-native';
+import { requireNativeModule } from 'expo-modules-core';
 import { StyleSheet, UnistylesRuntime } from 'react-native-unistyles';
 
 const FONT_SIZE_BASE = 16;
@@ -99,77 +100,22 @@ const common = {
 
 const func = {
     space: (v: number) => v * SPACE,
-    statusBarHeight: () => {
-        const hasDynamicIsland = Platform.OS === 'ios' && UnistylesRuntime.insets.top > 50;
-        return hasDynamicIsland ? UnistylesRuntime.insets.top - 6 : UnistylesRuntime.insets.top;
-    },
-    headerHeight: (modalPresentation: boolean = false) => {
-        let headerHeight;
-
-        if (Platform.OS === 'ios') {
-            if (Platform.isPad || Platform.isTV) {
-                if (modalPresentation) {
-                    headerHeight = 56;
-                } else {
-                    headerHeight = 50;
-                }
-            } else {
-                if (UnistylesRuntime.isLandscape) {
-                    headerHeight = 32;
-                } else {
-                    if (modalPresentation) {
-                        headerHeight = 56;
-                    } else {
-                        headerHeight = 56;
-                    }
-                }
-            }
-        } else if (Platform.OS === 'android') {
-            headerHeight = 64;
-        } else {
-            headerHeight = 64;
-        }
-
-        return headerHeight;
-    },
-    screenHeaderHeight: (modalPresentation: boolean = false) => {
-        let headerHeight = func.headerHeight(modalPresentation);
-        const statusBarHeight = func.statusBarHeight();
-
-        return headerHeight + statusBarHeight;
-    },
-    headerContentTopOffset: (contentHeight: number, modalPresentation: boolean = false): number => {
-        const statusBarHeight = func.statusBarHeight();
-        const navHeaderBodyHeight = func.headerHeight(modalPresentation);
-        const centeredOffset = Math.max(0, (navHeaderBodyHeight - contentHeight) / 2);
-
-        return statusBarHeight + centeredOffset;
-    },
-    sheetHeaderHeight: () => {
-        return func.screenHeaderHeight() - func.space(5);
-    },
+    /**
+     * Breathing room only. Native headers and tab bars inset scroll content
+     * themselves (`contentInsetAdjustmentBehavior` on iOS, layout on Android);
+     * Android still draws edge to edge under the gesture bar on pushed screens.
+     */
     screenContentPadding: (screen: 'root' | 'child' | 'editor' | 'sheet') => {
-        if (screen === 'root')
-            return {
-                paddingTop: func.screenHeaderHeight(),
-                paddingBottom: UnistylesRuntime.insets.bottom + func.space(20),
-            };
+        const bottom = Platform.OS === 'android' ? UnistylesRuntime.insets.bottom : 0;
+
+        if (screen === 'root') return { paddingTop: func.space(2), paddingBottom: func.space(8) };
 
         if (screen === 'editor')
-            return {
-                paddingTop: func.screenHeaderHeight() + func.space(5),
-                paddingBottom: UnistylesRuntime.insets.bottom + func.space(24),
-            };
+            return { paddingTop: func.space(5), paddingBottom: bottom + func.space(24) };
 
-        if (screen === 'sheet')
-            return {
-                paddingTop: func.sheetHeaderHeight(),
-            };
+        if (screen === 'sheet') return { paddingTop: func.space(5) };
 
-        return {
-            paddingTop: func.screenHeaderHeight() + func.space(5),
-            paddingBottom: UnistylesRuntime.insets.bottom + func.space(5),
-        };
+        return { paddingTop: func.space(5), paddingBottom: bottom + func.space(5) };
     },
 };
 
@@ -259,115 +205,166 @@ export const colors = {
     },
 };
 
+type Scheme = 'light' | 'dark';
+
+type ExpoRouterNative = {
+    Material3DynamicColor: (role: string, scheme: Scheme) => string | null;
+};
+
 /**
- * Naming follows the app's existing vocabulary rather than the stylesheet's.
+ * Material You roles resolved for one scheme. Android hands them back as plain
+ * hex, so each theme gets its own set and JS consumers (charts, svg) can use
+ * them as-is.
  *
- * Here `foreground` already means the raised surface a card is drawn on and
- * `typography` means text, so the design's `--card` and `--foreground` map onto
- * those. Importing the CSS names would have left two different meanings of
- * "foreground" in one file.
+ * ponytail: read once at launch, so a wallpaper change shows after a restart.
  */
-export const lightTheme = {
-    colors: {
-        background: colors.neutral[50],
-        foreground: colors.white,
-        elevated: colors.neutral[100],
-        typography: colors.neutral[900],
-        mutedTypography: colors.neutral[500],
-        border: colors.neutral[200],
-        input: '#d5d5dd',
+const material = (role: string, scheme: Scheme): string =>
+    requireNativeModule<ExpoRouterNative>('ExpoRouter').Material3DynamicColor(role, scheme) ??
+    colors.neutral[500];
+
+/**
+ * The app's vocabulary (`foreground` is a card, `typography` is text) mapped onto
+ * the OS's own colours: UIKit semantic colours on iOS, which follow the
+ * appearance by themselves, and Material You on Android. The web default keeps
+ * the old palette.
+ */
+const semantic = (scheme: Scheme): SemanticColors => {
+    const dark = scheme === 'dark';
+
+    if (Platform.OS === 'ios')
+        return {
+            background: PlatformColor('systemGroupedBackground'),
+            foreground: PlatformColor('secondarySystemGroupedBackground'),
+            elevated: PlatformColor('tertiarySystemGroupedBackground'),
+            typography: PlatformColor('label'),
+            mutedTypography: PlatformColor('secondaryLabel'),
+            border: PlatformColor('separator'),
+            input: PlatformColor('tertiarySystemFill'),
+            primary: colors.brand[500],
+            primaryTypography: colors.white,
+            primarySoft: 'rgba(255, 69, 58, 0.16)',
+            accent: PlatformColor('label'),
+            accentTypography: PlatformColor('systemBackground'),
+            success: PlatformColor('systemGreen'),
+            destructive: PlatformColor('systemRed'),
+        };
+
+    if (Platform.OS === 'android')
+        return {
+            background: material('surface', scheme),
+            foreground: material('surfaceContainer', scheme),
+            elevated: material('surfaceContainerHigh', scheme),
+            typography: material('onSurface', scheme),
+            mutedTypography: material('onSurfaceVariant', scheme),
+            border: material('outlineVariant', scheme),
+            input: material('surfaceContainerHighest', scheme),
+            primary: material('primary', scheme),
+            primaryTypography: material('onPrimary', scheme),
+            primarySoft: material('primaryContainer', scheme),
+            accent: material('onSurface', scheme),
+            accentTypography: material('surface', scheme),
+            success: dark ? '#35c47f' : '#1f9d63',
+            destructive: material('error', scheme),
+        };
+
+    return {
+        background: dark ? colors.neutral[950] : colors.neutral[50],
+        foreground: dark ? colors.neutral[900] : colors.white,
+        elevated: dark ? colors.neutral[800] : colors.neutral[100],
+        typography: dark ? colors.neutral[50] : colors.neutral[900],
+        mutedTypography: dark ? colors.neutral[400] : colors.neutral[500],
+        border: dark ? '#2c2c33' : colors.neutral[200],
+        input: dark ? colors.neutral[700] : '#d5d5dd',
         primary: colors.brand[500],
         primaryTypography: colors.white,
-        primarySoft: colors.brand[100],
-        accent: colors.neutral[900],
-        accentTypography: colors.neutral[50],
-        success: '#1f9d63',
-        destructive: '#e0342a',
+        primarySoft: dark ? 'rgba(255, 69, 58, 0.16)' : colors.brand[100],
+        accent: dark ? '#ff7a6e' : colors.neutral[900],
+        accentTypography: dark ? colors.neutral[950] : colors.neutral[50],
+        success: dark ? '#35c47f' : '#1f9d63',
+        destructive: dark ? '#ff5a4e' : '#e0342a',
+    };
+};
+
+/**
+ * The same tokens as plain colour strings, for consumers that cannot take a
+ * PlatformColor — chart and SVG libraries, gradients, Reanimated. On iOS these
+ * are the published values of the UIKit colours above; Android's are already
+ * strings.
+ */
+const IOS_SOLID: Record<Scheme, SolidColors> = {
+    light: {
+        background: '#f2f2f7',
+        foreground: '#ffffff',
+        elevated: '#ffffff',
+        typography: '#000000',
+        mutedTypography: 'rgba(60, 60, 67, 0.6)',
+        border: 'rgba(60, 60, 67, 0.29)',
+        input: 'rgba(118, 118, 128, 0.12)',
+        primary: colors.brand[500],
+        primaryTypography: colors.white,
+        primarySoft: 'rgba(255, 69, 58, 0.16)',
+        accent: '#000000',
+        accentTypography: '#ffffff',
+        success: '#34c759',
+        destructive: '#ff3b30',
+    },
+    dark: {
+        background: '#000000',
+        foreground: '#1c1c1e',
+        elevated: '#2c2c2e',
+        typography: '#ffffff',
+        mutedTypography: 'rgba(235, 235, 245, 0.6)',
+        border: 'rgba(84, 84, 88, 0.65)',
+        input: 'rgba(118, 118, 128, 0.24)',
+        primary: colors.brand[500],
+        primaryTypography: colors.white,
+        primarySoft: 'rgba(255, 69, 58, 0.16)',
+        accent: '#ffffff',
+        accentTypography: '#000000',
+        success: '#30d158',
+        destructive: '#ff453a',
+    },
+};
+
+const solid = (scheme: Scheme): SolidColors =>
+    Platform.OS === 'ios' ? IOS_SOLID[scheme] : (semantic(scheme) as SolidColors);
+
+type SolidColors = Record<keyof SemanticColors, string>;
+
+type SemanticColors = Record<
+    | 'background'
+    | 'foreground'
+    | 'elevated'
+    | 'typography'
+    | 'mutedTypography'
+    | 'border'
+    | 'input'
+    | 'primary'
+    | 'primaryTypography'
+    | 'primarySoft'
+    | 'accent'
+    | 'accentTypography'
+    | 'success'
+    | 'destructive',
+    ColorValue
+>;
+
+export const lightTheme = {
+    colors: {
+        ...semantic('light'),
         ...colors,
     },
-    gradients: {
-        brand: ['#ff6a55', '#ff2d20'],
-        ink: ['#1e1e22', '#3a3a44'],
-        surface: ['#ffffff', '#f7f7f9'],
-        /** Stands in for the design's radial bloom; see `glow` in the theme. */
-        glow: ['rgba(255, 69, 58, 0.14)', 'rgba(255, 69, 58, 0)'],
-    },
-    shadows: {
-        soft: {
-            shadowColor: '#1e1e22',
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.14,
-            shadowRadius: 18,
-            elevation: 4,
-        },
-        lift: {
-            shadowColor: '#1e1e22',
-            shadowOffset: { width: 0, height: 18 },
-            shadowOpacity: 0.18,
-            shadowRadius: 24,
-            elevation: 10,
-        },
-        glow: {
-            shadowColor: colors.brand[500],
-            shadowOffset: { width: 0, height: 14 },
-            shadowOpacity: 0.45,
-            shadowRadius: 20,
-            elevation: 10,
-        },
-    },
+    solid: solid('light'),
     ...common,
     ...func,
 } as const;
 
 export const darkTheme = {
     colors: {
-        background: colors.neutral[950],
-        foreground: colors.neutral[900],
-        elevated: colors.neutral[800],
-        typography: colors.neutral[50],
-        mutedTypography: colors.neutral[400],
-        border: '#2c2c33',
-        input: colors.neutral[700],
-        primary: colors.brand[500],
-        primaryTypography: colors.white,
-        // The design tints this one rather than using a solid, so the card
-        // beneath shows through a pill.
-        primarySoft: 'rgba(255, 69, 58, 0.16)',
-        accent: '#ff7a6e',
-        accentTypography: colors.neutral[950],
-        success: '#35c47f',
-        destructive: '#ff5a4e',
+        ...semantic('dark'),
         ...colors,
     },
-    gradients: {
-        brand: ['#ff6a55', '#e0342a'],
-        ink: ['#1e1e22', '#0b0b0c'],
-        surface: ['#1e1e22', '#17171a'],
-        glow: ['rgba(255, 69, 58, 0.20)', 'rgba(255, 69, 58, 0)'],
-    },
-    shadows: {
-        soft: {
-            shadowColor: colors.black,
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.5,
-            shadowRadius: 18,
-            elevation: 4,
-        },
-        lift: {
-            shadowColor: colors.black,
-            shadowOffset: { width: 0, height: 18 },
-            shadowOpacity: 0.65,
-            shadowRadius: 24,
-            elevation: 10,
-        },
-        glow: {
-            shadowColor: colors.brand[500],
-            shadowOffset: { width: 0, height: 14 },
-            shadowOpacity: 0.55,
-            shadowRadius: 20,
-            elevation: 10,
-        },
-    },
+    solid: solid('dark'),
     ...common,
     ...func,
 } as const;
@@ -393,22 +390,18 @@ declare module 'react-native-unistyles' {
     export interface UnistylesBreakpoints extends AppBreakpoints {}
 }
 
+// The in-app override is applied to the OS appearance itself, so native views
+// and PlatformColors follow it along with the adaptive unistyles theme. No
+// stored choice means Auto.
+const storedTheme = storage.getString('user.theme');
+
+if (storedTheme === 'light' || storedTheme === 'dark') {
+    Appearance.setColorScheme(storedTheme);
+}
+
 StyleSheet.configure({
     settings: {
-        adaptiveThemes: false,
-        initialTheme: () => {
-            const theme = storage.getString('user.theme');
-
-            if (!theme) {
-                return 'dark';
-            }
-
-            if (theme === 'auto') {
-                return UnistylesRuntime.colorScheme === 'dark' ? 'dark' : 'light';
-            }
-
-            return theme as keyof typeof appThemes;
-        },
+        adaptiveThemes: true,
     },
     themes: {
         light: lightTheme,

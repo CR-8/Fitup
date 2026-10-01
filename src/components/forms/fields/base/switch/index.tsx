@@ -1,22 +1,16 @@
 import { FC } from 'react';
-import Animated, {
-    interpolate,
-    interpolateColor,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from 'react-native-reanimated';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { FieldError, Merge } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { Switch as UISwitch } from '@expo/ui';
 
-import { Pressable } from '@/components/primitives/pressable';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
-import { Box, BoxProps } from '@/components/primitives/box';
+import { BoxProps } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
+import { Host } from '@/components/native/host';
 
 import { Error } from '../../components';
-import { useTranslation } from 'react-i18next';
 
 export interface SwitchType {
     value?: boolean;
@@ -30,97 +24,43 @@ export interface SwitchType {
 const styles = StyleSheet.create((theme) => ({
     container: {
         paddingVertical: theme.space(3),
-        paddingHorizontal: theme.space(5),
+        paddingHorizontal: theme.space(4),
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: theme.space(3),
     },
-    track: {
-        alignItems: 'flex-start',
-        width: theme.space(14),
-        height: theme.space(8),
-        padding: theme.space(0.75),
-    },
-    thumb: {
-        height: '100%',
-        aspectRatio: 1,
-        backgroundColor: theme.colors.background,
+    text: {
+        flex: 1,
+        gap: theme.space(0.5),
     },
     title: (error: boolean) => ({
-        fontWeight: theme.fontWeight.medium.fontWeight,
-        color: error ? theme.colors.red[500] : theme.colors.typography,
+        color: error ? theme.colors.destructive : theme.colors.typography,
     }),
+    description: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
     errorContainer: {
-        paddingHorizontal: theme.space(5),
+        paddingHorizontal: theme.space(4),
         marginTop: -theme.space(2),
         marginBottom: theme.space(3),
     },
 }));
 
+/** A settings row: title and description, with the platform's own switch. */
 const Switch: FC<SwitchType> = ({ value, title, description, onChange, containerStyle, error }) => {
     const { t } = useTranslation(['common']);
-    const { theme } = useUnistyles();
-
-    const duration = 300;
-
-    const isOn = useSharedValue(value ? 1 : 0);
-
-    const height = useSharedValue(0);
-    const width = useSharedValue(0);
-
-    const trackAnimatedStyle = useAnimatedStyle(() => {
-        const color = interpolateColor(
-            isOn.get(),
-            [0, 1],
-            [!!error ? theme.colors.red[100] : theme.colors.foreground, theme.colors.typography],
-        );
-        const colorValue = withTiming(color, { duration });
-
-        return {
-            backgroundColor: colorValue,
-            borderRadius: height.get() / 2,
-        };
-    });
-
-    const thumbAnimatedStyle = useAnimatedStyle(() => {
-        const moveValue = interpolate(Number(isOn.get()), [0, 1], [0, width.get() - height.get()]);
-        const translateValue = withTiming(moveValue, { duration });
-
-        return {
-            transform: [{ translateX: translateValue }],
-            borderRadius: height.get() / 2,
-        };
-    });
-
-    const handlePress = () => {
-        const nextValue = isOn.get() ? 0 : 1;
-        isOn.set(nextValue);
-        onChange(Boolean(nextValue));
-    };
 
     return (
         <VStack>
             <HStack style={[styles.container, containerStyle]}>
-                <VStack>
-                    <Box>
-                        <Text style={styles.title(!!error)}>{title}</Text>
-                    </Box>
-                    {description && (
-                        <Box>
-                            <Text>{description}</Text>
-                        </Box>
-                    )}
+                <VStack style={styles.text}>
+                    <Text style={styles.title(!!error)}>{title}</Text>
+                    {description ? <Text style={styles.description}>{description}</Text> : null}
                 </VStack>
-                <Pressable onPress={handlePress}>
-                    <Animated.View
-                        onLayout={(e) => {
-                            height.set(e.nativeEvent.layout.height);
-                            width.set(e.nativeEvent.layout.width);
-                        }}
-                        style={[styles.track, trackAnimatedStyle]}
-                    >
-                        <Animated.View style={[styles.thumb, thumbAnimatedStyle]}></Animated.View>
-                    </Animated.View>
-                </Pressable>
+                <Host matchContents>
+                    <UISwitch value={!!value} onValueChange={onChange} />
+                </Host>
             </HStack>
             {error?.message && (
                 <Error containerStyle={styles.errorContainer}>

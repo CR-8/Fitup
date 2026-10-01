@@ -9,11 +9,21 @@ interface LabelProps {
 }
 
 const styles = StyleSheet.create((theme) => ({
+    // A grouped-list section header: a quiet footnote over the card on iOS, a
+    // primary-coloured title on Android.
     label: {
-        ...theme.fontSize.sm,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.typography,
-        opacity: 0.6,
+        paddingHorizontal: theme.space(4),
+        ...(process.env.EXPO_OS === 'android'
+            ? {
+                  ...theme.fontSize.sm,
+                  fontWeight: theme.fontWeight.medium.fontWeight,
+                  color: theme.colors.primary,
+              }
+            : {
+                  fontSize: 13,
+                  lineHeight: 18,
+                  color: theme.colors.mutedTypography,
+              }),
     },
 }));
 

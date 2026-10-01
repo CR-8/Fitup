@@ -52,7 +52,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     sectionTitle: {
         ...theme.fontSize['2xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     cards: {
         gap: theme.space(3),
@@ -60,7 +60,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     // Same card language as the charts it stands in for, so the section keeps
     // its shape whether or not there is anything to plot.
     emptyCard: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.solid.foreground,
         borderRadius: theme.radius['4xl'],
         padding: theme.space(5),
         gap: theme.space(1.5),
@@ -68,14 +68,14 @@ const styles = StyleSheet.create((theme, rt) => ({
     emptyTitle: {
         ...theme.fontSize.lg,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     emptyDescription: {
         ...theme.fontSize.sm,
-        color: theme.colors.mutedTypography,
+        color: theme.solid.mutedTypography,
     },
     card: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.solid.foreground,
         borderRadius: theme.radius['4xl'],
         padding: theme.space(4),
         paddingBottom: theme.space(0),
@@ -91,7 +91,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     cardTitle: {
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     chartContainer: {
         alignItems: 'center',
@@ -103,12 +103,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     metricValue: {
         ...theme.fontSize.xs,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
     metricMuscle: {
         ...theme.fontSize.xs,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontWeight: theme.fontWeight.medium.fontWeight,
     },
 }));
@@ -170,9 +170,7 @@ const describeAnnularSector = (
 
 type RingColorMap = Record<number, string[]>;
 
-const buildRingColors = (theme: {
-    colors: Record<string, Record<number, string>>;
-}): RingColorMap => ({
+const buildRingColors = (theme: { colors: { brand: Record<number, string> } }): RingColorMap => ({
     4: [
         theme.colors.brand[700],
         theme.colors.brand[600],

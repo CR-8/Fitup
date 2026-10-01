@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,24 +34,22 @@ const styles = StyleSheet.create((theme, rt) => ({
         flex: 1,
         paddingHorizontal: theme.space(4),
     },
+    // No bar above sign-in. iOS insets the scroll view under the status bar
+    // itself; Android draws edge to edge, so it is cleared here.
     content: {
         ...theme.screenContentPadding('child'),
+        paddingTop: (process.env.EXPO_OS === 'android' ? rt.insets.top : 0) + theme.space(5),
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
-    },
-    providerButton: {
-        backgroundColor: theme.colors.foreground,
-    },
-    providerButtonText: {
-        color: theme.colors.typography,
     },
     fieldContainer: {
         gap: theme.space(2),
@@ -88,7 +86,6 @@ type SignInForm = z.infer<typeof schema>;
 
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
     // Set when the screen is opened deliberately (from Settings) rather than by
     // the first-launch gate.
     const { returnTo, reason } = useLocalSearchParams<{ returnTo?: string; reason?: string }>();
@@ -205,9 +202,6 @@ const SignInScreen = () => {
                         loading={pending === 'google'}
                         disabled={busy}
                         onPress={() => runProvider('google', signInWithGoogle)}
-                        containerStyle={styles.providerButton}
-                        textStyle={styles.providerButtonText}
-                        spinnerColor={theme.colors.typography}
                     />
                 ) : null}
 
@@ -255,11 +249,6 @@ const SignInScreen = () => {
                     loading={pending === 'email'}
                     disabled={busy}
                     onPress={onSubmitEmail}
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
                 />
 
                 <Pressable style={styles.link} onPress={() => setIsRegistering((value) => !value)}>

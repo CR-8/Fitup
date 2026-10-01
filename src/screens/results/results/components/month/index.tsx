@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 import { VStack } from '@/components/primitives/vstack';
@@ -13,6 +12,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { Icon } from '@/components/primitives/icon';
 
 const WEEKDAY_ORDER_SUNDAY_FIRST = [0, 1, 2, 3, 4, 5, 6] as const;
 const WEEKDAY_ORDER_MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0] as const;
@@ -48,6 +48,7 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(4),
         gap: theme.space(3.5),
     },
@@ -66,7 +67,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
     },
     calendarPrevMonth: {
         marginRight: theme.space(0.5),
@@ -118,8 +119,8 @@ const styles = StyleSheet.create((theme) => ({
         borderColor: theme.colors.border,
     },
     calendarDayCircleCompleted: {
-        backgroundColor: theme.colors.brand[400],
-        borderColor: theme.colors.brand[400],
+        backgroundColor: theme.colors.primarySoft,
+        borderColor: theme.colors.primarySoft,
     },
     calendarDayCircleToday: {
         borderColor: theme.colors.typography,
@@ -133,7 +134,7 @@ const styles = StyleSheet.create((theme) => ({
         opacity: 0.6,
     },
     calendarDayTextCompleted: {
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
         opacity: 1,
     },
     calendarDayTextToday: {
@@ -143,6 +144,7 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(4),
     },
     statsWrapper: {
@@ -178,7 +180,7 @@ const styles = StyleSheet.create((theme) => ({
 
 const MonthStats = () => {
     const { i18n } = useTranslation(['common', 'screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const router = useRouter();
     const { track } = useAnalytics();
     const { user } = useUser();
@@ -290,14 +292,11 @@ const MonthStats = () => {
             <HStack style={styles.calendarHeader}>
                 <Pressable onPress={handlePrevMonth} hitSlop={theme.space(2)}>
                     <Box style={styles.calendarNavButton}>
-                        <ChevronLeft
+                        <Icon
+                            name="chevron-left"
                             size={theme.space(6)}
                             style={styles.calendarPrevMonth}
-                            color={
-                                rt.themeName === 'dark'
-                                    ? theme.colors.white
-                                    : theme.colors.neutral[950]
-                            }
+                            color={theme.colors.typography}
                         />
                     </Box>
                 </Pressable>
@@ -313,14 +312,11 @@ const MonthStats = () => {
                             !canGoForward && styles.calendarNavButtonDisabled,
                         ]}
                     >
-                        <ChevronRight
+                        <Icon
+                            name="chevron-right"
                             size={theme.space(6)}
                             style={styles.calendarNextMonth}
-                            color={
-                                rt.themeName === 'dark'
-                                    ? theme.colors.white
-                                    : theme.colors.neutral[950]
-                            }
+                            color={theme.colors.typography}
                         />
                     </Box>
                 </Pressable>

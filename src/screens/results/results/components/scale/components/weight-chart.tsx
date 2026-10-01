@@ -64,7 +64,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     yAxisLabel: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     xAxisMetaRow: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     xAxisLabel: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     xAxisTickLabelStart: {
@@ -115,20 +115,21 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(1),
         paddingVertical: theme.space(1.5),
         borderRadius: theme.radius['2xl'],
-        backgroundColor: theme.colors.background,
+        borderCurve: 'continuous',
+        backgroundColor: theme.solid.foreground,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.colors.border,
+        borderColor: theme.solid.border,
         zIndex: 3,
     },
     pointerValue: {
         ...theme.fontSize.sm,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
     },
     pointerDate: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
         fontWeight: theme.fontWeight.medium.fontWeight,
         textAlign: 'center',
@@ -139,7 +140,7 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
     },
     emptyChartText: {
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.55,
     },
 }));
@@ -522,10 +523,10 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                             yAxisLabelWidth={0}
                                             yAxisThickness={0}
                                             xAxisThickness={0}
-                                            xAxisColor={theme.colors.border}
+                                            xAxisColor={theme.solid.border}
                                             xAxisLabelsHeight={0}
                                             labelsExtraHeight={0}
-                                            rulesColor={theme.colors.border}
+                                            rulesColor={theme.solid.border}
                                             rulesThickness={1}
                                             hideRules={false}
                                         />
@@ -534,7 +535,7 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                             style={[
                                                 styles.xAxisLine,
                                                 {
-                                                    backgroundColor: theme.colors.border,
+                                                    backgroundColor: theme.solid.border,
                                                 },
                                             ]}
                                         />

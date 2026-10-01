@@ -9,7 +9,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: theme.space(1.5),
     },
     help: {
-        color: theme.colors.neutral[600],
+        color: theme.colors.mutedTypography,
     },
 }));
 

@@ -18,7 +18,7 @@ interface RestProps {
 
 const styles = StyleSheet.create((theme) => ({
     restContainer: (isTimerActive: boolean) => ({
-        backgroundColor: isTimerActive ? theme.colors.brand[400] : 'transparent',
+        backgroundColor: isTimerActive ? theme.colors.primarySoft : 'transparent',
         paddingHorizontal: theme.space(2),
         paddingVertical: theme.space(0.5),
         borderRadius: theme.radius.lg,
@@ -31,7 +31,7 @@ const styles = StyleSheet.create((theme) => ({
             ? theme.fontWeight.semibold.fontWeight
             : theme.fontWeight.default.fontWeight,
         fontSize: theme.fontSize.sm.fontSize,
-        color: isTimerActive ? theme.colors.neutral[950] : theme.colors.neutral[400],
+        color: isTimerActive ? theme.colors.typography : theme.colors.mutedTypography,
     }),
 }));
 

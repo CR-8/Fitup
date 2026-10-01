@@ -1,232 +1,92 @@
-import { FC, ReactNode } from 'react';
-import { StyleSheet, UnistylesVariants } from 'react-native-unistyles';
+import { FC } from 'react';
+import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Button as UIButton, Icon as UIIcon, Row, Text as UIText } from '@expo/ui';
+import { useUnistyles } from 'react-native-unistyles';
 
-import { Pressable, PressableProps } from '../primitives/pressable';
-import { Text, TextProps } from '../primitives/text';
-import { Box, BoxProps } from '../primitives/box';
-import { HStack } from '../primitives/hstack';
-import Spinner from '../feedback/spinner';
+import { Host } from '@/components/native/host';
+import { fullWidthButton, fullWidthLabel } from '@/components/native/modifiers';
+import { icons, type IconName } from '@/theme/icons';
 
 /**
- * Accessibility props are forwarded to the underlying Pressable rather than
- * re-declared here: a button whose title is an icon, or whose label needs to say
- * more than the title does, has no other way to describe itself, and screen
- * readers were previously announcing these as unlabelled.
+ * The platform's own button: a SwiftUI button on iOS, a Material 3 button on
+ * Android.
+ *
+ * - `primary` is the prominent, tinted action (filled).
+ * - `default` is the secondary action (bordered / outlined).
+ * - `link` is a plain text button.
+ *
+ * `primary` and `default` stretch to the width they are given. `containerStyle`
+ * is layout around the button (margins, width), never its look.
  */
-type ButtonAccessibilityProps = Pick<
-    PressableProps,
-    | 'accessibilityRole'
-    | 'accessibilityLabel'
-    | 'accessibilityHint'
-    | 'accessibilityState'
-    | 'accessibilityValue'
-    | 'testID'
->;
-
 export type ButtonProps = {
-    /**
-     * A string is styled by the button — including the inverted colour that
-     * makes it readable on the button's ground. A node is rendered as given, so
-     * it inherits `theme.colors.typography`, which is the colour of the ground
-     * itself: whoever passes one owns the contrast. Prefer a string plus
-     * `textStyle`.
-     */
-    title?: ReactNode;
+    title?: string;
+    /** Shown before the title. iOS only: Compose icons need a bundled image. */
+    icon?: IconName;
+    type?: 'default' | 'primary' | 'link';
+    size?: 'sm' | 'default' | 'lg';
     disabled?: boolean;
     loading?: boolean;
-    spinnerColor?: string;
-    containerStyle?: BoxProps['style'];
-    textStyle?: TextProps['style'];
+    containerStyle?: StyleProp<ViewStyle>;
     onPress?: () => void;
-    prefix?: ReactNode;
-    suffix?: ReactNode;
-} & ButtonAccessibilityProps &
-    UnistylesVariants<typeof styles>;
+    accessibilityLabel?: string;
+    testID?: string;
+};
 
-const styles = StyleSheet.create((theme, rt) => ({
-    container: {
-        variants: {
-            type: {
-                default: {
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                    backgroundColor:
-                        rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-                    borderRadius: theme.radius.full,
-                },
-                // The one filled coral button. `brand[600]`, not `brand[500]`:
-                // the title is a 16px label, below the large-text allowance, so
-                // white on it has to clear 4.5:1 — `brand[500]` is 3.41:1,
-                // `brand[600]` is 4.48:1. Same reasoning as the Home "Up Next"
-                // card and the workout timer's primary action.
-                primary: {
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                    backgroundColor: theme.colors.brand[600],
-                    borderRadius: theme.radius.full,
-                },
-                link: {
-                    backgroundColor: 'transparent',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center',
-                    gap: theme.space(1.5),
-                },
-            },
-            size: {
-                default: {
-                    height: theme.space(14),
-                },
-                sm: {
-                    height: theme.space(11),
-                },
-                lg: {
-                    height: theme.space(16),
-                },
-            },
-        },
-        compoundVariants: [
-            {
-                type: 'link',
-                styles: {
-                    height: 'auto',
-                },
-            },
-        ],
-    },
-    title: {
-        variants: {
-            type: {
-                default: {
-                    color:
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50],
-                },
-                primary: {
-                    color: theme.colors.primaryTypography,
-                },
-                link: {
-                    color: theme.colors.typography,
-                },
-            },
-            size: {
-                default: {
-                    fontSize: theme.fontSize.default.fontSize,
-                },
-                sm: {
-                    fontSize: theme.fontSize.sm.fontSize,
-                },
-                lg: {
-                    fontSize: theme.fontSize.lg.fontSize,
-                },
-            },
-        },
-    },
-    fixContainer: (title: boolean) => ({
-        variants: {
-            type: {
-                default: {
-                    position: title ? 'absolute' : 'relative',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%',
-                },
-                primary: {
-                    position: title ? 'absolute' : 'relative',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%',
-                },
-            },
-            size: {},
-        },
-    }),
-    prefixContainer: (title: boolean) => ({
-        variants: {
-            type: {
-                default: {
-                    left: title ? theme.space(4) : 0,
-                },
-                primary: {
-                    left: title ? theme.space(4) : 0,
-                },
-                link: {
-                    left: 0,
-                },
-            },
-            size: {},
-        },
-    }),
-    suffixContainer: (title: boolean) => ({
-        right: title ? theme.space(4) : 0,
-    }),
-}));
+const VARIANTS = { primary: 'filled', default: 'outlined', link: 'text' } as const;
 
 const Button: FC<ButtonProps> = ({
     title,
+    icon,
+    type = 'default',
     disabled = false,
     loading = false,
-    onPress,
     containerStyle,
-    textStyle,
-    spinnerColor,
-    prefix,
-    suffix,
-    type,
-    size,
-    ...accessibility
+    onPress,
+    accessibilityLabel,
+    testID,
 }) => {
-    styles.useVariants({ type, size });
+    const { theme } = useUnistyles();
+    const stretch = type !== 'link';
+
+    if (loading) {
+        return (
+            <View
+                style={[
+                    { minHeight: 50, alignItems: 'center', justifyContent: 'center' },
+                    containerStyle,
+                ]}
+            >
+                <ActivityIndicator color={theme.colors.primary} />
+            </View>
+        );
+    }
+
+    const label = <UIText modifiers={stretch ? fullWidthLabel : undefined}>{title ?? ''}</UIText>;
 
     return (
-        <Pressable
-            disabled={disabled}
-            onPress={onPress}
-            accessibilityRole="button"
-            {...accessibility}
+        <View
+            style={[stretch && { width: '100%' }, containerStyle]}
+            accessibilityLabel={accessibilityLabel}
         >
-            <HStack style={[styles.container, containerStyle]}>
-                {loading ? (
-                    <Spinner color={spinnerColor} />
-                ) : (
-                    <>
-                        {prefix && (
-                            <Box
-                                style={[
-                                    styles.fixContainer(!!title),
-                                    styles.prefixContainer(!!title),
-                                ]}
-                            >
-                                {prefix}
-                            </Box>
-                        )}
-                        {title && (
-                            <>
-                                {typeof title === 'string' ? (
-                                    <Text fontWeight="semibold" style={[styles.title, textStyle]}>
-                                        {title}
-                                    </Text>
-                                ) : (
-                                    title
-                                )}
-                            </>
-                        )}
-                        {suffix && (
-                            <Box
-                                style={[
-                                    styles.fixContainer(!!title),
-                                    styles.suffixContainer(!!title),
-                                ]}
-                            >
-                                {suffix}
-                            </Box>
-                        )}
-                    </>
-                )}
-            </HStack>
-        </Pressable>
+            <Host matchContents={stretch ? { vertical: true } : true}>
+                <UIButton
+                    variant={VARIANTS[type]}
+                    onPress={onPress}
+                    disabled={disabled}
+                    testID={testID}
+                    modifiers={stretch ? fullWidthButton : undefined}
+                >
+                    {icon && process.env.EXPO_OS === 'ios' ? (
+                        <Row spacing={6}>
+                            <UIIcon name={icons[icon].ios} size={17} />
+                            {label}
+                        </Row>
+                    ) : (
+                        label
+                    )}
+                </UIButton>
+            </Host>
+        </View>
     );
 };
 

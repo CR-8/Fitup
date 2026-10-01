@@ -202,12 +202,12 @@ module.exports = {
             'react-native-edge-to-edge',
             {
                 android: {
-                    parentTheme: 'Default',
+                    // Material You: native alerts and pickers take the wallpaper's colours.
+                    parentTheme: 'Material3.Dynamic',
                     enforceNavigationBarContrast: false,
                 },
             },
         ],
-        '@react-native-community/datetimepicker',
         [
             'expo-build-properties',
             {
@@ -251,26 +251,15 @@ module.exports = {
             },
         ],
         [
-            'expo-font',
-            {
-                fonts: [
-                    './assets/fonts/DMSans-Regular.ttf',
-                    './assets/fonts/DMSans-Medium.ttf',
-                    './assets/fonts/DMSans-SemiBold.ttf',
-                    './assets/fonts/DMSans-Bold.ttf',
-                    './assets/fonts/SpaceGrotesk-Medium.ttf',
-                    './assets/fonts/SpaceGrotesk-SemiBold.ttf',
-                    './assets/fonts/SpaceGrotesk-Bold.ttf',
-                ],
-            },
-        ],
-        [
             'expo-splash-screen',
             {
                 image: './assets/images/splash-icon.png',
                 imageWidth: 125,
                 resizeMode: 'contain',
-                backgroundColor: '#0b0b0c',
+                // The system grounds, so launch matches the appearance the app
+                // opens in.
+                backgroundColor: '#f2f2f7',
+                dark: { backgroundColor: '#000000' },
             },
         ],
         [

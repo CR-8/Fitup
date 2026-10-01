@@ -11,13 +11,13 @@ import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { Separator } from '@/components/layout/separator';
 import { Pressable } from '@/components/primitives/pressable';
-import { Check, Trash2 } from 'lucide-react-native';
 import { WorkoutItem } from '../../types';
 import { WorkoutSelect } from '@/db/schema';
 import { ExerciseSet } from '../exercise-set';
 import { isRestFinalized } from '@/helpers/rest';
 import { useAiProfile } from '@/hooks/use-ai';
 import { isBodyweightOnly } from '@/constants/equipment';
+import { Icon } from '@/components/primitives/icon';
 
 interface ExerciseProps {
     item: WorkoutItem;
@@ -50,7 +50,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         top: 0,
         bottom: 0,
         width: theme.space(0.75),
-        backgroundColor: theme.colors.brand[500],
+        backgroundColor: theme.colors.primary,
     },
     orderContainer: {
         width: theme.space(12),
@@ -58,7 +58,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     orderTitle: (isActive: boolean) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: isActive ? theme.colors.brand[500] : theme.colors.typography,
+        color: isActive ? theme.colors.primary : theme.colors.typography,
         opacity: isActive ? 1 : 0.45,
     }),
     exerciseContainer: {
@@ -91,7 +91,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginBottom: theme.space(1),
     },
     equipmentBadgeText: {
-        color: theme.colors.red[500],
+        color: theme.colors.destructive,
         fontSize: theme.fontSize['2xs'].fontSize,
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
@@ -104,7 +104,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginRight: theme.space(4),
     },
     swipeable: {
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -169,7 +169,7 @@ const RightAction: FC<RightActionProps> = ({ drag, handleDelete, disabled }) => 
                 style={styles.rightActionPressable}
                 onPress={handleDelete}
             >
-                <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
+                <Icon name="trash" color={theme.colors.neutral[50]} size={theme.space(6)} />
             </Pressable>
         </Reanimated.View>
     );
@@ -210,11 +210,7 @@ const ExerciseContent: FC<{
                     {isEditMode ? (
                         <Box style={styles.selectCircle(!!isSelected)} />
                     ) : isExerciseCompleted && !isExerciseActive ? (
-                        <Check
-                            size={theme.space(4)}
-                            color={theme.colors.brand[500]}
-                            strokeWidth={2.5}
-                        />
+                        <Icon name="check" size={theme.space(4)} color={theme.colors.primary} />
                     ) : (
                         <Box>
                             <Text style={styles.orderTitle(isExerciseActive)}>{index + 1}</Text>

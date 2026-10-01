@@ -6,7 +6,6 @@ import Reanimated, {
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
-import { Check, Trash2 } from 'lucide-react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Sortable, { useItemContext } from 'react-native-sortables';
 
@@ -17,7 +16,8 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ExerciseSetSelect, ExerciseSelect, WorkoutExerciseSelect } from '@/db/schema';
 import { Separator } from '@/components/layout/separator';
 import { useDeleteExerciseSet, useUpdateExerciseSet } from '@/hooks/use-workouts';
-import { useActionsStore } from '@/stores/actions';
+import { ActionsMenu } from '@/components/buttons/actions';
+import { useSetTypeMenu } from '@/hooks/use-action-menus';
 
 import { Rest } from '../rest';
 import { formatClockSecondsCompact } from '@/helpers/times';
@@ -27,6 +27,7 @@ import { RepsInput } from '@/components/primitives/reps-input';
 import { DistanceInput } from '@/components/primitives/distance-input';
 import { normalizeSetType } from '@/helpers/set-type';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/primitives/icon';
 
 interface SetItemProps {
     set: ExerciseSetSelect;
@@ -83,14 +84,14 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center' as const,
         justifyContent: 'center' as const,
         borderWidth: completed ? 0 : theme.space(0.5),
-        borderColor: active ? theme.colors.brand[500] : theme.colors.border,
-        backgroundColor: completed ? theme.colors.brand[500] : 'transparent',
+        borderColor: active ? theme.colors.primary : theme.colors.border,
+        backgroundColor: completed ? theme.colors.primary : 'transparent',
     }),
     statusDotCore: {
         height: theme.space(2),
         width: theme.space(2),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.brand[500],
+        backgroundColor: theme.colors.primary,
     },
     orderWrapper: (active: boolean, isTimerActive: boolean) => ({
         backgroundColor: active
@@ -113,7 +114,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     orderTitle: {
         fontWeight: theme.fontWeight.default.fontWeight,
         fontSize: theme.fontSize.sm.fontSize,
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     setContainer: {
         flex: 1,
@@ -126,7 +127,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginRight: theme.space(4),
     },
     swipeable: {
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1),
     },
     input: (focused: boolean, active: boolean, completed: boolean, isTimerActive: boolean) => ({
-        color: active ? theme.colors.brand[500] : theme.colors.typography,
+        color: active ? theme.colors.primary : theme.colors.typography,
         fontSize: theme.fontSize['3xl'].fontSize,
         lineHeight: theme.fontSize['3xl'].lineHeight,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -146,7 +147,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderBottomWidth: theme.space(1),
         opacity: active || completed ? 1 : 0.3,
         borderBottomColor: focused
-            ? theme.colors.brand[500]
+            ? theme.colors.primary
             : active
               ? rt.themeName === 'dark'
                   ? theme.colors.brand[900]
@@ -158,7 +159,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -190,7 +191,7 @@ const RightAction: FC<RightActionProps> = ({ drag, handleDelete }) => {
     return (
         <Reanimated.View style={[styles.rightAction, styleAnimation]}>
             <Pressable style={styles.rightActionPressable} onPress={handleDelete}>
-                <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
+                <Icon name="trash" color={theme.colors.neutral[50]} size={theme.space(6)} />
             </Pressable>
         </Reanimated.View>
     );
@@ -220,9 +221,9 @@ const SetStatus: FC<{ active: boolean; completed: boolean }> = ({ active, comple
         <Box style={styles.statusDot(active, completed)}>
             {completed ? (
                 <Reanimated.View style={checkStyle}>
-                    <Check
+                    <Icon
+                        name="check"
                         size={theme.space(3.5)}
-                        strokeWidth={3}
                         color={theme.colors.primaryTypography}
                     />
                 </Reanimated.View>
@@ -248,7 +249,7 @@ const SetItemComponent = ({
 
     const { mutateAsync: updateSet } = useUpdateExerciseSet();
     const { mutate: deleteSet } = useDeleteExerciseSet();
-    const actionsOpen = useActionsStore((state) => state.open);
+    const setTypeMenu = useSetTypeMenu(set.id, normalizeSetType(set.type));
 
     const isActive = set.id === activeSetId;
     const isCompleted = !!set.completedAt;
@@ -269,17 +270,6 @@ const SetItemComponent = ({
         },
         [deleteSet, exerciseInfo],
     );
-
-    const handleOpenSetMenu = useCallback(() => {
-        actionsOpen({
-            type: 'set__menu',
-            payload: {
-                setId: set.id,
-                workoutExerciseId: set.workoutExerciseId,
-                setType: normalizeSetType(set.type),
-            },
-        });
-    }, [actionsOpen, set.id, set.type, set.workoutExerciseId]);
 
     const keyOf = (id: string, field: string) => `${id}:${field}`;
 
@@ -450,13 +440,13 @@ const SetItemComponent = ({
                 <HStack style={styles.set(isActive, isTimerActive)}>
                     <HStack style={styles.orderContainer}>
                         <SetStatus active={isActive} completed={isCompleted} />
-                        <Pressable onPress={handleOpenSetMenu}>
+                        <ActionsMenu {...setTypeMenu}>
                             <Box style={styles.orderWrapper(isActive, isTimerActive)}>
                                 <Text style={styles.orderTitle}>
                                     {`${index + 1} ${setTypeShort}`}
                                 </Text>
                             </Box>
-                        </Pressable>
+                        </ActionsMenu>
                     </HStack>
                     <HStack style={styles.setContainer}>{interspersedFields}</HStack>
                     <Box style={styles.restContainer}>

@@ -3,7 +3,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { Trash2, Play } from 'lucide-react-native';
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import { isNumber } from 'lodash';
@@ -16,6 +15,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { useDeleteWorkout, type WorkoutOverviewMeta } from '@/hooks/use-workouts';
 import { formatWorkoutDuration } from '@/helpers/times';
+import { Icon } from '@/components/primitives/icon';
 
 dayjs.extend(localizedFormat);
 
@@ -101,8 +101,9 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.primary,
     },
     swipeable: {
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -111,7 +112,7 @@ const styles = StyleSheet.create((theme) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -142,7 +143,7 @@ const RightAction: FC<RightActionProps> = ({ drag, handleDelete }) => {
     return (
         <Reanimated.View style={[styles.rightAction, styleAnimation]}>
             <Pressable onPress={handleDelete}>
-                <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
+                <Icon name="trash" color={theme.colors.neutral[50]} size={theme.space(6)} />
             </Pressable>
         </Reanimated.View>
     );
@@ -252,10 +253,9 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
 
                                 {workout.status === 'planned' ? (
                                     <Box style={styles.startHint}>
-                                        <Play
+                                        <Icon
+                                            name="play"
                                             size={theme.space(3.5)}
-                                            strokeWidth={2.5}
-                                            fill={theme.colors.primary}
                                             color={theme.colors.primary}
                                         />
                                         <Text style={styles.startHintText}>

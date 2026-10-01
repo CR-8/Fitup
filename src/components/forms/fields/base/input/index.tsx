@@ -1,13 +1,11 @@
-import { FC, ForwardedRef, forwardRef, ReactNode, useMemo, useState, ComponentRef } from 'react';
+import { FC, ForwardedRef, forwardRef, ReactNode, useMemo, useState } from 'react';
 import { KeyboardTypeOptions, StyleProp, TextInput, TextStyle } from 'react-native';
-import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { NumberFormatValues, NumericFormat } from 'react-number-format';
 import { StyleSheet, UnistylesVariants } from 'react-native-unistyles';
 import { useLocales } from 'expo-localization';
 
 import { HStack } from '@/components/primitives/hstack';
 import { Input as InputPrimitive } from '@/components/primitives/input';
-import { SheetInput as SheetInputPrimitive } from '@/components/primitives/sheet/input';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { getNumericValue, valueToType } from '@/helpers/values';
@@ -43,26 +41,26 @@ interface InputComponentProps extends TextEntryProps {
 }
 
 const styles = StyleSheet.create((theme) => ({
+    // The system text-field look: a filled, softly rounded well, outlined only
+    // when the value is rejected.
     inputContainer: (error: boolean) => ({
         alignItems: 'center',
-        backgroundColor: error ? theme.colors.red[100] : theme.colors.background,
-        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.input,
+        borderRadius: theme.radius.xl,
+        borderCurve: 'continuous',
         borderWidth: stableOutlineWidth,
-        // Previously painted in the background colour, which made the field edge
-        // invisible against the surface it sits on — a form read as loose labels
-        // with nothing obviously tappable.
-        borderColor: error ? theme.colors.red[400] : theme.colors.border,
-        paddingHorizontal: theme.space(4),
+        borderColor: error ? theme.colors.destructive : 'transparent',
+        paddingHorizontal: theme.space(3),
         variants: {
             size: {
                 xs: {
-                    height: theme.space(10),
+                    height: theme.space(9),
                 },
                 sm: {
-                    height: theme.space(12),
+                    height: theme.space(11),
                 },
                 default: {
-                    height: theme.space(14),
+                    height: theme.space(12),
                 },
             },
         },
@@ -70,28 +68,8 @@ const styles = StyleSheet.create((theme) => ({
     input: (error: boolean) => ({
         height: '100%',
         width: '100%',
-        // Was `red[100]` — the same token as the container's error background
-        // two blocks up, so typing into a rejected field produced pink on pink
-        // at 1.00:1 and the field read as empty. `red[700]` rather than the
-        // `red[500]` the other fields use, because those sit on the ordinary
-        // surface; on this pink ground `red[500]` is only 3.08:1.
-        color: error ? theme.colors.red[700] : theme.colors.typography,
-        variants: {
-            size: {
-                xs: {
-                    fontSize: theme.fontSize.default.fontSize,
-                    fontWeight: theme.fontWeight.medium.fontWeight,
-                },
-                sm: {
-                    fontSize: theme.fontSize.default.fontSize,
-                    fontWeight: theme.fontWeight.semibold.fontWeight,
-                },
-                default: {
-                    fontSize: theme.fontSize.lg.fontSize,
-                    fontWeight: theme.fontWeight.semibold.fontWeight,
-                },
-            },
-        },
+        color: error ? theme.colors.destructive : theme.colors.typography,
+        fontSize: theme.fontSize.lg.fontSize,
     }),
 }));
 
@@ -191,85 +169,6 @@ const InputComponent = forwardRef<TextInput, InputComponentProps>(
 
 InputComponent.displayName = 'InputComponent';
 
-const SheetInputComponent = forwardRef<
-    ComponentRef<typeof BottomSheetTextInput>,
-    InputComponentProps
->(
-    (
-        {
-            defaultValue,
-            inputValue,
-            valueType,
-            keyboardType,
-            decimalScale,
-            decimalSeparator,
-            thousandSeparator,
-            style,
-            onChangeNumeric,
-            onChangeHandler,
-            onChangeText,
-            onSubmitEditing,
-            placeholder,
-            secureTextEntry,
-            autoCapitalize,
-            autoComplete,
-            autoCorrect,
-            textContentType,
-        }: InputComponentProps,
-        ref: ForwardedRef<ComponentRef<typeof BottomSheetTextInput>>,
-    ) => {
-        const entry = {
-            secureTextEntry,
-            autoCapitalize,
-            autoComplete,
-            autoCorrect,
-            textContentType,
-        };
-
-        return (
-            <>
-                {['number', 'decimal'].includes(valueType) ? (
-                    <NumericFormat
-                        value={inputValue}
-                        valueIsNumericString={true}
-                        onValueChange={onChangeNumeric}
-                        allowNegative={false}
-                        decimalScale={decimalScale}
-                        decimalSeparator={decimalSeparator}
-                        thousandSeparator={thousandSeparator}
-                        displayType={'text'}
-                        renderText={(value) => (
-                            <SheetInputPrimitive
-                                {...entry}
-                                ref={ref}
-                                value={value}
-                                keyboardType={keyboardType}
-                                onChangeText={onChangeHandler}
-                                onSubmitEditing={onSubmitEditing}
-                                style={style}
-                                placeholder={placeholder}
-                            />
-                        )}
-                    />
-                ) : (
-                    <SheetInputPrimitive
-                        {...entry}
-                        ref={ref}
-                        defaultValue={defaultValue}
-                        keyboardType={keyboardType}
-                        onChangeText={onChangeText}
-                        onSubmitEditing={onSubmitEditing}
-                        style={style}
-                        placeholder={placeholder}
-                    />
-                )}
-            </>
-        );
-    },
-);
-
-SheetInputComponent.displayName = 'SheetInputComponent';
-
 const BaseInput = forwardRef(
     (
         {
@@ -284,7 +183,6 @@ const BaseInput = forwardRef(
             inputContainerStyle,
             inputStyle,
             onChange,
-            asSheet = false,
             onSubmitEditing,
             placeholder,
             size,
@@ -296,7 +194,7 @@ const BaseInput = forwardRef(
             autoCorrect,
             textContentType,
         }: InputProps,
-        ref: ForwardedRef<TextInput | ComponentRef<typeof BottomSheetTextInput>>,
+        ref: ForwardedRef<TextInput>,
     ) => {
         styles.useVariants({ size });
 
@@ -391,14 +289,7 @@ const BaseInput = forwardRef(
             <VStack>
                 {label && <Label>{label}</Label>}
                 <InputContainer error={error} inputContainerStyle={inputContainerStyle} size={size}>
-                    {asSheet ? (
-                        <SheetInputComponent
-                            {...props}
-                            ref={ref as ForwardedRef<ComponentRef<typeof BottomSheetTextInput>>}
-                        />
-                    ) : (
-                        <InputComponent {...props} ref={ref as ForwardedRef<TextInput>} />
-                    )}
+                    <InputComponent {...props} ref={ref} />
                 </InputContainer>
                 {error?.message && <Error>{t(error.message, { ns: 'common' })}</Error>}
                 {help && !error && <Help>{help.message}</Help>}

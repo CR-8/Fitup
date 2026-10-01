@@ -1,13 +1,12 @@
 import { FC, ReactNode } from 'react';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import type { LucideIcon } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
+import { Icon, type IconName } from '@/components/primitives/icon';
 
 /**
  * The one visual moment every auth screen shares.
@@ -16,10 +15,8 @@ import { Title } from '@/components/typography/title';
  * opened on a bare `<Title>` and a line of muted text on the plain background
  * — identical markup copied four times, and identical in effect: nothing on
  * the first screen someone opens said what app this was. This is that markup
- * pulled into one place and given the app's own coral-on-glow language — the
- * `primarySoft` icon badge from onboarding, the `gradients.glow` token that
- * the theme itself already calls "the design's radial bloom" and nothing had
- * used it for yet.
+ * pulled into one place: the app's logo, or a tinted SF Symbol / Material
+ * icon badge, over the title.
  *
  * Purely presentational: every screen still owns its own copy, its own icon,
  * and everything below the fold.
@@ -27,8 +24,6 @@ import { Title } from '@/components/typography/title';
 
 // The app icon's own artwork, so the first screen and the home screen match.
 const LOGO = require('../../../../../assets/images/logo.png');
-
-const GLOW_SIZE = 220;
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -40,12 +35,6 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(20),
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    glow: {
-        position: 'absolute',
-        width: GLOW_SIZE,
-        height: GLOW_SIZE,
-        borderRadius: GLOW_SIZE / 2,
     },
     badge: {
         height: theme.space(16),
@@ -63,6 +52,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(20),
         width: theme.space(20),
         borderRadius: theme.radius['3xl'],
+        borderCurve: 'continuous',
     },
     eyebrow: {
         ...theme.typography.eyebrow,
@@ -84,7 +74,7 @@ const styles = StyleSheet.create((theme) => ({
 
 interface AuthHeroProps {
     /** Left out on sign-in, where the badge is the app's own logo instead. */
-    icon?: LucideIcon;
+    icon?: IconName;
     /** Short, uppercase context tag above the title — e.g. "FitSyn". */
     eyebrow: string;
     title: string;
@@ -92,28 +82,15 @@ interface AuthHeroProps {
     children?: ReactNode;
 }
 
-export const AuthHero: FC<AuthHeroProps> = ({ icon: Icon, eyebrow, title, subtitle, children }) => {
+export const AuthHero: FC<AuthHeroProps> = ({ icon, eyebrow, title, subtitle, children }) => {
     const { theme } = useUnistyles();
 
     return (
         <VStack style={styles.container}>
             <Box style={styles.glowLayer}>
-                {/* Centered under the badge rather than behind it exactly, so it
-                    reads as ambient light the badge sits in front of, not a
-                    halo traced around its edge. */}
-                <LinearGradient
-                    colors={theme.gradients.glow as [string, string]}
-                    start={{ x: 0.5, y: 0.5 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.glow}
-                />
-                {Icon ? (
+                {icon ? (
                     <Box style={styles.badge}>
-                        <Icon
-                            size={theme.space(7)}
-                            strokeWidth={2.2}
-                            color={theme.colors.primary}
-                        />
+                        <Icon name={icon} size={theme.space(7)} color={theme.colors.primary} />
                     </Box>
                 ) : (
                     <Image source={LOGO} style={styles.logo} accessibilityIgnoresInvertColors />

@@ -1,11 +1,10 @@
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { KeyRound } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -39,8 +38,9 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
     },
@@ -63,7 +63,6 @@ type ForgotPasswordForm = z.infer<typeof schema>;
 
 const ForgotPasswordScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
 
     const {
         control,
@@ -91,7 +90,7 @@ const ForgotPasswordScreen = () => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <AuthHero
-                icon={KeyRound}
+                icon={'key'}
                 eyebrow={t('forgotPassword.eyebrow', { ns: 'screens' })}
                 title={t('forgotPassword.title', { ns: 'screens' })}
                 subtitle={t('forgotPassword.subtitle', { ns: 'screens' })}
@@ -119,11 +118,6 @@ const ForgotPasswordScreen = () => {
                     loading={isSubmitting}
                     disabled={isSubmitting}
                     onPress={onSubmit}
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
                 />
             </VStack>
         </ScrollView>

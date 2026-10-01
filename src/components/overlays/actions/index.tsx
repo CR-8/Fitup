@@ -1,133 +1,75 @@
-import { FC, useEffect, useRef } from 'react';
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import { FC, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { BottomSheet, Column, List, ListItem, Text } from '@expo/ui';
 
+import { brandTint } from '@/components/native/modifiers';
 import { useActionsStore } from '@/stores/actions';
 import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
+import { useUpdateWorkout } from '@/hooks/use-workouts';
+import { reportError } from '@/services/error-reporting';
 
-import { Backdrop } from '../backdrop';
-import { Handle } from '../handle';
+const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 
-import { WorkoutMenu } from './menus/workout';
-import { WorkoutRepeat } from './menus/workout-repeat';
-import { WorkoutFeedback } from './menus/workout-feedback';
-import { ExerciseMenu } from './menus/exercise';
-import { WorkoutExerciseMenu } from './menus/workout-exercise';
-import { SetMenu } from './menus/set';
-
-const styles = StyleSheet.create((theme, rt) => ({
-    container: {
-        backgroundColor: theme.colors.background,
-    },
-    backgroundStyle: {
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    sheetHandle: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    sheetHandleIndicator: {
-        backgroundColor: theme.colors.typography,
-        opacity: 0.2,
-    },
-    sheetContentContainer: {
-        paddingTop: theme.space(5),
-        paddingBottom: rt.insets.bottom + theme.space(5),
-    },
-    // The title bar in `Handle` is absolutely positioned over the sheet rather
-    // than laid out inline, so it never pushes content down on its own — a
-    // sheet opened with a title needs its own top padding or the title bar
-    // covers the first item(s).
-    sheetContentContainerWithTitle: {
-        paddingTop: theme.space(5) + theme.sheetHeaderHeight(),
-        paddingBottom: rt.insets.bottom + theme.space(5),
-    },
-}));
-
+/**
+ * How hard the session felt, asked once as it is ended.
+ *
+ * One tap answers and closes; swiping it away is a valid answer too — the
+ * column stays null and the next plan has one signal fewer. `buildHistory`
+ * reads the answer back when the next plan is generated.
+ */
 const ActionsSheet: FC = () => {
-    const bottomSheetRef = useRef<BottomSheetModal>(null);
-    const { rt } = useUnistyles();
-
-    const { type, title, close, showCloseButton } = useActionsStore(
+    const { t } = useTranslation(['screens']);
+    const { type, title, payload, close } = useActionsStore(
         useShallow((state) => ({
             type: state.type,
             title: state.title,
-            showCloseButton: state.showCloseButton,
+            payload: state.payload,
             close: state.close,
         })),
     );
+    const { mutateAsync: updateWorkout } = useUpdateWorkout();
+
     useStoreReviewGateBlocker('actions-sheet', !!type);
 
-    useEffect(() => {
-        if (bottomSheetRef.current) {
-            if (type) {
-                bottomSheetRef.current.present();
-            } else {
-                bottomSheetRef.current.close();
-            }
-        }
-    }, [type]);
+    const handleSelect = useCallback(
+        (difficulty: (typeof DIFFICULTIES)[number]) => {
+            if (!payload) return;
 
-    const handleSheetChanges = (index: number) => {
-        if (index === -1 && type) {
+            // Closed first: the workout is already saved, so the answer is not
+            // worth holding the sheet open for a database round trip.
             close();
-        }
-    };
-
-    const renderMenu = () => {
-        switch (type) {
-            case 'workout__menu':
-                return <WorkoutMenu />;
-            case 'workout__repeat':
-                return <WorkoutRepeat />;
-            case 'workout__feedback':
-                return <WorkoutFeedback />;
-            case 'exercise__menu':
-                return <ExerciseMenu />;
-            case 'workout_exercise__menu':
-                return <WorkoutExerciseMenu />;
-            case 'set__menu':
-                return <SetMenu />;
-            default:
-                return null;
-        }
-    };
+            void updateWorkout({ id: payload.workoutId, updates: { difficulty } }).catch((error) =>
+                reportError(error, 'Failed to save workout difficulty feedback:'),
+            );
+        },
+        [close, payload, updateWorkout],
+    );
 
     return (
-        <BottomSheetModal
-            ref={bottomSheetRef}
-            backdropComponent={(props) => <Backdrop {...props} pressBehavior="close" />}
-            handleComponent={(props) => (
-                <Handle
-                    handleClose={close}
-                    title={title}
-                    compact={!title}
-                    closeButton={showCloseButton}
-                    containerStyle={styles.container}
-                    {...props}
-                />
-            )}
-            onChange={handleSheetChanges}
-            stackBehavior="push"
-            topInset={rt.insets.top + 20}
-            backgroundStyle={styles.backgroundStyle}
-            handleStyle={styles.sheetHandle}
-            handleIndicatorStyle={styles.sheetHandleIndicator}
+        <BottomSheet
+            isPresented={!!type}
+            onDismiss={close}
+            snapPoints={['half']}
+            modifiers={brandTint}
         >
-            <BottomSheetView
-                style={title ? styles.sheetContentContainerWithTitle : styles.sheetContentContainer}
-            >
-                {renderMenu()}
-            </BottomSheetView>
-        </BottomSheetModal>
+            <Column spacing={8}>
+                {title ? (
+                    <Text textStyle={{ fontSize: 20, fontWeight: '600' }}>{title}</Text>
+                ) : null}
+                <List>
+                    {DIFFICULTIES.map((difficulty) => (
+                        <ListItem
+                            key={difficulty}
+                            supportingText={t(`workout-feedback.${difficulty}Hint`)}
+                            onPress={() => handleSelect(difficulty)}
+                        >
+                            {t(`workout-feedback.${difficulty}`)}
+                        </ListItem>
+                    ))}
+                </List>
+            </Column>
+        </BottomSheet>
     );
 };
 

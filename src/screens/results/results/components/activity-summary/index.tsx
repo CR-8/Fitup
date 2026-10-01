@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { LineChart, type lineDataItem, yAxisSides } from 'react-native-gifted-charts';
 import { type GestureResponderEvent, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import type { WorkoutSelect } from '@/db/schema';
 import { useWorkouts } from '@/hooks/use-workouts';
@@ -15,6 +14,7 @@ import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { Icon } from '@/components/primitives/icon';
 
 const CHART_HEIGHT = 172;
 const CHART_EDGE_INSET = 6;
@@ -59,11 +59,12 @@ const styles = StyleSheet.create((theme) => ({
     sectionTitle: {
         ...theme.fontSize['2xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     card: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.solid.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(4),
         gap: theme.space(4),
     },
@@ -74,7 +75,7 @@ const styles = StyleSheet.create((theme) => ({
     monthTitle: {
         ...theme.fontSize.lg,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     monthNavButton: {
         height: theme.space(9),
@@ -82,7 +83,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.solid.foreground,
     },
     monthPrevIcon: {
         marginRight: theme.space(0.5),
@@ -108,7 +109,7 @@ const styles = StyleSheet.create((theme) => ({
     valueText: {
         ...theme.fontSize['3xl'],
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
     },
     prevValueText: {
         ...theme.fontSize.lg,
@@ -125,7 +126,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     metaLabel: {
         ...theme.fontSize.sm,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     chartWrap: {
@@ -148,12 +149,12 @@ const styles = StyleSheet.create((theme) => ({
     },
     xAxisLabel: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     yAxisLabel: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     xAxisMetaRow: {
@@ -381,7 +382,7 @@ const buildActivitySummaryModel = (
 
 const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
     const { t } = useTranslation(['common', 'screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const { data: workouts = [] } = useWorkouts();
     const { track } = useAnalytics();
     const [chartWidth, setChartWidth] = useState(0);
@@ -409,7 +410,7 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
     }, [visibleMonthStart]);
 
     const currentLineColor = theme.colors.brand[400];
-    const previousLineColor = theme.colors.border;
+    const previousLineColor = theme.solid.border;
 
     const clampedSelectedDayIndex = useMemo(() => {
         if (selectedDayIndex == null) return null;
@@ -425,11 +426,11 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                     borderRadius: (isActive ? CURRENT_POINT_ACTIVE_SIZE : CURRENT_POINT_SIZE) / 1.5,
                     borderWidth: CURRENT_POINT_BORDER_WIDTH,
                     borderColor: currentLineColor,
-                    backgroundColor: isActive ? currentLineColor : theme.colors.foreground,
+                    backgroundColor: isActive ? currentLineColor : theme.solid.foreground,
                 }}
             />
         ),
-        [currentLineColor, theme.colors.foreground],
+        [currentLineColor, theme.solid.foreground],
     );
 
     const chartData = useMemo(() => {
@@ -651,14 +652,14 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                                 dataPointsRadius2={0}
                                 dataPointsColor2="transparent"
                                 xAxisThickness={1}
-                                xAxisColor={theme.colors.border}
+                                xAxisColor={theme.solid.border}
                                 xAxisLabelsHeight={0}
                                 labelsExtraHeight={0}
                                 yAxisSide={yAxisSides.RIGHT}
                                 hideYAxisText
                                 yAxisLabelWidth={0}
                                 yAxisThickness={0}
-                                rulesColor={theme.colors.border}
+                                rulesColor={theme.solid.border}
                                 rulesThickness={1}
                                 hideRules={false}
                             />
@@ -669,7 +670,7 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                                         styles.selectedDayGuide,
                                         {
                                             left: selectedGuideX,
-                                            backgroundColor: theme.colors.border,
+                                            backgroundColor: theme.solid.border,
                                             opacity: 0.95,
                                         },
                                     ]}
@@ -725,14 +726,11 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                 <HStack style={styles.monthHeader}>
                     <Pressable onPress={handlePrevMonth} hitSlop={theme.space(2)}>
                         <Box style={styles.monthNavButton}>
-                            <ChevronLeft
+                            <Icon
+                                name="chevron-left"
                                 size={theme.space(6)}
                                 style={styles.monthPrevIcon}
-                                color={
-                                    rt.themeName === 'dark'
-                                        ? theme.colors.white
-                                        : theme.colors.neutral[950]
-                                }
+                                color={theme.solid.typography}
                             />
                         </Box>
                     </Pressable>
@@ -748,14 +746,11 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                                 !canGoForward && styles.monthNavButtonDisabled,
                             ]}
                         >
-                            <ChevronRight
+                            <Icon
+                                name="chevron-right"
                                 size={theme.space(6)}
                                 style={styles.monthNextIcon}
-                                color={
-                                    rt.themeName === 'dark'
-                                        ? theme.colors.white
-                                        : theme.colors.neutral[950]
-                                }
+                                color={theme.solid.typography}
                             />
                         </Box>
                     </Pressable>

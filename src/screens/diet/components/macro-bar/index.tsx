@@ -17,7 +17,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     track: {
         height: theme.space(1.5),
@@ -32,7 +32,7 @@ const styles = StyleSheet.create((theme) => ({
         width: `${Math.min(100, Math.max(0, ratio * 100))}%`,
         height: '100%',
         borderRadius: theme.radius.full,
-        backgroundColor: over ? theme.colors.amber[500] : theme.colors.brand[500],
+        backgroundColor: over ? theme.colors.amber[500] : theme.colors.primary,
     }),
 }));
 

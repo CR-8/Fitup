@@ -1,23 +1,27 @@
-import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { Keyboard, Platform, TextInput } from 'react-native';
+import {
+    BottomSheet,
+    Button as UIButton,
+    Column,
+    Picker,
+    RNHostView,
+    Row,
+    Spacer,
+    Text as UIText,
+} from '@expo/ui';
 import { useKeyboard } from '@react-native-community/hooks';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/primitives/box';
-import { HStack } from '@/components/primitives/hstack';
-import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
-import { Backdrop } from '@/components/overlays/backdrop';
+import { brandTint } from '@/components/native/modifiers';
 import { RestChangeType, useRestStore } from '@/stores/rest';
-import { BaseButtons } from '@/components/forms/fields/base/buttons';
-import { VStack } from '@/components/primitives/vstack';
 import { useExerciseSets, useUpdateExerciseSet } from '@/hooks/use-workouts';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
-import { SheetInput } from '@/components/primitives/sheet/input';
 import { digitsFromSeconds, formatClockSecondsCompact, secondsFromDigits } from '@/helpers/times';
 import { buildExerciseSetRestUpdate } from './updates';
 
@@ -26,32 +30,10 @@ type Selection = { start: number; end: number };
 const isChangeType = (v: unknown): v is RestChangeType =>
     v === 'after_set' || v === 'between_sets' || v === 'after_exercise' || v === 'all_intervals';
 
-const styles = StyleSheet.create((theme, rt) => ({
-    background: {
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
-        borderTopRightRadius: theme.radius['4xl'],
-        borderTopLeftRadius: theme.radius['4xl'],
-    },
-    handleContainer: {
-        paddingHorizontal: theme.space(5),
-        paddingVertical: theme.space(5),
-        justifyContent: 'center',
-    },
-    handleTitle: {
-        color: theme.colors.typography,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        fontSize: theme.fontSize.lg.fontSize,
-    },
-    fieldsContainer: {
-        gap: theme.space(6),
-        alignItems: 'center',
-    },
+const styles = StyleSheet.create((theme) => ({
     inputFieldContainer: {
         position: 'relative',
-    },
-    fieldContainer: {
-        paddingHorizontal: theme.space(5),
+        alignSelf: 'center',
     },
     underline: (visible: boolean) => ({
         position: 'absolute',
@@ -59,36 +41,15 @@ const styles = StyleSheet.create((theme, rt) => ({
         right: 0,
         bottom: 0,
         height: theme.space(1),
-        backgroundColor: visible ? theme.colors.brand[500] : 'transparent',
+        backgroundColor: visible ? theme.colors.primary : 'transparent',
     }),
     text: {
-        borderBottomWidth: 0,
         color: theme.colors.typography,
         fontSize: theme.fontSize['4xl'].fontSize,
         lineHeight: theme.fontSize['4xl'].lineHeight,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
-    },
-    buttonsContainer: {
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: theme.space(5),
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
-    },
-    buttonContainer: {
-        height: theme.space(14),
-    },
-    buttonTitleContainer: {
-        height: '100%',
-        justifyContent: 'center',
-    },
-    buttonTitle: {
-        color: theme.colors.typography,
-        fontSize: theme.fontSize.default.fontSize,
-    },
-    choicesContainer: {
-        justifyContent: 'center',
+        ...theme.typography.metric,
     },
     input: {
         position: 'absolute',
@@ -98,17 +59,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         bottom: 0,
         color: 'transparent',
         opacity: Platform.OS === 'android' ? 0 : 1,
-        borderBottomWidth: 0,
-    },
-    secondsContainer: {
-        alignItems: 'center',
     },
 }));
 
 const RestInput: FC = () => {
     const [draftValue, setDraftValue] = useState<number | null | undefined>();
     const [draftKey, setDraftKey] = useState<string | null>(null);
-    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { keyboardShown } = useKeyboard();
     const { t } = useTranslation(['common']);
 
@@ -169,14 +125,6 @@ const RestInput: FC = () => {
         [timeDigits],
     );
 
-    useEffect(() => {
-        if (opened) {
-            bottomSheetModalRef.current?.present();
-        } else {
-            bottomSheetModalRef.current?.close();
-        }
-    }, [opened]);
-
     const choices = useMemo(() => {
         const all = [
             { value: 'after_set' as const },
@@ -225,17 +173,7 @@ const RestInput: FC = () => {
         close();
     };
 
-    const Handle = () => (
-        <>
-            <HStack style={styles.handleContainer}>
-                <Box>
-                    <Text style={styles.handleTitle}>{title}</Text>
-                </Box>
-            </HStack>
-        </>
-    );
-
-    const handleButtonChange = (value: string | number | boolean | null | (string | number)[]) => {
+    const handleButtonChange = (value: string | number) => {
         if (isChangeType(value)) {
             setChangeType(value);
         }
@@ -305,77 +243,64 @@ const RestInput: FC = () => {
     };
 
     return (
-        <BottomSheetModal
-            ref={bottomSheetModalRef}
-            backdropComponent={Backdrop}
-            handleComponent={Handle}
-            animateOnMount={false}
-            enableHandlePanningGesture={false}
-            enableContentPanningGesture={false}
-            backgroundStyle={styles.background}
-            stackBehavior="push"
-        >
-            <BottomSheetView>
-                <VStack style={styles.fieldsContainer}>
-                    <VStack style={styles.secondsContainer}>
-                        <Box style={styles.inputFieldContainer}>
-                            <Text pointerEvents="none" style={styles.text}>
-                                {displayText}
-                            </Text>
-                            <Box pointerEvents="none" style={styles.underline(focused)} />
-                            <SheetInput
-                                ref={inputRef}
-                                keyboardType="number-pad"
-                                style={styles.input}
-                                editable={true}
-                                caretHidden={true}
-                                selectionColor="transparent"
-                                cursorColor="transparent"
-                                value={timeDigits}
-                                onFocus={handleFocus}
-                                onBlur={handleBlur}
-                                onChangeText={handleChangeText}
-                                {...(selection != null ? { selection } : {})}
-                                placeholder=""
-                            />
-                        </Box>
-                    </VStack>
-                    {showChangeType && (
-                        <Box style={styles.fieldContainer}>
-                            <BaseButtons
-                                value={
-                                    !setId && changeType === 'after_set'
-                                        ? 'all_intervals'
-                                        : changeType
-                                }
-                                choices={choices.map((v) => ({
-                                    value: v.value,
-                                    title: t(`setRestType.${v.value}`, { ns: 'common' }),
-                                }))}
-                                onChange={handleButtonChange}
-                                choicesContainerStyle={styles.choicesContainer}
-                                variant="accent"
-                                size="small"
-                            />
-                        </Box>
-                    )}
-                </VStack>
-                <HStack style={styles.buttonsContainer}>
-                    <Box style={styles.buttonContainer}>
-                        <Pressable style={styles.buttonTitleContainer} onPress={handleSheet}>
-                            <Text style={styles.buttonTitle}>{t('cancel', { ns: 'common' })}</Text>
-                        </Pressable>
+        <BottomSheet isPresented={opened} onDismiss={handleSheet} modifiers={brandTint}>
+            <Column spacing={16}>
+                <Row alignment="center">
+                    <UIButton
+                        variant="text"
+                        label={t('cancel', { ns: 'common' })}
+                        onPress={handleSheet}
+                    />
+                    <Spacer />
+                    <UIText textStyle={{ fontSize: 17, fontWeight: '600' }}>{title}</UIText>
+                    <Spacer />
+                    <UIButton
+                        variant="text"
+                        label={t('save', { ns: 'common' })}
+                        onPress={handleSave}
+                    />
+                </Row>
+                <RNHostView matchContents>
+                    <Box style={styles.inputFieldContainer}>
+                        <Text pointerEvents="none" style={styles.text}>
+                            {displayText}
+                        </Text>
+                        <Box pointerEvents="none" style={styles.underline(focused)} />
+                        <TextInput
+                            ref={inputRef}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                            editable={true}
+                            caretHidden={true}
+                            selectionColor="transparent"
+                            cursorColor="transparent"
+                            value={timeDigits}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
+                            onChangeText={handleChangeText}
+                            {...(selection != null ? { selection } : {})}
+                            placeholder=""
+                        />
                     </Box>
-                    <Box style={styles.buttonContainer}>
-                        <Pressable style={styles.buttonTitleContainer} onPress={handleSave}>
-                            <Text fontWeight="bold" style={styles.buttonTitle}>
-                                {t('save', { ns: 'common' })}
-                            </Text>
-                        </Pressable>
-                    </Box>
-                </HStack>
-            </BottomSheetView>
-        </BottomSheetModal>
+                </RNHostView>
+                {showChangeType && (
+                    <Picker
+                        selectedValue={
+                            !setId && changeType === 'after_set' ? 'all_intervals' : changeType
+                        }
+                        onValueChange={handleButtonChange}
+                    >
+                        {choices.map((choice) => (
+                            <Picker.Item
+                                key={choice.value}
+                                value={choice.value}
+                                label={t(`setRestType.${choice.value}`, { ns: 'common' })}
+                            />
+                        ))}
+                    </Picker>
+                )}
+            </Column>
+        </BottomSheet>
     );
 };
 

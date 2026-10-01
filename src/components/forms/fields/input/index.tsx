@@ -2,7 +2,6 @@ import { createElement } from 'react';
 import { FieldPath, FieldValues, PathValue, useController } from 'react-hook-form';
 
 import { BaseInput } from '../base/input';
-import { SheetInput } from '../sheet/input';
 import type { InputType as InputBaseType, ControlledInputType, InputValueType } from '../types';
 
 type InputType<
@@ -24,7 +23,6 @@ function Input<T extends FieldValues, TName extends FieldPath<T>>({
     help,
     inputContainerStyle,
     inputStyle,
-    asSheet,
     prefix,
     suffix,
     numericThousandSeparator,
@@ -39,7 +37,7 @@ function Input<T extends FieldValues, TName extends FieldPath<T>>({
         field: { onChange, value },
     } = useController({ name, control, defaultValue });
 
-    return createElement(asSheet ? SheetInput : BaseInput, {
+    return createElement(BaseInput, {
         /**
          * Keyed by field, because `BaseInput` seeds its displayed text once on
          * mount — local state for the numeric fields, `defaultValue` on a React
@@ -65,8 +63,6 @@ function Input<T extends FieldValues, TName extends FieldPath<T>>({
         onChange,
         prefix,
         suffix,
-        asSheet,
-        title: label,
         numericThousandSeparator,
         placeholder,
         secureTextEntry,

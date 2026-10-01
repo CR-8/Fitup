@@ -1,22 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, type ListRenderItem } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import {
-    ChevronRight,
-    Dumbbell,
-    Salad,
-    Sparkles,
-    TrendingUp,
-    Undo2,
-    type LucideIcon,
-} from 'lucide-react-native';
 
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
 import { Title } from '@/components/typography/title';
+import { Stack } from '@/navigators/stack';
+import { HeaderButton } from '@/components/buttons/header';
 import type { AiMessageSelect } from '@/db/schema';
 import {
     useAiAvailable,
@@ -32,6 +26,7 @@ import { Box } from '@/components/primitives/box';
 import { Composer } from './components/composer';
 import { Pending } from './components/pending';
 import { Message } from './components/message';
+import { Icon, type IconName } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -39,18 +34,15 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(4),
     },
     header: {
-        paddingTop: theme.screenHeaderHeight(),
+        paddingTop: theme.space(2),
         paddingBottom: theme.space(3),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
     },
     headerTitles: {
         flex: 1,
         gap: theme.space(0.5),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     list: {
         flex: 1,
@@ -64,8 +56,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     // Mirrors the rounded panel the settings and results screens use.
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(2),
     },
@@ -77,7 +70,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     emptyText: {
         textAlign: 'center',
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     /**
      * What the screen shows before anyone has typed.
@@ -94,6 +87,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     introCard: {
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(2),
     },
@@ -125,6 +119,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(4),
         paddingVertical: theme.space(3.5),
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
     },
     actionIcon: {
@@ -133,7 +128,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
     },
     actionText: {
         flex: 1,
@@ -247,33 +242,33 @@ const SynScreen = () => {
      * question, not a scripted answer. Nothing here fakes a reply.
      */
     const quickActions = useMemo<
-        { key: string; icon: LucideIcon; label: string; hint: string; run: () => void }[]
+        { key: string; icon: IconName; label: string; hint: string; run: () => void }[]
     >(
         () => [
             {
                 key: 'workout',
-                icon: Dumbbell,
+                icon: 'dumbbell',
                 label: t('syn.actions.workout'),
                 hint: t('syn.actions.workoutHint'),
                 run: () => handleGenerate('workout'),
             },
             {
                 key: 'nutrition',
-                icon: Salad,
+                icon: 'salad',
                 label: t('syn.actions.nutrition'),
                 hint: t('syn.actions.nutritionHint'),
                 run: () => handleGenerate('nutrition'),
             },
             {
                 key: 'explain',
-                icon: Sparkles,
+                icon: 'sparkles',
                 label: t('syn.actions.explain'),
                 hint: t('syn.actions.explainHint'),
                 run: () => handleSend(t('syn.actions.explainIntent')),
             },
             {
                 key: 'progress',
-                icon: TrendingUp,
+                icon: 'trending-up',
                 label: t('syn.actions.progress'),
                 hint: t('syn.actions.progressHint'),
                 run: () => handleSend(t('syn.actions.progressIntent')),
@@ -288,9 +283,9 @@ const SynScreen = () => {
                 <VStack style={styles.introCard}>
                     <HStack style={styles.introHeader}>
                         <Box style={styles.introAvatar}>
-                            <Sparkles
+                            <Icon
+                                name="sparkles"
                                 size={theme.space(5)}
-                                strokeWidth={2}
                                 color={theme.colors.primary}
                             />
                         </Box>
@@ -315,9 +310,9 @@ const SynScreen = () => {
                         accessibilityLabel={action.label}
                     >
                         <Box style={styles.actionIcon}>
-                            <action.icon
+                            <Icon
+                                name={action.icon}
                                 size={theme.space(4)}
-                                strokeWidth={2}
                                 color={theme.colors.primary}
                             />
                         </Box>
@@ -327,7 +322,8 @@ const SynScreen = () => {
                                 {action.hint}
                             </Text>
                         </VStack>
-                        <ChevronRight
+                        <Icon
+                            name="chevron-right"
                             size={theme.space(4.5)}
                             color={theme.colors.mutedTypography}
                         />
@@ -341,10 +337,7 @@ const SynScreen = () => {
     // A build with no AI host configured shows why rather than failing on every turn.
     if (!available) {
         return (
-            <VStack style={styles.container}>
-                <HStack style={styles.header}>
-                    <Title type="h1">{t('syn.title')}</Title>
-                </HStack>
+            <VStack style={[styles.container, styles.header]}>
                 <VStack style={styles.panel}>
                     <Title type="h6">{t('syn.unavailable.title')}</Title>
                     <Text fontSize="sm" style={styles.muted}>
@@ -358,43 +351,41 @@ const SynScreen = () => {
     if (isLoading) {
         return (
             <VStack style={[styles.container, styles.empty]}>
-                <ActivityIndicator color={theme.colors.brand[500]} />
+                <ActivityIndicator color={theme.colors.primary} />
             </VStack>
         );
     }
 
     return (
-        <VStack style={styles.container}>
-            <HStack style={styles.header}>
-                <VStack style={styles.headerTitles}>
-                    <Title type="h1">{t('syn.title')}</Title>
-                    <Text fontSize="sm" style={styles.muted}>
-                        {t('syn.subtitle')}
-                    </Text>
-                    <Text fontSize="xs" style={styles.muted}>
-                        {t('syn.quota.remaining', {
-                            remaining: quota.remaining,
-                            limit: quota.limit,
-                        })}
-                    </Text>
-                </VStack>
-
-                {messages.length > 0 ? (
-                    <Pressable
-                        style={styles.resetButton}
-                        onPress={handleClear}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('syn.clear.title')}
-                    >
-                        <Undo2
-                            size={theme.space(4)}
-                            strokeWidth={theme.space(0.375)}
-                            opacity={0.8}
-                            color={theme.colors.typography}
-                        />
-                    </Pressable>
-                ) : null}
-            </HStack>
+        <KeyboardAvoidingView behavior="padding" style={styles.container}>
+            {/* A conversation, so an inline title as in Messages rather than a
+                large one, with clearing it in the header. */}
+            <Stack.Screen
+                options={{
+                    headerLargeTitle: false,
+                    headerRight:
+                        messages.length > 0
+                            ? () => (
+                                  <HeaderButton
+                                      icon="undo"
+                                      onPress={handleClear}
+                                      accessibilityLabel={t('syn.clear.title')}
+                                  />
+                              )
+                            : undefined,
+                }}
+            />
+            <VStack style={[styles.header, styles.headerTitles]}>
+                <Text fontSize="sm" style={styles.muted}>
+                    {t('syn.subtitle')}
+                </Text>
+                <Text fontSize="xs" style={styles.muted}>
+                    {t('syn.quota.remaining', {
+                        remaining: quota.remaining,
+                        limit: quota.limit,
+                    })}
+                </Text>
+            </VStack>
 
             <FlatList
                 ref={listRef}
@@ -410,6 +401,7 @@ const SynScreen = () => {
                 ListFooterComponent={
                     isBusy ? <Pending kind={isGenerating ? 'plan' : 'reply'} /> : null
                 }
+                contentInsetAdjustmentBehavior="automatic"
                 keyboardDismissMode="interactive"
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
@@ -452,7 +444,7 @@ const SynScreen = () => {
             ) : null}
 
             <Composer onSend={handleSend} busy={isBusy} />
-        </VStack>
+        </KeyboardAvoidingView>
     );
 };
 

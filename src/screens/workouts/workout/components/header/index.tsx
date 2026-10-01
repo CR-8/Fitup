@@ -7,42 +7,22 @@ import { Box } from '@/components/primitives/box';
 import { useLocalSearchParams } from 'expo-router';
 import { useWorkout } from '@/hooks/use-workouts';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
-import { Text } from '@/components/primitives/text';
 import { useSupersetEditStore } from '@/stores/superset-edit';
 import { useAiProfile } from '@/hooks/use-ai';
-import { BaseButtons } from '@/components/forms/fields/base/buttons';
+import { SegmentedControl } from '@expo/ui/community/segmented-control';
+
+import { Stack } from '@/navigators/stack';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(4),
-        backgroundColor: theme.colors.brand[400],
+        paddingTop: theme.space(2),
         paddingBottom: theme.space(5),
-    },
-    stateContainer: {
-        position: 'relative',
-        marginTop: theme.headerContentTopOffset(theme.space(11)),
-        marginBottom: theme.space(3.5),
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: theme.space(11),
-    },
-    state: {
-        fontSize: theme.fontSize.sm.fontSize,
-        fontWeight: theme.fontWeight.medium.fontWeight,
-        color: theme.colors.neutral[950],
-    },
-    title: {
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.neutral[950],
-    },
-    stateTitle: {
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        fontSize: theme.fontSize.default.fontSize,
-        color: theme.colors.neutral[950],
+        gap: theme.space(3),
     },
     environmentToggle: {
-        marginTop: theme.space(3),
         alignSelf: 'flex-start',
+        minWidth: theme.space(40),
     },
 }));
 
@@ -83,18 +63,22 @@ export const Header: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Box style={styles.stateContainer}>
-                {title && <Text style={styles.stateTitle}>{title}</Text>}
-            </Box>
-            <Title type="h3" style={styles.title}>
-                {workout?.name}
-            </Title>
-            <BaseButtons
-                size="small"
-                choicesContainerStyle={styles.environmentToggle}
-                choices={environmentChoices}
-                value={profile?.trainingEnvironment ?? 'gym'}
-                onChange={(value) => saveProfile({ trainingEnvironment: value as 'home' | 'gym' })}
+            {/* The session's state — its running clock, or planned / done — is
+                the navigation title; the workout's name leads the page. */}
+            <Stack.Screen options={{ title: title ?? '' }} />
+            <Title type="h2">{workout?.name}</Title>
+            <SegmentedControl
+                style={styles.environmentToggle}
+                values={environmentChoices.map((choice) => choice.title)}
+                selectedIndex={environmentChoices.findIndex(
+                    (choice) => choice.value === (profile?.trainingEnvironment ?? 'gym'),
+                )}
+                onChange={({ nativeEvent }) =>
+                    saveProfile({
+                        trainingEnvironment: environmentChoices[nativeEvent.selectedSegmentIndex]
+                            .value as 'home' | 'gym',
+                    })
+                }
             />
         </Box>
     );

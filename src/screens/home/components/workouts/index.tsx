@@ -60,10 +60,7 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
     },
     listContent: {
-        // No `paddingBottom` override here. `screenContentPadding('root')`
-        // already reserves `insets.bottom + space(20)`, which is what clears the
-        // tab bar — replacing it with `space(4)` left the last card sitting
-        // underneath it, unreachable however far you scrolled.
+        // The tab bar is cleared by the content inset the list is given below.
         ...theme.screenContentPadding('root'),
     },
     headerContent: {
@@ -284,6 +281,7 @@ export const Workouts: FC<WorkoutsProps> = ({
             keyExtractor={(item) => item.key}
             getItemType={(item) => item.type}
             drawDistance={320}
+            contentInsetAdjustmentBehavior="automatic"
             ListHeaderComponent={() => header}
             contentContainerStyle={styles.listContent}
             style={styles.listContainer}

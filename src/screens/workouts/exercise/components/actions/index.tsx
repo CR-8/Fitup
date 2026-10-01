@@ -1,15 +1,5 @@
 import { FC, useCallback, useMemo, useState } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import {
-    Plus,
-    ClockFading,
-    ChevronLeft,
-    ChevronRight,
-    ChevronDown,
-    Play,
-    Check,
-    Square,
-} from 'lucide-react-native';
 import { useShallow } from 'zustand/react/shallow';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -33,6 +23,7 @@ import { buildFinalizeRestUpdate } from '@/helpers/rest';
 import { getStopwatchElapsedSeconds, getWorkTimerRemainingSeconds } from '@/helpers/workout-timer';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { addWorkoutExerciseSet } from '../../helpers/add-set';
+import { Icon } from '@/components/primitives/icon';
 
 interface ActionsProps {
     workoutDetails: ReturnType<typeof useWorkoutWithDetails>['data'];
@@ -76,13 +67,13 @@ const styles = StyleSheet.create((theme, rt) => ({
     actionButtonContainer: {
         width: theme.space(10),
         height: theme.space(10),
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.elevated,
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
     },
     mainButtonContainer: {
-        backgroundColor: theme.colors.brand[400],
+        backgroundColor: theme.colors.primary,
         width: theme.space(16),
         height: theme.space(16),
     },
@@ -364,16 +355,20 @@ export const Actions: FC<ActionsProps> = ({
                 <Box style={[styles.actionContainer, styles.leftContainer]}>
                     <Pressable onPress={handlePrevExercise} disabled={isPrevDisabled}>
                         <Box style={styles.actionButtonContainer}>
-                            <ChevronLeft
+                            <Icon
+                                name="chevron-left"
                                 size={theme.space(8)}
                                 color={theme.colors.typography}
-                                opacity={isPrevDisabled ? 0.6 : 1}
                             />
                         </Box>
                     </Pressable>
                     <Pressable onPress={handleAddSet}>
                         <Box style={[styles.actionButtonContainer]}>
-                            <Plus size={theme.space(8)} color={theme.colors.typography} />
+                            <Icon
+                                name="plus"
+                                size={theme.space(8)}
+                                color={theme.colors.typography}
+                            />
                         </Box>
                     </Pressable>
                 </Box>
@@ -381,41 +376,41 @@ export const Actions: FC<ActionsProps> = ({
                     <Pressable onPress={handleMainAction} disabled={isMainActionPending}>
                         <Box style={[styles.actionButtonContainer, styles.mainButtonContainer]}>
                             {mainIcon === 'play' && (
-                                <Play
+                                <Icon
+                                    name="play"
                                     size={theme.space(5)}
-                                    color={theme.colors.neutral[950]}
-                                    fill={theme.colors.neutral[950]}
+                                    color={theme.colors.primaryTypography}
                                 />
                             )}
                             {mainIcon === 'check' && (
-                                <Check
+                                <Icon
+                                    name="check"
                                     style={styles.checkIcon}
-                                    size={theme.space(8)}
-                                    color={theme.colors.neutral[950]}
-                                    strokeWidth={2.5}
+                                    size={theme.space(7)}
+                                    color={theme.colors.primaryTypography}
                                 />
                             )}
                             {mainIcon === 'collapse' && (
-                                <ChevronDown
+                                <Icon
+                                    name="chevron-down"
                                     style={styles.chevronDownIcon}
-                                    size={theme.space(10)}
-                                    color={theme.colors.neutral[950]}
-                                    strokeWidth={2.5}
+                                    size={theme.space(7)}
+                                    color={theme.colors.primaryTypography}
                                 />
                             )}
                             {mainIcon === 'back' && (
-                                <ChevronLeft
+                                <Icon
+                                    name="chevron-left"
                                     style={styles.chevronLeftIcon}
-                                    size={theme.space(10)}
-                                    color={theme.colors.neutral[950]}
-                                    strokeWidth={2.5}
+                                    size={theme.space(7)}
+                                    color={theme.colors.primaryTypography}
                                 />
                             )}
                             {mainIcon === 'stop' && (
-                                <Square
+                                <Icon
+                                    name="stop"
                                     size={theme.space(5)}
-                                    color={theme.colors.neutral[950]}
-                                    fill={theme.colors.neutral[950]}
+                                    color={theme.colors.primaryTypography}
                                 />
                             )}
                         </Box>
@@ -424,15 +419,19 @@ export const Actions: FC<ActionsProps> = ({
                 <Box style={[styles.actionContainer, styles.rightContainer]}>
                     <Pressable onPress={handleRest}>
                         <Box style={[styles.actionButtonContainer]}>
-                            <ClockFading size={theme.space(8)} color={theme.colors.typography} />
+                            <Icon
+                                name="timer"
+                                size={theme.space(8)}
+                                color={theme.colors.typography}
+                            />
                         </Box>
                     </Pressable>
                     <Pressable onPress={handleNextExercise} disabled={isNextDisabled}>
                         <Box style={styles.actionButtonContainer}>
-                            <ChevronRight
+                            <Icon
+                                name="chevron-right"
                                 size={theme.space(8)}
                                 color={theme.colors.typography}
-                                opacity={isNextDisabled ? 0.6 : 1}
                             />
                         </Box>
                     </Pressable>

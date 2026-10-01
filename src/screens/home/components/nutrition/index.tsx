@@ -2,7 +2,6 @@ import { FC } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Apple, ChevronRight } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -13,6 +12,7 @@ import { Title } from '@/components/typography/title';
 import { useAiAvailable } from '@/hooks/use-ai';
 import { nutritionBasis, toDateKey, useDayProgress, useMealsForDate } from '@/hooks/use-nutrition';
 import { MacroBar } from '@/screens/diet/components/macro-bar';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * Today's eating at a glance, and the way into Nutrition.
@@ -86,13 +86,17 @@ export const NutritionCard: FC = () => {
         >
             <HStack style={styles.header}>
                 <Box style={styles.badge}>
-                    <Apple size={theme.space(5.5)} strokeWidth={2} color={theme.colors.primary} />
+                    <Icon name="fruit" size={theme.space(5.5)} color={theme.colors.primary} />
                 </Box>
                 <VStack style={styles.headerText}>
                     <Text style={styles.eyebrow}>{t('diet.today', { ns: 'screens' })}</Text>
                     <Title type="h4">{t('diet.title', { ns: 'screens' })}</Title>
                 </VStack>
-                <ChevronRight size={theme.space(5)} color={theme.colors.mutedTypography} />
+                <Icon
+                    name="chevron-right"
+                    size={theme.space(5)}
+                    color={theme.colors.mutedTypography}
+                />
             </HStack>
 
             {progress.counts.total > 0 ? (

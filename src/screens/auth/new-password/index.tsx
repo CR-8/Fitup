@@ -1,12 +1,11 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Lock } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -48,11 +47,12 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
     },
@@ -86,7 +86,6 @@ type NewPasswordForm = z.infer<typeof schema>;
 
 const NewPasswordScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
     const { signOut } = useAccount();
     const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
@@ -140,7 +139,7 @@ const NewPasswordScreen = () => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <AuthHero
-                icon={Lock}
+                icon={'lock'}
                 eyebrow={t('newPassword.eyebrow', { ns: 'screens' })}
                 title={t(isRecovery ? 'newPassword.title' : 'newPassword.titleChange', {
                     ns: 'screens',
@@ -185,11 +184,6 @@ const NewPasswordScreen = () => {
                     loading={pending}
                     disabled={pending}
                     onPress={onSubmit}
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
                 />
 
                 {isRecovery ? (

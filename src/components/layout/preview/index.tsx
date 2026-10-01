@@ -2,12 +2,12 @@ import { FC, memo, useCallback, useMemo } from 'react';
 import { GestureResponderEvent } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Image as ExpoImage } from 'expo-image';
-import { Play } from 'lucide-react-native';
 
 import { Box, BoxProps } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
 import { buildExerciseGifUrl, EXERCISE_GIF_THUMBNAIL_RESOLUTION } from '@/constants/fitup';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme) => ({
     gifPreviewPressable: {
@@ -18,7 +18,7 @@ const styles = StyleSheet.create((theme) => ({
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
     },
     gifPreviewImage: {
         width: '100%',
@@ -98,12 +98,7 @@ const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
                 autoplay={false}
             />
             <Box style={styles.playBadge}>
-                <Play
-                    size={theme.space(2)}
-                    color={theme.colors.white}
-                    fill={theme.colors.white}
-                    strokeWidth={3}
-                />
+                <Icon name="play" size={theme.space(2)} color={theme.colors.white} />
             </Box>
         </Pressable>
     );

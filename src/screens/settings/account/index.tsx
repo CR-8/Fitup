@@ -36,8 +36,9 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
     },
@@ -48,13 +49,7 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     muted: {
-        color: theme.colors.neutral[400],
-    },
-    secondaryButton: {
-        backgroundColor: theme.colors.foreground,
-    },
-    secondaryButtonText: {
-        color: theme.colors.typography,
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -146,8 +141,6 @@ const AccountScreen = () => {
                                 })}
                                 disabled={pending}
                                 onPress={handleChangePassword}
-                                containerStyle={styles.secondaryButton}
-                                textStyle={styles.secondaryButtonText}
                             />
                         ) : null}
 

@@ -1,80 +1,26 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useUnistyles } from 'react-native-unistyles';
-import { useShallow } from 'zustand/react/shallow';
+import { useLocalSearchParams } from 'expo-router';
 
-import { BackButton } from '@/components/buttons/back';
-import { CloseButton } from '@/components/buttons/close';
-import { ActionsButton } from '@/components/buttons/actions';
-import { useActionsStore } from '@/stores/actions';
+import { ActionsMenu } from '@/components/buttons/actions';
+import { HeaderButton } from '@/components/buttons/header';
+import { useWorkoutMenu } from '@/hooks/use-action-menus';
 import { useSupersetEditStore } from '@/stores/superset-edit';
-import { useScreen } from '@/hooks/use-screen';
 
 const useWorkoutScreen = () => {
-    const { options } = useScreen();
-    const { theme } = useUnistyles();
-    const router = useRouter();
-
     const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
-
-    const { actionsOpen } = useActionsStore(
-        useShallow((state) => ({
-            actionsOpen: state.open,
-        })),
-    );
+    const menu = useWorkoutMenu(workoutId ?? '');
 
     const isEditMode = useSupersetEditStore((state) => state.workoutId === workoutId);
     const clearSupersetEdit = useSupersetEditStore((state) => state.clear);
 
-    const handleBack = () => {
-        router.back();
-    };
-
-    const handleActions = () => {
-        actionsOpen({ type: 'workout__menu', payload: { workoutId } });
-    };
-
-    const handleCancelEdit = () => {
-        clearSupersetEdit();
-    };
-
     return {
-        name: '[workoutId]',
         options: {
-            ...options,
-            headerMode: 'screen' as const,
-            headerShown: true,
-            headerTitle: () => null,
-            headerTransparent: true,
-            headerStyle: {
-                ...options.headerStyle,
-                backgroundColor: 'transparent',
-            },
-            headerLeft: () =>
-                isEditMode ? (
-                    <CloseButton
-                        onPressHandler={handleCancelEdit}
-                        backgroundColor={theme.colors.brand[500]}
-                        iconColor={theme.colors.neutral[950]}
-                    />
-                ) : (
-                    <BackButton
-                        onPressHandler={handleBack}
-                        backgroundColor={theme.colors.brand[500]}
-                        iconColor={theme.colors.neutral[950]}
-                    />
-                ),
-            headerRight: () =>
-                isEditMode ? null : (
-                    <ActionsButton
-                        onPressHandler={handleActions}
-                        backgroundColor={theme.colors.brand[500]}
-                        iconColor={theme.colors.neutral[950]}
-                    />
-                ),
-            cardStyle: {
-                ...options.cardStyle,
-                backgroundColor: theme.colors.brand[400],
-            },
+            title: '',
+            // Editing supersets swaps the back button for a way out of the mode.
+            headerBackVisible: !isEditMode,
+            headerLeft: isEditMode
+                ? () => <HeaderButton icon="x" onPress={clearSupersetEdit} />
+                : undefined,
+            headerRight: isEditMode ? undefined : () => <ActionsMenu {...menu} />,
         },
     };
 };

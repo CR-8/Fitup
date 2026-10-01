@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Languages } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
@@ -20,6 +19,7 @@ import {
     markFormValuesSyncing,
     submitAutoSaveForm,
 } from '../shared';
+import { Icon } from '@/components/primitives/icon';
 
 const weightUnits: ChoiceOption<string>[] = [
     {
@@ -65,8 +65,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     headerContainer: {
         padding: theme.space(5),
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         gap: theme.space(5),
     },
     headerTitleContainer: {
@@ -85,8 +86,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(15),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        backgroundColor: theme.colors.primary,
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         marginBottom: theme.space(2),
     },
     fieldContainer: {
@@ -97,7 +99,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 const UnitsScreen = () => {
     const { user, updateUser } = useUser();
     const { t } = useTranslation(['common', 'screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
 
     const {
         control,
@@ -211,14 +213,10 @@ const UnitsScreen = () => {
             <VStack style={styles.headerContainer}>
                 <VStack style={styles.headerTitleContainer}>
                     <Box style={styles.iconContainer}>
-                        <Languages
+                        <Icon
+                            name="language"
                             size={theme.space(8)}
-                            strokeWidth={theme.space(0.375)}
-                            color={
-                                rt.themeName === 'dark'
-                                    ? theme.colors.neutral[950]
-                                    : theme.colors.white
-                            }
+                            color={theme.colors.primaryTypography}
                         />
                     </Box>
                     <Box>

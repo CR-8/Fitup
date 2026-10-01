@@ -2,7 +2,6 @@ import { FC, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronUp } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -15,12 +14,14 @@ import { Separator } from '@/components/layout/separator';
 import type { AiPlanSelect } from '@/db/schema';
 import { useApplyAiPlan } from '@/hooks/use-ai';
 import type { AiPlanMeal, AiPlanWorkout } from '@/types/ai';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     // Mirrors the rounded panel used across settings, results, and workout cards.
     container: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(3),
     },
@@ -33,7 +34,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(2),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     section: {
         gap: theme.space(3),
@@ -42,7 +43,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1.5),
     },
     dayLabel: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     itemRow: {
         justifyContent: 'space-between',
@@ -60,12 +61,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.space(1),
-    },
-    appliedButton: {
-        backgroundColor: theme.colors.foreground,
-    },
-    appliedButtonText: {
-        color: theme.colors.typography,
     },
 }));
 
@@ -265,11 +260,16 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             {expanded ? t('syn.plan.showLess') : t('syn.plan.showMore')}
                         </Text>
                         {expanded ? (
-                            <ChevronUp size={theme.space(3.5)} color={theme.colors.neutral[400]} />
-                        ) : (
-                            <ChevronDown
+                            <Icon
+                                name="chevron-up"
                                 size={theme.space(3.5)}
-                                color={theme.colors.neutral[400]}
+                                color={theme.colors.mutedTypography}
+                            />
+                        ) : (
+                            <Icon
+                                name="chevron-down"
+                                size={theme.space(3.5)}
+                                color={theme.colors.mutedTypography}
                             />
                         )}
                     </HStack>
@@ -284,9 +284,6 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             title={t('syn.plan.undo')}
                             loading={isReverting}
                             onPress={handleRevert}
-                            containerStyle={styles.appliedButton}
-                            textStyle={styles.appliedButtonText}
-                            spinnerColor={theme.colors.typography}
                         />
                     ) : (
                         <Button
@@ -295,7 +292,6 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             title={t('syn.plan.addToSchedule')}
                             loading={isApplying}
                             onPress={handleApply}
-                            spinnerColor={theme.colors.primaryTypography}
                         />
                     )}
                 </Box>

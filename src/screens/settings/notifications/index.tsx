@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Bell } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -18,6 +17,7 @@ import { RESULTS } from 'react-native-permissions';
 import { useNotifications } from '@/hooks/use-notifications';
 import { reportError } from '@/services/error-reporting';
 import { markFormValuesSyncing, submitAutoSaveForm } from '../shared';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -30,8 +30,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     headerContainer: {
         padding: theme.space(5),
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         gap: theme.space(5),
     },
     headerTitleContainer: {
@@ -47,8 +48,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(15),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        backgroundColor: theme.colors.primary,
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         marginBottom: theme.space(2),
     },
     pushes: {
@@ -60,7 +62,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 const NotificationsScreen = () => {
     const { user, updateUser } = useUser();
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const { requestPermissions } = useNotifications();
 
     const notifications = usePermissionsStore((state) => state.permissions.notifications);
@@ -144,14 +146,10 @@ const NotificationsScreen = () => {
             <VStack style={styles.headerContainer}>
                 <VStack style={styles.headerTitleContainer}>
                     <Box style={styles.iconContainer}>
-                        <Bell
+                        <Icon
+                            name="bell"
                             size={theme.space(8)}
-                            strokeWidth={theme.space(0.375)}
-                            color={
-                                rt.themeName === 'dark'
-                                    ? theme.colors.neutral[950]
-                                    : theme.colors.white
-                            }
+                            color={theme.colors.primaryTypography}
                         />
                     </Box>
                     <Box>

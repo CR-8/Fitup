@@ -2,7 +2,6 @@ import { FC, ReactNode } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import type { LucideIcon } from 'lucide-react-native';
 
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
@@ -11,6 +10,7 @@ import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { Pressable } from '@/components/primitives/pressable';
+import { Icon, type IconName } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -115,7 +115,7 @@ interface StepProps {
     subtitle?: string;
     /** One line on why this step is worth answering. */
     motivation: string;
-    icon: LucideIcon;
+    icon: IconName;
     children: ReactNode;
     onNext: () => void;
     onBack?: () => void;
@@ -140,7 +140,7 @@ export const OnboardingStep: FC<StepProps> = ({
     title,
     subtitle,
     motivation,
-    icon: Icon,
+    icon,
     children,
     onNext,
     onBack,
@@ -177,7 +177,7 @@ export const OnboardingStep: FC<StepProps> = ({
                 </Text>
 
                 <Box style={styles.icon}>
-                    <Icon size={theme.space(6)} color={accent} strokeWidth={2.2} />
+                    <Icon name={icon} size={theme.space(6)} color={accent} />
                 </Box>
 
                 <VStack style={styles.heading}>
@@ -199,13 +199,7 @@ export const OnboardingStep: FC<StepProps> = ({
             <Box style={styles.spacer} />
 
             <VStack style={styles.actions}>
-                <Button
-                    title={nextLabel}
-                    type="primary"
-                    loading={isSubmitting}
-                    onPress={onNext}
-                    spinnerColor={theme.colors.primaryTypography}
-                />
+                <Button title={nextLabel} type="primary" loading={isSubmitting} onPress={onNext} />
 
                 <HStack style={styles.secondaryRow}>
                     {onBack ? (

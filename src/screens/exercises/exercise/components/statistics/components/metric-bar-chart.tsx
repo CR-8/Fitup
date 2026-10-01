@@ -37,7 +37,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     chartAxisLabel: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
     },
     yAxisOverlay: {
@@ -87,20 +87,21 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(1),
         paddingVertical: theme.space(1.5),
         borderRadius: theme.radius['2xl'],
-        backgroundColor: theme.colors.background,
+        borderCurve: 'continuous',
+        backgroundColor: theme.solid.foreground,
         borderWidth: stableOutlineWidth,
-        borderColor: theme.colors.border,
+        borderColor: theme.solid.border,
         zIndex: 3,
     },
     pointerValue: {
         ...theme.fontSize.sm,
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
     },
     pointerDate: {
         ...theme.fontSize['2xs'],
-        color: theme.colors.typography,
+        color: theme.solid.typography,
         opacity: 0.6,
         fontWeight: theme.fontWeight.medium.fontWeight,
         textAlign: 'center',
@@ -288,7 +289,7 @@ export const MetricBarChart = ({
                         spacing={barSpacing}
                         initialSpacing={chartInitialSpacing}
                         endSpacing={CHART_EDGE_INSET}
-                        xAxisColor={theme.colors.border}
+                        xAxisColor={theme.solid.border}
                         xAxisThickness={1}
                         hideYAxisText
                         yAxisLabelWidth={0}
@@ -296,7 +297,7 @@ export const MetricBarChart = ({
                         xAxisLabelsHeight={0}
                         labelsExtraHeight={0}
                         hideRules={false}
-                        rulesColor={theme.colors.border}
+                        rulesColor={theme.solid.border}
                         rulesThickness={1}
                         disableScroll
                         adjustToWidth
@@ -315,7 +316,7 @@ export const MetricBarChart = ({
                                 styles.selectedGuide,
                                 {
                                     left: selectedGuideX,
-                                    backgroundColor: theme.colors.border,
+                                    backgroundColor: theme.solid.border,
                                     opacity: 0.95,
                                 },
                             ]}

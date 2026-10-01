@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { DateTimePicker, type DateTimePickerEvent } from '@expo/ui/community/datetime-picker';
 import {
     Control,
     FieldError,
@@ -38,16 +38,15 @@ interface DatetimeProps<
     containerStyle?: BoxProps['style'];
 }
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         paddingVertical: theme.space(3),
-        paddingHorizontal: theme.space(5),
+        paddingHorizontal: theme.space(4),
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     title: (error: boolean) => ({
-        fontWeight: theme.fontWeight.medium.fontWeight,
-        color: error ? theme.colors.red[500] : theme.colors.typography,
+        color: error ? theme.colors.destructive : theme.colors.typography,
     }),
     selectContainer: {
         alignItems: 'center',
@@ -58,8 +57,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(3),
         borderRadius: theme.radius.full,
         alignItems: 'center',
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[900] : theme.colors.neutral[100],
+        backgroundColor: theme.colors.elevated,
     },
     androidValueText: {
         color: theme.colors.typography,
@@ -211,8 +209,7 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
                                             : handleTimeChange
                                     }
                                     themeVariant={rt.themeName}
-                                    textColor={theme.colors.typography}
-                                    accentColor={theme.colors.neutral[950]}
+                                    accentColor={theme.colors.primary as string}
                                 />
                             )}
                         </>
@@ -226,8 +223,7 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
                             maximumDate={maximumDate}
                             onChange={handleDateChange}
                             themeVariant={rt.themeName}
-                            textColor={theme.colors.typography}
-                            accentColor={theme.colors.neutral[950]}
+                            accentColor={theme.colors.primary as string}
                         />
                     )}
                     {!isAndroid && mode === 'datetime' && (
@@ -239,8 +235,7 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
                             is24Hour={user?.timeFormat === '24h'}
                             onChange={handleTimeChange}
                             themeVariant={rt.themeName}
-                            textColor={theme.colors.typography}
-                            accentColor={theme.colors.neutral[950]}
+                            accentColor={theme.colors.primary as string}
                         />
                     )}
                 </HStack>

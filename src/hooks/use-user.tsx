@@ -2,7 +2,7 @@ import { createContext, PropsWithChildren, useContext, useEffect, FC } from 'rea
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { UnistylesRuntime } from 'react-native-unistyles';
+import { Appearance } from 'react-native';
 import { getLocales, getCalendars } from 'expo-localization';
 
 import i18n from '@/locale/i18n';
@@ -40,14 +40,11 @@ export const editUserSchema = z.object({
 
 export type EditUserFormData = z.infer<typeof editUserSchema>;
 
+// Driving the OS appearance, rather than picking a unistyles theme, is what makes
+// native views and PlatformColors follow the choice too.
 const applyTheme = (theme: (typeof themes)[number]) => {
-    if (theme === 'auto') {
-        UnistylesRuntime.setTheme(UnistylesRuntime.colorScheme === 'dark' ? 'dark' : 'light');
-        storage.set('user.theme', 'auto');
-    } else {
-        UnistylesRuntime.setTheme(theme);
-        storage.set('user.theme', theme);
-    }
+    Appearance.setColorScheme(theme === 'auto' ? 'unspecified' : theme);
+    storage.set('user.theme', theme);
 };
 
 type UserContextType = ReturnType<typeof useUserProvider>;
@@ -106,7 +103,7 @@ const useUserProvider = () => {
             }
 
             if (context?.previousTheme !== context?.previousUser?.theme) {
-                applyTheme(context?.previousTheme || 'dark');
+                applyTheme(context?.previousTheme || 'auto');
             }
         },
         onSettled: () => queryClient.invalidateQueries({ queryKey: ['user'] }),

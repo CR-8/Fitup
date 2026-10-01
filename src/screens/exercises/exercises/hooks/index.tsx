@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
-
-import { FilterButton } from '@/components/buttons/filter';
-import { useScreen } from '@/hooks/use-screen';
-import { useFilterStore, hasActiveFilters } from '@/stores/filter';
+import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/shallow';
 
+import { FilterButton } from '@/components/buttons/filter';
+import { useFilterStore, hasActiveFilters } from '@/stores/filter';
+
 const useExercisesTab = () => {
-    const { options } = useScreen();
+    const { t } = useTranslation(['screens']);
     const filterState = useFilterStore(
         useShallow((s) => ({
             ownership: s.ownership,
@@ -16,20 +16,15 @@ const useExercisesTab = () => {
         })),
     );
 
-    const handleFilterOpen = () => {
-        router.navigate('/filter');
-    };
-
     return {
         name: 'exercises',
         options: {
-            headerTransparent: true,
-            headerStyle: {
-                ...options.headerStyle,
-                backgroundColor: 'transparent',
-            },
-            headerLeft: () => (
-                <FilterButton onPress={handleFilterOpen} active={hasActiveFilters(filterState)} />
+            title: t('exercises.title'),
+            headerRight: () => (
+                <FilterButton
+                    onPress={() => router.navigate('/filter')}
+                    active={hasActiveFilters(filterState)}
+                />
             ),
         },
     };

@@ -1,17 +1,7 @@
-import { useScreen } from '@/hooks/use-screen';
+import { useTranslation } from 'react-i18next';
 
 export const useSynTab = () => {
-    const { options } = useScreen();
+    const { t } = useTranslation(['screens']);
 
-    return {
-        name: 'syn',
-        options: {
-            ...options,
-            headerTransparent: true,
-            headerStyle: {
-                ...options.headerStyle,
-                backgroundColor: 'transparent',
-            },
-        },
-    };
+    return { name: 'syn', options: { title: t('syn.title') } };
 };

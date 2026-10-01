@@ -1,54 +1,30 @@
-import { useState } from 'react';
-import { Platform } from 'react-native';
-import { useUnistyles, StyleSheet } from 'react-native-unistyles';
-import { ChevronLeft } from 'lucide-react-native';
+import { useUnistyles } from 'react-native-unistyles';
 
-const styles = StyleSheet.create((theme, rt) => ({
-    icon: Platform.select({
-        ios: {
-            marginLeft: -8,
-        },
-        default: {
-            marginLeft: -20,
-        },
-    }),
-}));
-
+/**
+ * Native-stack options every navigator starts from: an opaque bar in the page
+ * colour (the iOS Settings look at rest), the platform back button, and the
+ * brand tint on header controls.
+ *
+ * Theme colours are PlatformColors on iOS; react-native-screens resolves those,
+ * the `string` casts only satisfy React Navigation's types.
+ */
 const useScreen = () => {
-    const [scrollPosition, setScrollPosition] = useState(0);
     const { theme } = useUnistyles();
+    const background = theme.colors.background as string;
 
     const options = {
         headerBackButtonDisplayMode: 'minimal' as const,
-        headerShadowVisible: scrollPosition > 10,
-        headerTitleAlign: 'center' as const,
-        headerLeftContainerStyle: {
-            marginStart: 16,
-        },
-        headerRightContainerStyle: {
-            marginEnd: 16,
-        },
-        headerStyle: {
-            height: theme.screenHeaderHeight(),
-            backgroundColor: theme.colors.background,
-        },
-        headerTitleStyle: {
-            fontWeight: 'bold' as const,
-            fontSize: 18,
-            color: theme.colors.typography,
-        },
-        headerBackImage: () => (
-            <ChevronLeft size={30} color={theme.colors.typography} style={styles.icon} />
-        ),
-        cardStyle: {
-            backgroundColor: theme.colors.background,
-        },
-        sceneStyle: {
-            backgroundColor: theme.colors.background,
-        },
+        headerShadowVisible: false,
+        headerLargeTitleShadowVisible: false,
+        headerStyle: { backgroundColor: background },
+        headerLargeStyle: { backgroundColor: background },
+        headerTintColor: theme.colors.primary as string,
+        headerTitleStyle: { color: theme.colors.typography as string },
+        headerLargeTitleStyle: { color: theme.colors.typography as string },
+        contentStyle: { backgroundColor: background },
     };
 
-    return { options, scrollPosition, setScrollPosition };
+    return { options };
 };
 
 export { useScreen };

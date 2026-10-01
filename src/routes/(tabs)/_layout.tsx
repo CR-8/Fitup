@@ -1,42 +1,54 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { useTranslation } from 'react-i18next';
+import { useUnistyles } from 'react-native-unistyles';
 
-import { Menu } from '@/components/overlays/menu';
-import { useExercisesTab } from '@/screens/exercises/exercises/hooks';
-import { useScreen } from '@/hooks/use-screen';
-import { useHomeTab } from '@/screens/home/hooks';
-import { useSettingsTab } from '@/screens/settings/settings/hooks';
-import { useResultsTab } from '@/screens/results/results/hooks';
-import { useWorkoutHubTab } from '@/screens/workouts/hub/hooks';
-import { useSynTab } from '@/screens/syn/hooks';
-
+/**
+ * The system tab bar: Liquid Glass on iOS, a Material 3 navigation bar on
+ * Android. Settings is not a tab; it opens from Home's header.
+ */
 export default function TabLayout() {
-    const { options } = useScreen();
-
-    const home = useHomeTab();
-    const exercises = useExercisesTab();
-    const settings = useSettingsTab();
-    const results = useResultsTab();
-    const workout = useWorkoutHubTab();
-    const syn = useSynTab();
+    const { t } = useTranslation(['menu']);
+    const { theme } = useUnistyles();
 
     return (
-        <Tabs
-            tabBar={(props) => <Menu {...props} />}
-            screenOptions={{
-                ...options,
-                headerTitle: () => null,
-                headerLeft: () => null,
-            }}
+        <NativeTabs
+            tintColor={theme.colors.primary}
+            backgroundColor={
+                process.env.EXPO_OS === 'android' ? theme.colors.foreground : undefined
+            }
         >
-            <Tabs.Screen {...home} />
-            <Tabs.Screen {...exercises} />
-            <Tabs.Screen {...workout} />
-            <Tabs.Screen {...results} />
-            <Tabs.Screen {...syn} />
-            {/* Still a tab route so `/settings` keeps working and the settings
-                stack is unchanged — it simply has no button on the bar. */}
-            <Tabs.Screen {...settings} />
-        </Tabs>
+            <NativeTabs.Trigger name="(home)">
+                <NativeTabs.Trigger.Icon
+                    sf={{ default: 'house', selected: 'house.fill' }}
+                    md="home"
+                />
+                <NativeTabs.Trigger.Label>{t('home.title')}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="(exercises)">
+                <NativeTabs.Trigger.Icon
+                    sf="figure.strengthtraining.traditional"
+                    md="fitness_center"
+                />
+                <NativeTabs.Trigger.Label>{t('exercises.title')}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="(workouts)">
+                <NativeTabs.Trigger.Icon sf="dumbbell" md="exercise" />
+                <NativeTabs.Trigger.Label>{t('workouts.title')}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="(results)">
+                <NativeTabs.Trigger.Icon
+                    sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }}
+                    md="bar_chart"
+                />
+                <NativeTabs.Trigger.Label>{t('results.title')}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="(syn)">
+                <NativeTabs.Trigger.Icon
+                    sf={{ default: 'bubble.left', selected: 'bubble.left.fill' }}
+                    md="chat"
+                />
+                <NativeTabs.Trigger.Label>{t('syn.title')}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+        </NativeTabs>
     );
 }

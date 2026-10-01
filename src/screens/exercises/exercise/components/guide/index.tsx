@@ -2,7 +2,6 @@ import { FC, useMemo, useState } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
-import { XIcon } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
@@ -18,6 +17,7 @@ import {
     EXERCISE_GIF_PREVIEW_RESOLUTION,
     EXERCISE_MEDIA_ATTRIBUTION,
 } from '@/constants/fitup';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * What a user reads mid-set when they do not know the movement.
@@ -65,20 +65,21 @@ const styles = StyleSheet.create((theme, rt) => ({
     hero: {
         backgroundColor: theme.colors.white,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         borderColor: theme.colors.border,
         borderWidth: rt.themeName === 'dark' ? 0 : StyleSheet.hairlineWidth,
         padding: theme.space(5),
         gap: theme.space(5),
     },
     heroTitle: {
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
     },
     heroImage: {
         width: '100%',
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
-        color: theme.colors.neutral[500],
+        color: theme.colors.mutedTypography,
         textAlign: 'center',
     },
 
@@ -119,6 +120,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     stepsCard: {
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
     },
     stepRow: {
@@ -128,7 +130,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(7),
         height: theme.space(7),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -154,8 +156,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 
     mistakeSection: {
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
     },
     mistakeRow: {
@@ -352,7 +355,7 @@ export const Guide: FC<GuideProps> = ({ exercise, showHero = true }) => {
                             <VStack key={index}>
                                 <HStack style={styles.mistakeRow}>
                                     <Box style={styles.mistakeIconContainer}>
-                                        <XIcon size={18} color={theme.colors.white} />
+                                        <Icon name="x" size={18} color={theme.colors.white} />
                                     </Box>
                                     <Text style={styles.mistakeText}>
                                         {mistake.endsWith('.') ? mistake : `${mistake}.`}

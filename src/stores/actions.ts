@@ -1,25 +1,9 @@
 import { create } from 'zustand';
-import { produce } from 'immer';
 
-type WorkoutMenu = {
-    type: 'workout__menu';
-    title?: string;
-    showCloseButton?: boolean;
-    payload: {
-        workoutId: string;
-    };
-};
-
-type Workoutrepeat = {
-    type: 'workout__repeat';
-    title?: string;
-    showCloseButton?: boolean;
-    payload: {
-        workoutId: string;
-    };
-};
-
-/** Asked once, right after a workout is ended. */
+/**
+ * The one sheet still opened from anywhere: how hard a workout felt, asked once
+ * as it is ended. Every other action is a native menu on its own button.
+ */
 type WorkoutFeedback = {
     type: 'workout__feedback';
     title?: string;
@@ -29,77 +13,18 @@ type WorkoutFeedback = {
     };
 };
 
-type ExerciseMenu = {
-    type: 'exercise__menu';
+type State = {
+    type?: WorkoutFeedback['type'];
     title?: string;
-    showCloseButton?: boolean;
-    payload: {
-        exerciseId: string;
-    };
+    payload?: WorkoutFeedback['payload'];
 };
-
-type WorkoutExerciseMenu = {
-    type: 'workout_exercise__menu';
-    title?: string;
-    showCloseButton?: boolean;
-    payload: {
-        workoutId: string;
-        workoutExerciseId: string;
-    };
-};
-
-type SetMenu = {
-    type: 'set__menu';
-    title?: string;
-    showCloseButton?: boolean;
-    payload: {
-        setId: string;
-        workoutExerciseId: string;
-        setType: 'working' | 'warmup' | 'dropset' | 'failure';
-    };
-};
-
-type State =
-    | {
-          type: undefined;
-          title?: string;
-          showCloseButton?: boolean;
-          payload?: object;
-      }
-    | WorkoutMenu
-    | Workoutrepeat
-    | WorkoutFeedback
-    | ExerciseMenu
-    | WorkoutExerciseMenu
-    | SetMenu;
-
-type OpenPropsType =
-    WorkoutMenu | Workoutrepeat | WorkoutFeedback | ExerciseMenu | WorkoutExerciseMenu | SetMenu;
 
 type Actions = {
-    open: (props: OpenPropsType) => void;
+    open: (props: WorkoutFeedback) => void;
     close: () => void;
 };
 
-const initial: State = {
-    type: undefined,
-    title: undefined,
-    showCloseButton: undefined,
-    payload: undefined,
-};
-
 export const useActionsStore = create<State & Actions>()((set) => ({
-    ...initial,
-    open: ({ type, title, showCloseButton, payload }) =>
-        set(
-            produce((state) => {
-                state.type = type;
-                state.title = title;
-                state.showCloseButton = showCloseButton;
-                state.payload = payload;
-            }),
-        ),
-    close: () => {
-        set(initial);
-    },
+    open: ({ type, title, payload }) => set({ type, title, payload }),
+    close: () => set({ type: undefined, title: undefined, payload: undefined }),
 }));

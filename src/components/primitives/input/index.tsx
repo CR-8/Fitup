@@ -7,9 +7,16 @@ export type InputProps = TextInputProps;
 const Input = forwardRef<TextInput, InputProps>(({ ...rest }, ref: ForwardedRef<TextInput>) => {
     const { theme } = useUnistyles();
 
-    return <TextInput ref={ref} placeholderTextColor={theme.colors.neutral[400]} {...rest} />;
+    return (
+        <TextInput
+            ref={ref}
+            placeholderTextColor={theme.colors.mutedTypography}
+            selectionColor={theme.colors.primary}
+            {...rest}
+        />
+    );
 });
 
-Input.displayName = 'Box';
+Input.displayName = 'Input';
 
 export { Input };

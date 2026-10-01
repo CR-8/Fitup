@@ -5,10 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
-import { HStack } from '@/components/primitives/hstack';
 import { ScrollView } from '@/components/primitives/scrollview';
-import { CloseButton } from '@/components/buttons/close';
-import { Title } from '@/components/typography/title';
+import { HeaderTextButton } from '@/components/buttons/header';
+import { Stack } from '@/navigators/stack';
 import type { WorkoutSelect } from '@/db/schema';
 import { useWorkoutDayHealthStats, useWorkoutDaySummary } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
@@ -21,26 +20,6 @@ type DaySummaryParam = {
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-    },
-    header: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        justifyContent: 'flex-end',
-        height: theme.screenHeaderHeight(),
-        paddingHorizontal: theme.space(4),
-    },
-    headerRow: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerTitleContainer: {
-        minWidth: 0,
-        alignItems: 'flex-start',
-        justifyContent: 'center',
     },
     content: {
         ...theme.screenContentPadding('child'),
@@ -127,14 +106,18 @@ const DaySummaryScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Box style={styles.header}>
-                <HStack style={styles.headerRow}>
-                    <Box style={styles.headerTitleContainer}>
-                        <Title type="h2">{headerTitle}</Title>
-                    </Box>
-                    <CloseButton onPressHandler={handleClose} />
-                </HStack>
-            </Box>
+            <Stack.Screen
+                options={{
+                    title: headerTitle,
+                    headerRight: () => (
+                        <HeaderTextButton
+                            title={t('done', { ns: 'common' })}
+                            onPress={handleClose}
+                            prominent
+                        />
+                    ),
+                }}
+            />
             <ScrollView contentContainerStyle={styles.content}>
                 <Stats
                     workout={healthWorkout}

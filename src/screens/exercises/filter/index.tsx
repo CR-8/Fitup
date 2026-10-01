@@ -1,7 +1,6 @@
-import { FC, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router } from 'expo-router';
-import { ScrollView } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +13,9 @@ import { muscles } from '@/constants/muscles';
 import { useFilterStore } from '@/stores/filter';
 import type { ExerciseOwnershipFilter } from '@/stores/filter';
 
-import { Header } from './components/header';
+import { Stack } from '@/navigators/stack';
+import { ScrollView } from '@/components/primitives/scrollview';
+import { HeaderTextButton } from '@/components/buttons/header';
 
 const getFilterState = () => useFilterStore.getState();
 
@@ -37,7 +38,6 @@ type FilterForm = {
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.foreground,
     },
     content: {
         flex: 1,
@@ -77,10 +77,11 @@ const FilterScreen: FC = () => {
         setPrimaryMuscle(values.primaryMuscle);
     };
 
-    const handleClose = () => {
-        router.back();
-        requestAnimationFrame(flushToStore);
-    };
+    // On the way out however the sheet goes — Done, swipe, or back — so a
+    // swiped-away filter still applies.
+    useEffect(() => () => flushToStore(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleClose = () => router.back();
 
     const ownershipChoices = useMemo(
         () => [
@@ -159,7 +160,18 @@ const FilterScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Header handleClose={handleClose} />
+            <Stack.Screen
+                options={{
+                    title: t('filter.title', { ns: 'screens' }),
+                    headerRight: () => (
+                        <HeaderTextButton
+                            title={t('done', { ns: 'common' })}
+                            onPress={handleClose}
+                            prominent
+                        />
+                    ),
+                }}
+            />
             <Box style={styles.content}>
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <VStack style={styles.section}>

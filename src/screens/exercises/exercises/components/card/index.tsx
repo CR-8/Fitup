@@ -3,7 +3,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { ChevronDown, Trash2 } from 'lucide-react-native';
 
 import { Text } from '@/components/primitives/text';
 import { Box } from '@/components/primitives/box';
@@ -14,6 +13,7 @@ import { stableOutlineWidth } from '@/helpers/styles';
 import { ExerciseListItem } from '@/hooks/use-exercises';
 import { exerciseDisplayName } from '@/helpers/exercise-name';
 import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme) => ({
     categoryHeaderContainer: {
@@ -53,6 +53,7 @@ const styles = StyleSheet.create((theme) => ({
         marginHorizontal: theme.space(4),
         marginTop: theme.space(2),
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         backgroundColor: open ? theme.colors.elevated : theme.colors.foreground,
     }),
     muscleGroupChevron: (open: boolean) => ({
@@ -62,7 +63,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(2),
         paddingVertical: theme.space(0.5),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
     },
     headerRight: {
         alignItems: 'center',
@@ -111,7 +112,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: 16,
     },
     swipeable: {
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -120,7 +121,7 @@ const styles = StyleSheet.create((theme) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.red[500],
+        backgroundColor: theme.colors.destructive,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -182,7 +183,11 @@ const CategoryHeaderComponent = ({
                     </Text>
                     {onToggle ? (
                         <Box style={styles.muscleGroupChevron(open)}>
-                            <ChevronDown size={16} color={theme.colors.mutedTypography} />
+                            <Icon
+                                name="chevron-down"
+                                size={16}
+                                color={theme.colors.mutedTypography}
+                            />
                         </Box>
                     ) : null}
                 </HStack>
@@ -220,7 +225,11 @@ const MuscleGroupHeaderComponent = ({
                         </Box>
                         {onToggle ? (
                             <Box style={styles.muscleGroupChevron(open)}>
-                                <ChevronDown size={18} color={theme.colors.mutedTypography} />
+                                <Icon
+                                    name="chevron-down"
+                                    size={18}
+                                    color={theme.colors.mutedTypography}
+                                />
                             </Box>
                         ) : null}
                     </HStack>
@@ -244,7 +253,7 @@ const RightActionComponent = ({ prog, drag, handleDelete }: RightActionProps) =>
     return (
         <Reanimated.View style={[styles.rightAction, styleAnimation]}>
             <Pressable onPress={handleDelete}>
-                <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
+                <Icon name="trash" color={theme.colors.neutral[50]} size={theme.space(6)} />
             </Pressable>
         </Reanimated.View>
     );

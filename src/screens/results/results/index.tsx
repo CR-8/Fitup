@@ -182,7 +182,6 @@ const ResultsScreen = () => {
             contentContainerStyle={styles.content}
             scrollEnabled={!isChartScrubbing}
         >
-            <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
             <StatBlocks blocks={heroBlocks} inset={false} />
             {/* The design board's reading order: totals, the month's training
                 time, then muscular load — before the calendar and the rest. */}

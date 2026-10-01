@@ -14,7 +14,7 @@ import { WorkoutItem } from '../../types';
 const styles = StyleSheet.create((theme, rt) => ({
     setContainer: (isActive: boolean, isTimerActive: boolean) => ({
         backgroundColor:
-            isActive || isTimerActive ? theme.colors.brand[400] : theme.colors.foreground,
+            isActive || isTimerActive ? theme.colors.primarySoft : theme.colors.foreground,
         paddingVertical: theme.space(0.25),
         paddingHorizontal: theme.space(1.5),
         borderRadius: theme.radius.lg,
@@ -25,12 +25,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     typeBadge: (isActive: boolean, isFinished: boolean, isTimerActive: boolean) => ({
         fontSize: theme.fontSize.xs.fontSize,
-        color: isActive || isTimerActive ? theme.colors.neutral[950] : theme.colors.typography,
+        color: isActive || isTimerActive ? theme.colors.typography : theme.colors.typography,
         opacity: isActive || isTimerActive ? 1 : isFinished ? 1 : 0.45,
         fontWeight: theme.fontWeight.medium.fontWeight,
     }),
     setContent: (isActive: boolean, isFinished: boolean, isTimerActive: boolean) => ({
-        color: isActive || isTimerActive ? theme.colors.neutral[950] : theme.colors.typography,
+        color: isActive || isTimerActive ? theme.colors.typography : theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         opacity: isActive || isTimerActive ? 1 : isFinished ? 1 : 0.45,
         fontWeight: theme.fontWeight.default.fontWeight,

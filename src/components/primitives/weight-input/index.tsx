@@ -30,7 +30,7 @@ const styles = StyleSheet.create((theme) => ({
         right: 0,
         bottom: 0,
         height: theme.space(1),
-        backgroundColor: visible ? theme.colors.brand[500] : 'transparent',
+        backgroundColor: visible ? theme.colors.primary : 'transparent',
     }),
     text: {
         paddingTop: theme.space(0.5),
@@ -130,7 +130,7 @@ export const WeightInput: FC<WeightInputProps> = ({
                 onChangeText={handleChangeText}
                 {...(selection != null ? { selection } : {})}
                 placeholder=""
-                placeholderTextColor={theme.colors.neutral[400]}
+                placeholderTextColor={theme.colors.mutedTypography}
             />
         </Box>
     );

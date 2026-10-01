@@ -4,7 +4,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import dayjs from 'dayjs';
-import { Check, ChevronLeft, ChevronRight, Sparkles, UtensilsCrossed } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Box } from '@/components/primitives/box';
@@ -15,9 +14,9 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Title } from '@/components/typography/title';
 import { Separator } from '@/components/layout/separator';
 import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
-import { BackButton } from '@/components/buttons/back';
+import { Stack } from '@/navigators/stack';
+import { HeaderTextButton } from '@/components/buttons/header';
 import { Button } from '@/components/buttons/base';
-import { ButtonLabel } from '@/components/buttons/label';
 import { MEAL_SLOTS, type MealSlot } from '@/db/schema';
 import {
     nutritionBasis,
@@ -30,23 +29,16 @@ import {
 import { useAiAvailable, useAiChat, useAiConversation, useAiQuota } from '@/hooks/use-ai';
 
 import { MacroBar } from './components/macro-bar';
+import { Icon } from '@/components/primitives/icon';
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
         paddingHorizontal: theme.space(4),
     },
     content: {
-        // No navigation header above this screen; it clears the status bar itself.
-        paddingTop: rt.insets.top + theme.space(2),
-        paddingBottom: theme.screenContentPadding('root').paddingBottom,
+        ...theme.screenContentPadding('child'),
         gap: theme.space(4),
-    },
-    // The screen is presented as a card with the native header switched off, so
-    // the only way back was the swipe gesture. The shared back button is the
-    // same control every other pushed screen uses.
-    topRow: {
-        alignItems: 'center',
     },
     header: {
         gap: theme.space(1),
@@ -79,7 +71,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     // A card on the page, like Home's. It used to be the page colour, so
     // nothing on this screen read as a card.
@@ -118,18 +110,18 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: consumed ? theme.colors.brand[500] : theme.colors.border,
-        backgroundColor: consumed ? theme.colors.brand[500] : 'transparent',
+        borderColor: consumed ? theme.colors.primary : theme.colors.border,
+        backgroundColor: consumed ? theme.colors.primary : 'transparent',
     }),
     itemText: {
         flex: 1,
     },
     // Planned but not yet eaten reads as pending rather than as a record.
     itemPending: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     itemQuantity: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     /**
      * The setup state.
@@ -284,32 +276,31 @@ const DietScreen: FC = () => {
 
     const planCta = aiAvailable ? (
         <Button
-            title={
-                <ButtonLabel
-                    icon={Sparkles}
-                    label={t('diet.buildPlan', { ns: 'screens' })}
-                    color={theme.colors.primaryTypography}
-                />
-            }
+            icon="sparkles"
+            title={t('diet.buildPlan', { ns: 'screens' })}
             type="primary"
             onPress={handleBuildPlan}
             disabled={isBusy}
             loading={isBusy}
-            spinnerColor={theme.colors.primaryTypography}
             accessibilityLabel={t('diet.buildPlan', { ns: 'screens' })}
         />
     ) : null;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <HStack style={styles.topRow}>
-                <BackButton onPressHandler={() => router.back()} />
-            </HStack>
-
-            <VStack style={styles.header}>
-                <Title type="h1">{t('diet.title', { ns: 'screens' })}</Title>
-                <Text style={styles.subtitle}>{t('diet.subtitle', { ns: 'screens' })}</Text>
-            </VStack>
+            <Stack.Screen
+                options={{
+                    title: t('diet.title', { ns: 'screens' }),
+                    headerRight: () => (
+                        <HeaderTextButton
+                            title={t('done', { ns: 'common' })}
+                            onPress={() => router.back()}
+                            prominent
+                        />
+                    ),
+                }}
+            />
+            <Text style={styles.subtitle}>{t('diet.subtitle', { ns: 'screens' })}</Text>
 
             <HStack style={styles.dayRow}>
                 <Pressable
@@ -317,7 +308,11 @@ const DietScreen: FC = () => {
                     onPress={() => setDayOffset((value) => value - 1)}
                     accessibilityLabel={t('diet.previousDay', { ns: 'screens' })}
                 >
-                    <ChevronLeft size={theme.space(4)} color={theme.colors.typography} />
+                    <Icon
+                        name="chevron-left"
+                        size={theme.space(4)}
+                        color={theme.colors.typography}
+                    />
                 </Pressable>
 
                 <Pressable
@@ -344,7 +339,11 @@ const DietScreen: FC = () => {
                     onPress={() => setDayOffset((value) => value + 1)}
                     accessibilityLabel={t('diet.nextDay', { ns: 'screens' })}
                 >
-                    <ChevronRight size={theme.space(4)} color={theme.colors.typography} />
+                    <Icon
+                        name="chevron-right"
+                        size={theme.space(4)}
+                        color={theme.colors.typography}
+                    />
                 </Pressable>
             </HStack>
 
@@ -467,10 +466,10 @@ const DietScreen: FC = () => {
                                             >
                                                 <Box style={styles.tick(consumed)}>
                                                     {consumed ? (
-                                                        <Check
+                                                        <Icon
+                                                            name="check"
                                                             size={theme.space(3.5)}
-                                                            strokeWidth={3}
-                                                            color={theme.colors.neutral[950]}
+                                                            color={theme.colors.typography}
                                                         />
                                                     ) : null}
                                                 </Box>
@@ -518,11 +517,7 @@ const DietScreen: FC = () => {
             ) : (
                 <VStack style={[styles.panel, styles.setup]}>
                     <Box style={styles.setupIcon}>
-                        <UtensilsCrossed
-                            size={theme.space(6)}
-                            color={theme.colors.primary}
-                            strokeWidth={2}
-                        />
+                        <Icon name="utensils" size={theme.space(6)} color={theme.colors.primary} />
                     </Box>
                     <Title type="h6">{t('diet.empty.title', { ns: 'screens' })}</Title>
                     <Text fontSize="sm" style={styles.setupText}>

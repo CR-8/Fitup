@@ -33,13 +33,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    customStartButtonContainer: {
-        backgroundColor: theme.colors.brand[400],
-    },
-    customStartButtonText: {
-        fontSize: theme.fontSize.lg.fontSize,
-        color: theme.colors.neutral[950],
-    },
+    customStartButtonContainer: {},
 }));
 
 const getActionMode = (selectedIds: string[], items: WorkoutItem[]): ActionMode => {
@@ -96,7 +90,6 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.create', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
-                                textStyle={styles.customStartButtonText}
                                 onPress={onCreateCircuit}
                             />
                         )}
@@ -104,7 +97,6 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.remove', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
-                                textStyle={styles.customStartButtonText}
                                 onPress={onRemoveCircuit}
                             />
                         )}
@@ -112,7 +104,6 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.removeFromGroup', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
-                                textStyle={styles.customStartButtonText}
                                 onPress={onRemoveFromGroup}
                             />
                         )}

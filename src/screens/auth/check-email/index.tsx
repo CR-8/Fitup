@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Mail } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -44,11 +43,12 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
     },
@@ -65,7 +65,6 @@ const styles = StyleSheet.create((theme) => ({
 
 const CheckEmailScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
     const { email = '', reason } = useLocalSearchParams<{ email?: string; reason?: string }>();
 
     const isRecovery = reason === 'recovery';
@@ -102,7 +101,7 @@ const CheckEmailScreen = () => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <AuthHero
-                icon={Mail}
+                icon={'mail'}
                 eyebrow={t('checkEmail.eyebrow', { ns: 'screens' })}
                 title={t('checkEmail.title', { ns: 'screens' })}
                 subtitle={t(isRecovery ? 'checkEmail.subtitleReset' : 'checkEmail.subtitleSignUp', {
@@ -129,11 +128,6 @@ const CheckEmailScreen = () => {
                     loading={pending}
                     disabled={pending || cooldown > 0}
                     onPress={onResend}
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
                 />
 
                 {/* `replace`, not `back`: this screen is reached by `push` from

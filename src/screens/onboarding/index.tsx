@@ -5,7 +5,6 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Dumbbell, Scale, Target, User } from 'lucide-react-native';
 
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
@@ -20,13 +19,14 @@ import { reportError } from '@/services/error-reporting';
 
 import { OnboardingStep } from './components/step';
 import { profileSchema, type ProfileFormData } from './schema';
+import type { IconName } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme) => ({
     fieldContainer: {
         gap: theme.space(2),
     },
     hint: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -215,7 +215,7 @@ const OnboardingScreen = () => {
                 title: t('onboarding.steps.about.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.about.subtitle', { ns: 'screens' }),
                 motivation: t('onboarding.steps.about.motivation', { ns: 'screens' }),
-                icon: User,
+                icon: 'person' as IconName,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -255,7 +255,7 @@ const OnboardingScreen = () => {
                 title: t('onboarding.steps.body.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.body.subtitle', { ns: 'screens' }),
                 motivation: t('onboarding.steps.body.motivation', { ns: 'screens' }),
-                icon: Scale,
+                icon: 'scale' as IconName,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -303,7 +303,7 @@ const OnboardingScreen = () => {
                 title: t('onboarding.steps.goal.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.goal.subtitle', { ns: 'screens' }),
                 motivation: t('onboarding.steps.goal.motivation', { ns: 'screens' }),
-                icon: Target,
+                icon: 'target' as IconName,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
@@ -333,7 +333,7 @@ const OnboardingScreen = () => {
                 title: t('onboarding.steps.training.title', { ns: 'screens' }),
                 subtitle: t('onboarding.steps.training.subtitle', { ns: 'screens' }),
                 motivation: t('onboarding.steps.training.motivation', { ns: 'screens' }),
-                icon: Dumbbell,
+                icon: 'dumbbell' as IconName,
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>

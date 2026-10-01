@@ -3,8 +3,9 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import Slider from '@react-native-community/slider';
-import { Volume1, Volume2 } from 'lucide-react-native';
+import { Slider } from '@expo/ui';
+
+import { Host } from '@/components/native/host';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -17,6 +18,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Separator } from '@/components/layout/separator';
 import { reportError } from '@/services/error-reporting';
 import { markFormValuesSyncing, submitAutoSaveForm } from '../shared';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -28,12 +30,14 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(5),
     },
     fieldContainer: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
     },
     sliderWrapper: {
-        padding: theme.space(5),
+        padding: theme.space(4),
         gap: theme.space(1),
+        alignItems: 'center',
     },
     sliderContainer: {
         flex: 1,
@@ -60,11 +64,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         padding: theme.space(5),
         width: '100%',
     },
-    testSoundButtonText: {
-        width: '100%',
-        textAlign: 'center',
-        fontSize: theme.fontSize.default.fontSize,
-    },
     separator: {
         marginHorizontal: theme.space(5),
     },
@@ -73,7 +72,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 const SoundScreen = () => {
     const { user, updateUser } = useUser();
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const {
         control,
         handleSubmit,
@@ -179,34 +178,32 @@ const SoundScreen = () => {
                 <VStack style={styles.fieldContainer}>
                     <HStack style={styles.sliderWrapper}>
                         <Box>
-                            <Volume1 size={theme.space(6)} color={theme.colors.typography} />
+                            <Icon
+                                name="volume-low"
+                                size={theme.space(6)}
+                                color={theme.colors.typography}
+                            />
                         </Box>
                         <Box style={styles.sliderContainer}>
-                            <Slider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={100}
-                                step={1}
-                                value={watchedSoundsVolume}
-                                onValueChange={(value) => {
-                                    setValue('soundsVolume', value);
-                                }}
-                                minimumTrackTintColor={
-                                    rt.themeName === 'dark'
-                                        ? theme.colors.white
-                                        : theme.colors.neutral[950]
-                                }
-                                maximumTrackTintColor={theme.colors.foreground}
-                                thumbTintColor={
-                                    rt.themeName === 'dark'
-                                        ? theme.colors.white
-                                        : theme.colors.neutral[950]
-                                }
-                            />
+                            <Host matchContents={{ vertical: true }}>
+                                <Slider
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    value={watchedSoundsVolume ?? 0}
+                                    onValueChange={(value) => {
+                                        setValue('soundsVolume', Math.round(value));
+                                    }}
+                                />
+                            </Host>
                         </Box>
 
                         <Box>
-                            <Volume2 size={theme.space(6)} color={theme.colors.typography} />
+                            <Icon
+                                name="volume-high"
+                                size={theme.space(6)}
+                                color={theme.colors.typography}
+                            />
                         </Box>
                     </HStack>
                     <Separator style={styles.separator} />
@@ -214,7 +211,6 @@ const SoundScreen = () => {
                         type="link"
                         title={t('sound.testSound', { ns: 'screens' })}
                         containerStyle={styles.testSoundButton}
-                        textStyle={styles.testSoundButtonText}
                         size="sm"
                         onPress={handleTestSound}
                     />

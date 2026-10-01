@@ -50,8 +50,9 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
     },
     panel: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(5),
     },
@@ -62,10 +63,10 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     muted: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
     hint: {
-        color: theme.colors.neutral[400],
+        color: theme.colors.mutedTypography,
     },
 }));
 

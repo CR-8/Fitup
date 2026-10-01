@@ -8,13 +8,14 @@ import { Text } from '@/components/primitives/text';
 import { ExerciseSelect, WorkoutExerciseSelect } from '@/db/schema';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
-import { ChevronRight, ChevronsUp, Timer } from 'lucide-react-native';
 import { Pressable } from '@/components/primitives/pressable';
 import { router } from 'expo-router';
 import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
 import { PreviewThumbnail } from '@/components/layout/preview';
 import { exerciseDisplayName } from '@/helpers/exercise-name';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/navigators/stack';
 
 interface HeaderProps {
     exerciseInfo: {
@@ -25,10 +26,10 @@ interface HeaderProps {
     setProgress: { current: number; total: number; allDone: boolean } | null;
 }
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(4),
-        backgroundColor: theme.colors.brand[400],
+        paddingTop: theme.space(2),
         paddingBottom: theme.space(5),
         alignItems: 'center',
     },
@@ -38,12 +39,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     title: {
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: theme.fontSize.sm.fontSize,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
     },
     // Sits on the coral band, so it takes the same near-black as everything
     // else up here and earns its emphasis from weight rather than colour.
@@ -51,21 +52,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginTop: theme.space(1),
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
         opacity: 0.75,
-    },
-    muscleGroupContainer: {
-        position: 'relative',
-        marginTop: theme.headerContentTopOffset(theme.space(11)),
-        marginBottom: theme.space(3.5),
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: theme.space(11),
-    },
-    muscleGroup: {
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        fontSize: theme.fontSize.default.fontSize,
-        color: theme.colors.neutral[950],
     },
     actionsContainer: {
         marginTop: theme.space(2.5),
@@ -101,7 +89,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     guideButton: {
         height: theme.space(11),
         width: theme.space(11),
-        backgroundColor: theme.colors.brand[500],
+        backgroundColor: theme.colors.elevated,
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
@@ -113,7 +101,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     exerciseLinkWrapper: {
         flexDirection: 'row',
-        backgroundColor: theme.colors.brand[500],
+        backgroundColor: theme.colors.elevated,
         paddingRight: theme.space(1),
         paddingLeft: theme.space(2.5),
         paddingVertical: theme.space(0.25),
@@ -122,7 +110,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(0.5),
     },
     exerciseLink: {
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
@@ -191,11 +179,10 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
 
     return (
         <VStack style={styles.container}>
-            <Box style={styles.muscleGroupContainer}>
-                <Text style={styles.muscleGroup}>{muscleGroup}</Text>
-            </Box>
+            {/* The muscle group names the sheet; the exercise leads its content. */}
+            <Stack.Screen options={{ title: muscleGroup }} />
             <Box style={styles.titleContainer}>
-                <Title type="h5" style={styles.title}>
+                <Title type="h3" style={styles.title}>
                     {exerciseInfo ? exerciseDisplayName(exerciseInfo.exercise) : 'Exercise'}
                 </Title>
                 <Text style={styles.subtitle}>
@@ -234,7 +221,11 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
                 <Box style={styles.centerActionsContainer}>
                     <Pressable style={styles.exerciseLinkWrapper} onPress={handleExerciseLinkPress}>
                         <Text style={styles.exerciseLink}>{t('exercise', { ns: 'common' })}</Text>
-                        <ChevronRight size={theme.space(4)} color={theme.colors.neutral[950]} />
+                        <Icon
+                            name="chevron-right"
+                            size={theme.space(4)}
+                            color={theme.colors.typography}
+                        />
                     </Pressable>
                 </Box>
                 <Box style={styles.rightActionsContainer}>
@@ -246,9 +237,10 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
                                 accessibilityLabel={t('timer.open', { ns: 'screens' })}
                             >
                                 <Box style={styles.guideButton}>
-                                    <Timer
+                                    <Icon
+                                        name="timer"
                                         size={theme.space(6)}
-                                        color={theme.colors.neutral[950]}
+                                        color={theme.colors.typography}
                                     />
                                 </Box>
                             </Pressable>
@@ -256,9 +248,10 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
                         {hasGuide && (
                             <Pressable onPress={handleGuideOpen}>
                                 <Box style={styles.guideButton}>
-                                    <ChevronsUp
+                                    <Icon
+                                        name="chevrons-up"
                                         size={theme.space(6)}
-                                        color={theme.colors.neutral[950]}
+                                        color={theme.colors.typography}
                                     />
                                 </Box>
                             </Pressable>

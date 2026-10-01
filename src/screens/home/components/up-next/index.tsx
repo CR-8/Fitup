@@ -3,8 +3,6 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, ChevronRight, Dumbbell, Plus } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -17,6 +15,7 @@ import { useAnalytics } from '@/hooks/use-analytics';
 import { reportError } from '@/services/error-reporting';
 
 import { resolveUpNext, type UpNextState } from './resolve';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * The one thing to do next, and a button that does it.
@@ -29,7 +28,7 @@ import { resolveUpNext, type UpNextState } from './resolve';
  * a planned one, and a planned one outranks the invitation to create.
  */
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(4),
     },
@@ -39,20 +38,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     card: (isResume: boolean) => ({
         backgroundColor: isResume ? theme.colors.primary : theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
+        borderCurve: 'continuous' as const,
         padding: theme.space(5),
         gap: theme.space(4),
         overflow: 'hidden' as const,
-        // The design board's coral-edged card: the one thing on Home to start.
-        borderWidth: 1,
-        borderColor: isResume ? theme.colors.primary : 'rgba(255, 69, 58, 0.35)',
     }),
-    glow: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-    },
     badge: (isResume: boolean) => ({
         height: theme.space(12),
         width: theme.space(12),
@@ -76,15 +66,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: isResume ? theme.colors.primaryTypography : theme.colors.mutedTypography,
         opacity: isResume ? 0.85 : 1,
     }),
-    /**
-     * A step darker than `colors.primary` on purpose.
-     *
-     * White on `brand[500]` is 3.41:1, and the label is 16px — too small to
-     * qualify for the 3:1 large-text allowance, so it has to clear 4.5:1.
-     * `brand[600]` reaches 4.48:1 and is still unmistakably the brand coral.
-     * The card grounds keep `colors.primary`: their titles are `2xl` bold,
-     * which the large-text bar does cover.
-     */
     action: (isResume: boolean) => ({
         alignSelf: 'stretch' as const,
         justifyContent: 'center' as const,
@@ -94,14 +75,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingVertical: theme.space(2.5),
         paddingHorizontal: theme.space(5),
         borderRadius: theme.radius.full,
-        backgroundColor: isResume ? theme.colors.primaryTypography : theme.colors.brand[600],
+        backgroundColor: isResume ? theme.colors.primaryTypography : theme.colors.primary,
     }),
-    // Resume inverts the pill onto white, so the coral becomes the text and has
-    // to darken further still: `brand[700]` on white is 5.84:1.
+    // Resume inverts the pill onto the card's tint colour.
     actionText: (isResume: boolean) => ({
         ...theme.fontSize.default,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: isResume ? theme.colors.brand[700] : theme.colors.primaryTypography,
+        color: isResume ? theme.colors.primary : theme.colors.primaryTypography,
     }),
     header: {
         flex: 1,
@@ -212,20 +192,11 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                 accessibilityRole="button"
                 accessibilityLabel={actionLabel}
             >
-                {isResume ? null : (
-                    <LinearGradient
-                        colors={theme.gradients.glow as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.glow}
-                    />
-                )}
-
                 <HStack style={styles.row}>
                     <Box style={styles.badge(isResume)}>
-                        <Dumbbell
+                        <Icon
+                            name="dumbbell"
                             size={theme.space(6)}
-                            strokeWidth={2}
                             color={isResume ? theme.colors.primaryTypography : theme.colors.primary}
                         />
                     </Box>
@@ -248,7 +219,11 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
 
                     {/* Resume has its own button below; the chevron would say it twice. */}
                     {isResume ? null : (
-                        <ChevronRight size={theme.space(5)} color={theme.colors.mutedTypography} />
+                        <Icon
+                            name="chevron-right"
+                            size={theme.space(5)}
+                            color={theme.colors.mutedTypography}
+                        />
                     )}
                 </HStack>
 
@@ -260,20 +235,18 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
 
                 <Box style={styles.action(isResume)}>
                     {state.kind === 'create' ? (
-                        <Plus
+                        <Icon
+                            name="plus"
                             size={theme.space(4.5)}
-                            strokeWidth={2.25}
                             color={theme.colors.primaryTypography}
                         />
                     ) : null}
                     <Text style={styles.actionText(isResume)}>{actionLabel}</Text>
                     {state.kind === 'create' ? null : (
-                        <ArrowRight
+                        <Icon
+                            name="arrow-right"
                             size={theme.space(4.5)}
-                            strokeWidth={2.25}
-                            color={
-                                isResume ? theme.colors.brand[700] : theme.colors.primaryTypography
-                            }
+                            color={isResume ? theme.colors.primary : theme.colors.primaryTypography}
                         />
                     )}
                 </Box>

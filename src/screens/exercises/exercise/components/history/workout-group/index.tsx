@@ -8,9 +8,9 @@ import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { SetItem } from '../set-item';
-import { ChevronRight } from 'lucide-react-native';
 import { Pressable } from '@/components/primitives/pressable';
 import { router } from 'expo-router';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     headerContainer: {
@@ -70,7 +70,11 @@ export const WorkoutGroup: FC<WorkoutGroupProps> = ({ workout, sets, exercise })
                     <Text style={styles.workoutName}>{workout.name}</Text>
                 </Box>
                 <Pressable style={styles.chevronContainer} onPress={handlePress}>
-                    <ChevronRight size={theme.space(6)} color={theme.colors.typography} />
+                    <Icon
+                        name="chevron-right"
+                        size={theme.space(6)}
+                        color={theme.colors.typography}
+                    />
                 </Pressable>
             </HStack>
             <Box style={styles.headerDivider} />

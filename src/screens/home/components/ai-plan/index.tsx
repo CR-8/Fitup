@@ -3,7 +3,6 @@ import { ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Sparkles, Trophy } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -14,6 +13,7 @@ import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { useAiAvailable, useSynActions } from '@/hooks/use-ai';
 import type { AiPlanKind } from '@/constants/ai';
+import { Icon } from '@/components/primitives/icon';
 
 /**
  * The offer to have Syn write the plan, at the top of Home.
@@ -35,11 +35,9 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginHorizontal: theme.space(4),
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['3xl'],
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(3),
-        ...theme.shadows.soft,
     },
     header: {
         alignItems: 'center',
@@ -101,7 +99,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderRadius: theme.radius.full,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         paddingHorizontal: theme.space(3.5),
         paddingVertical: theme.space(2),
     },
@@ -162,11 +160,7 @@ export const AiPlanCard: FC<AiPlanCardProps> = ({ finishedPlans = 0 }) => {
         <VStack style={styles.container}>
             {finishedPlans > 0 ? (
                 <HStack style={styles.milestone}>
-                    <Trophy
-                        size={theme.space(3.5)}
-                        strokeWidth={2.25}
-                        color={theme.colors.primary}
-                    />
+                    <Icon name="trophy" size={theme.space(3.5)} color={theme.colors.primary} />
                     <Text style={styles.milestoneText}>
                         {t('home.ai.finished', { ns: 'screens', count: finishedPlans })}
                     </Text>
@@ -175,11 +169,7 @@ export const AiPlanCard: FC<AiPlanCardProps> = ({ finishedPlans = 0 }) => {
 
             <HStack style={styles.header}>
                 <Box style={styles.badge}>
-                    <Sparkles
-                        size={theme.space(4.5)}
-                        strokeWidth={2}
-                        color={theme.colors.primary}
-                    />
+                    <Icon name="sparkles" size={theme.space(4.5)} color={theme.colors.primary} />
                 </Box>
                 <Title type="h5">
                     {t(finishedPlans > 0 ? 'home.ai.nextTitle' : 'home.ai.title', {
@@ -200,7 +190,6 @@ export const AiPlanCard: FC<AiPlanCardProps> = ({ finishedPlans = 0 }) => {
                     loading={isGenerating}
                     disabled={exhausted || isGenerating}
                     title={t('home.ai.action', { ns: 'screens' })}
-                    textStyle={styles.buttonTitle}
                     accessibilityLabel={t('home.ai.action', { ns: 'screens' })}
                 />
             </Box>

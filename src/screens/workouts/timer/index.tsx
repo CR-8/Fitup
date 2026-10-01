@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { ChevronDown, Pause, Play, Check, SkipForward } from 'lucide-react-native';
 import { ScrollView } from 'react-native';
 import Reanimated, { ZoomIn } from 'react-native-reanimated';
 
@@ -15,7 +14,6 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
-import { ButtonLabel } from '@/components/buttons/label';
 import { NumericStepperField } from '@/components/primitives/numeric-stepper-field';
 import { StatBlocks } from '@/components/layout/stat-blocks';
 import {
@@ -45,7 +43,8 @@ import { buildExerciseGifUrl, EXERCISE_GIF_PREVIEW_RESOLUTION } from '@/constant
 import { equipmentTranslationKey, isBodyweightOnly } from '@/constants/equipment';
 import { estimateOneRm } from '@/screens/exercises/exercise/components/statistics/components/metric-utils';
 import { useAiProfile } from '@/hooks/use-ai';
-import { BaseButtons } from '@/components/forms/fields/base/buttons';
+import { SegmentedControl } from '@expo/ui/community/segmented-control';
+import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
     /**
@@ -85,7 +84,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(10),
         height: theme.space(10),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.elevated,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -103,7 +102,7 @@ const styles = StyleSheet.create((theme, rt) => ({
      * "Up Next" card, which is where this treatment comes from.
      */
     phasePillWork: {
-        backgroundColor: theme.colors.brand[600],
+        backgroundColor: theme.colors.primary,
     },
     phasePillMuted: {
         backgroundColor: theme.colors.elevated,
@@ -136,10 +135,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     environmentToggle: {
         marginTop: theme.space(2),
         alignSelf: 'flex-start',
+        minWidth: theme.space(40),
     },
     equipmentWarning: {
         ...theme.fontSize.xs,
-        color: theme.colors.red[500],
+        color: theme.colors.destructive,
         marginTop: theme.space(1),
     },
     /**
@@ -156,6 +156,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         maxHeight: theme.space(64),
         backgroundColor: theme.colors.white,
         borderRadius: theme.radius['3xl'],
+        borderCurve: 'continuous',
         padding: theme.space(3),
     },
     media: {
@@ -194,6 +195,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(3),
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         padding: theme.space(3),
     },
     steppers: {
@@ -261,10 +263,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     // coral control competing with the set.
     endAction: {
         alignSelf: 'center',
-    },
-    endActionText: {
-        color: theme.colors.mutedTypography,
-        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     completeBody: {
         flex: 1,
@@ -816,11 +814,7 @@ const TimerScreen: FC = () => {
             accessibilityLabel={t('timer.a11y.minimize', { ns: 'screens' })}
         >
             <Box style={styles.iconButton}>
-                <ChevronDown
-                    size={theme.space(6)}
-                    color={theme.colors.typography}
-                    strokeWidth={2.5}
-                />
+                <Icon name="chevron-down" size={theme.space(6)} color={theme.colors.typography} />
             </Box>
         </Pressable>
     );
@@ -832,7 +826,7 @@ const TimerScreen: FC = () => {
 
                 <VStack style={styles.completeBody}>
                     <Reanimated.View entering={ZoomIn.springify()} style={styles.completeBadge}>
-                        <Check size={theme.space(10)} color={onCoral} strokeWidth={3} />
+                        <Icon name="check" size={theme.space(10)} color={onCoral} />
                     </Reanimated.View>
                     <Title type="h2">{t('timer.completedTitle', { ns: 'screens' })}</Title>
                     <Text style={styles.muted} numberOfLines={1}>
@@ -869,21 +863,12 @@ const TimerScreen: FC = () => {
 
                 <Button
                     type="primary"
-                    title={
-                        <ButtonLabel
-                            icon={Check}
-                            label={t('timer.finish', { ns: 'screens' })}
-                            color={onCoral}
-                        />
-                    }
+                    icon={'check'}
+                    title={t('timer.finish', { ns: 'screens' })}
                     onPress={completeWorkout}
                     loading={isPendingCompleteWorkout}
                     disabled={isPendingCompleteWorkout}
                     accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
-                    accessibilityState={{
-                        disabled: isPendingCompleteWorkout,
-                        busy: isPendingCompleteWorkout,
-                    }}
                 />
             </VStack>
         );
@@ -895,17 +880,11 @@ const TimerScreen: FC = () => {
     const completeSetButton = (
         <Button
             type="primary"
-            title={
-                <ButtonLabel
-                    icon={Check}
-                    label={t('timer.completeSet', { ns: 'screens' })}
-                    color={onCoral}
-                />
-            }
+            icon={'check'}
+            title={t('timer.completeSet', { ns: 'screens' })}
             onPress={handleCompleteSet}
             disabled={controlsDisabled}
             accessibilityLabel={t('timer.a11y.completeSet', { ns: 'screens' })}
-            accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
         />
     );
 
@@ -944,23 +923,19 @@ const TimerScreen: FC = () => {
                                     paused ? 'timer.a11y.continue' : 'timer.a11y.stop',
                                     { ns: 'screens' },
                                 )}
-                                accessibilityState={{
-                                    disabled: controlsDisabled,
-                                    busy: isActionPending,
-                                }}
                             >
                                 <Box style={styles.iconButton}>
                                     {paused ? (
-                                        <Play
+                                        <Icon
+                                            name="play"
                                             size={theme.space(4.5)}
                                             color={theme.colors.typography}
-                                            fill={theme.colors.typography}
                                         />
                                     ) : (
-                                        <Pause
+                                        <Icon
+                                            name="pause"
                                             size={theme.space(4.5)}
                                             color={theme.colors.typography}
-                                            fill={theme.colors.typography}
                                         />
                                     )}
                                 </Box>
@@ -981,13 +956,18 @@ const TimerScreen: FC = () => {
                             {t('timer.newBest', { ns: 'screens', value: personalBestLabel })}
                         </Text>
                     ) : null}
-                    <BaseButtons
-                        size="small"
-                        choicesContainerStyle={styles.environmentToggle}
-                        choices={environmentChoices}
-                        value={profile?.trainingEnvironment ?? 'gym'}
-                        onChange={(value) =>
-                            saveProfile({ trainingEnvironment: value as 'home' | 'gym' })
+                    <SegmentedControl
+                        style={styles.environmentToggle}
+                        values={environmentChoices.map((choice) => choice.title)}
+                        selectedIndex={environmentChoices.findIndex(
+                            (choice) => choice.value === (profile?.trainingEnvironment ?? 'gym'),
+                        )}
+                        onChange={({ nativeEvent }) =>
+                            saveProfile({
+                                trainingEnvironment: environmentChoices[
+                                    nativeEvent.selectedSegmentIndex
+                                ].value as 'home' | 'gym',
+                            })
                         }
                     />
                     {needsEquipmentWarning ? (
@@ -1088,34 +1068,22 @@ const TimerScreen: FC = () => {
                 {runningWorkoutRestingSet ? (
                     <Button
                         type="primary"
-                        title={
-                            <ButtonLabel
-                                icon={SkipForward}
-                                label={t('timer.skipRest', { ns: 'screens' })}
-                                color={onCoral}
-                            />
-                        }
+                        icon={'skip-forward'}
+                        title={t('timer.skipRest', { ns: 'screens' })}
                         onPress={handleSkipRest}
                         disabled={controlsDisabled}
                         accessibilityLabel={t('timer.a11y.skipRest', { ns: 'screens' })}
-                        accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
                     />
                 ) : null}
 
                 {phase === 'between' && nextEntry ? (
                     <Button
                         type="primary"
-                        title={
-                            <ButtonLabel
-                                icon={Play}
-                                label={t('timer.startNext', { ns: 'screens' })}
-                                color={onCoral}
-                            />
-                        }
+                        icon={'play'}
+                        title={t('timer.startNext', { ns: 'screens' })}
                         onPress={handleStartNext}
                         disabled={controlsDisabled}
                         accessibilityLabel={t('timer.a11y.startNext', { ns: 'screens' })}
-                        accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
                     />
                 ) : null}
 
@@ -1135,10 +1103,10 @@ const TimerScreen: FC = () => {
                                             entering={ZoomIn.springify()}
                                             style={styles.checkMark}
                                         >
-                                            <Check
+                                            <Icon
+                                                name="check"
                                                 size={theme.space(3.5)}
                                                 color={theme.colors.white}
-                                                strokeWidth={3}
                                             />
                                         </Reanimated.View>
                                     ) : (
@@ -1167,12 +1135,7 @@ const TimerScreen: FC = () => {
                     loading={isPendingCompleteWorkout}
                     disabled={isPendingCompleteWorkout}
                     containerStyle={styles.endAction}
-                    textStyle={styles.endActionText}
                     accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
-                    accessibilityState={{
-                        disabled: isPendingCompleteWorkout,
-                        busy: isPendingCompleteWorkout,
-                    }}
                 />
             </VStack>
         </VStack>

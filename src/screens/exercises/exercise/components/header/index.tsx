@@ -3,7 +3,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { Play } from 'lucide-react-native';
 
 import { Title } from '@/components/typography/title';
 import { Box } from '@/components/primitives/box';
@@ -20,6 +19,7 @@ import {
     EXERCISE_GIF_PREVIEW_RESOLUTION,
     EXERCISE_MEDIA_ATTRIBUTION,
 } from '@/constants/fitup';
+import { Icon } from '@/components/primitives/icon';
 
 interface HeaderProps {
     exercise: ExerciseSelect;
@@ -43,7 +43,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     title: {
         flex: 1,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
     },
     // Centred over the frozen frame while paused. Dark and translucent because
     // the animations sit on their own white ground.
@@ -70,16 +70,16 @@ const styles = StyleSheet.create((theme, rt) => ({
     muscleGroupValueContainer: {
         paddingHorizontal: theme.space(3),
         paddingVertical: theme.space(0.5),
-        backgroundColor: theme.colors.neutral[950],
+        backgroundColor: theme.colors.elevated,
         borderRadius: theme.radius['full'],
     },
     muscleGroupValue: {
-        color: theme.colors.white,
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
     exerciseTrackingGroupValue: {
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
-        color: theme.colors.neutral[500],
+        color: theme.colors.mutedTypography,
         textAlign: 'center',
     },
 }));
@@ -148,10 +148,10 @@ export const Header = ({ exercise }: HeaderProps) => {
                                 style={styles.playOverlay}
                                 pointerEvents="none"
                             >
-                                <Play
+                                <Icon
+                                    name="play"
                                     size={theme.space(7)}
                                     color={theme.colors.white}
-                                    fill={theme.colors.white}
                                 />
                             </Reanimated.View>
                         ) : null}

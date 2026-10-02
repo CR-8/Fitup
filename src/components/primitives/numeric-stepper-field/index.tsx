@@ -45,13 +45,17 @@ const styles = StyleSheet.create((theme) => ({
         justifyContent: 'center',
         gap: theme.space(1),
     },
-    input: (compact: boolean) => ({
+    // Alone (no unit beside it) the value takes the whole gap between the
+    // buttons: at its minimum width alone, "12.5" was cut to "12.".
+    input: (compact: boolean, fill: boolean) => ({
         ...(compact ? theme.fontSize['2xl'] : theme.fontSize['4xl']),
         ...theme.typography.metric,
         color: theme.colors.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center' as const,
         minWidth: theme.space(10),
+        flexGrow: fill ? 1 : 0,
+        flexShrink: 1,
         padding: 0,
     }),
     unit: {
@@ -158,7 +162,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
                     keyboardType="decimal-pad"
                     returnKeyType="done"
                     selectTextOnFocus
-                    style={styles.input(compact)}
+                    style={styles.input(compact, !unit)}
                     value={draft ?? formatDisplayValue(safeValue, decimalPlaces)}
                     onFocus={() => setDraft(formatEditableValue(safeValue, decimalPlaces))}
                     onChangeText={(text) => setDraft(text.replace(/[^0-9.,]/g, ''))}

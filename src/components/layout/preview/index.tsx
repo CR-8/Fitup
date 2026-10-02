@@ -18,7 +18,7 @@ const styles = StyleSheet.create((theme) => ({
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
     },
     gifPreviewImage: {
         width: '100%',

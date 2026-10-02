@@ -1,5 +1,5 @@
 import { FC, useCallback, useMemo } from 'react';
-import { ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
@@ -38,6 +38,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(3),
+        ...Platform.select({
+            ios: {},
+            default: { borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.soft },
+        }),
     },
     header: {
         alignItems: 'center',
@@ -99,7 +103,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderRadius: theme.radius.full,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         paddingHorizontal: theme.space(3.5),
         paddingVertical: theme.space(2),
     },
@@ -190,6 +194,7 @@ export const AiPlanCard: FC<AiPlanCardProps> = ({ finishedPlans = 0 }) => {
                     loading={isGenerating}
                     disabled={exhausted || isGenerating}
                     title={t('home.ai.action', { ns: 'screens' })}
+                    textStyle={styles.buttonTitle}
                     accessibilityLabel={t('home.ai.action', { ns: 'screens' })}
                 />
             </Box>

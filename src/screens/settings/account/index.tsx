@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +36,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -49,7 +49,16 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
+    },
+    secondaryButton: {
+        backgroundColor: theme.colors.foreground,
+    },
+    secondaryButtonText: {
+        color: theme.colors.typography,
     },
 }));
 
@@ -141,6 +150,11 @@ const AccountScreen = () => {
                                 })}
                                 disabled={pending}
                                 onPress={handleChangePassword}
+                                // iOS draws the system bordered button; only Android paints its own.
+                                containerStyle={
+                                    Platform.OS === 'android' ? styles.secondaryButton : undefined
+                                }
+                                textStyle={styles.secondaryButtonText}
                             />
                         ) : null}
 

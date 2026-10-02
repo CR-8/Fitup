@@ -116,7 +116,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingVertical: theme.space(1.5),
         borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.solid.inset,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.solid.border,
         zIndex: 3,

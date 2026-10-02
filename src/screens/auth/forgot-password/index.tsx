@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +38,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -63,6 +63,7 @@ type ForgotPasswordForm = z.infer<typeof schema>;
 
 const ForgotPasswordScreen = () => {
     const { t } = useTranslation(['screens']);
+    const { theme, rt } = useUnistyles();
 
     const {
         control,
@@ -98,7 +99,7 @@ const ForgotPasswordScreen = () => {
 
             <VStack style={styles.panel}>
                 <VStack style={styles.fieldContainer}>
-                    <Label>{t('signIn.email', { ns: 'screens' })}</Label>
+                    <Label field>{t('signIn.email', { ns: 'screens' })}</Label>
                     <Input
                         control={control}
                         name="email"
@@ -118,6 +119,12 @@ const ForgotPasswordScreen = () => {
                     loading={isSubmitting}
                     disabled={isSubmitting}
                     onPress={onSubmit}
+                    // Android draws its own spinner; iOS keeps the system one.
+                    spinnerColor={
+                        rt.themeName === 'dark'
+                            ? theme.colors.neutral[950]
+                            : theme.colors.neutral[50]
+                    }
                 />
             </VStack>
         </ScrollView>

@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { Keyboard, Platform, TextInput } from 'react-native';
+import { Keyboard, TextInput } from 'react-native';
 import {
     BottomSheet,
     Button as UIButton,
@@ -58,7 +58,6 @@ const styles = StyleSheet.create((theme) => ({
         top: 0,
         bottom: 0,
         color: 'transparent',
-        opacity: Platform.OS === 'android' ? 0 : 1,
     },
 }));
 
@@ -147,12 +146,9 @@ const RestInput: FC = () => {
 
     const inputRef = useCallback((input: TextInput | null | undefined) => {
         if (input !== null && input !== undefined) {
-            setTimeout(
-                () => {
-                    input.focus();
-                },
-                Platform.OS === 'android' ? 30 : 0,
-            );
+            setTimeout(() => {
+                input.focus();
+            }, 0);
         }
     }, []);
 

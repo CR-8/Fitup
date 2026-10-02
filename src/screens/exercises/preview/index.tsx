@@ -2,7 +2,6 @@ import { FC, useMemo } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
@@ -12,8 +11,7 @@ import {
     EXERCISE_MEDIA_ATTRIBUTION,
 } from '@/constants/fitup';
 
-import { Stack } from '@/navigators/stack';
-import { HeaderTextButton } from '@/components/buttons/header';
+import { Header } from './components/header';
 
 const styles = StyleSheet.create((theme, rt) => ({
     // The animations are drawn on white, so the page is white in both themes.
@@ -49,7 +47,6 @@ const normalizeParam = (value: string | string[] | undefined): string => {
 };
 
 const PreviewScreen: FC = () => {
-    const { t } = useTranslation(['common']);
     const { gifFilename, name } = useLocalSearchParams<{
         gifFilename?: string | string[];
         name?: string;
@@ -67,18 +64,7 @@ const PreviewScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: name ?? '',
-                    headerRight: () => (
-                        <HeaderTextButton
-                            title={t('done', { ns: 'common' })}
-                            onPress={handleClose}
-                            prominent
-                        />
-                    ),
-                }}
-            />
+            <Header exerciseName={name} handleClose={handleClose} />
             {gifUrl ? (
                 <>
                     <Box style={styles.gifContainer}>

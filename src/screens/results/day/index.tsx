@@ -2,16 +2,17 @@ import { FC, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { ScrollView } from '@/components/primitives/scrollview';
-import { HeaderTextButton } from '@/components/buttons/header';
-import { Stack } from '@/navigators/stack';
 import type { WorkoutSelect } from '@/db/schema';
 import { useWorkoutDayHealthStats, useWorkoutDaySummary } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
 import { Stats } from '@/screens/workouts/workout/components/stats';
+
+import { Header } from './components/header';
 
 type DaySummaryParam = {
     date?: string | string[];
@@ -20,6 +21,10 @@ type DaySummaryParam = {
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
+        ...Platform.select({
+            ios: {},
+            default: { backgroundColor: theme.colors.background },
+        }),
     },
     content: {
         ...theme.screenContentPadding('child'),
@@ -106,18 +111,7 @@ const DaySummaryScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: headerTitle,
-                    headerRight: () => (
-                        <HeaderTextButton
-                            title={t('done', { ns: 'common' })}
-                            onPress={handleClose}
-                            prominent
-                        />
-                    ),
-                }}
-            />
+            <Header title={headerTitle} handleClose={handleClose} />
             <ScrollView contentContainerStyle={styles.content}>
                 <Stats
                     workout={healthWorkout}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -182,6 +183,10 @@ const ResultsScreen = () => {
             contentContainerStyle={styles.content}
             scrollEnabled={!isChartScrubbing}
         >
+            {/* iOS shows this in the native large title. */}
+            {Platform.OS === 'android' && (
+                <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
+            )}
             <StatBlocks blocks={heroBlocks} inset={false} />
             {/* The design board's reading order: totals, the month's training
                 time, then muscular load — before the calendar and the rest. */}

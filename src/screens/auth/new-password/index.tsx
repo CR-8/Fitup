@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,10 +47,13 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -86,6 +89,7 @@ type NewPasswordForm = z.infer<typeof schema>;
 
 const NewPasswordScreen = () => {
     const { t } = useTranslation(['screens']);
+    const { theme, rt } = useUnistyles();
     const { signOut } = useAccount();
     const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
@@ -149,7 +153,7 @@ const NewPasswordScreen = () => {
 
             <VStack style={styles.panel}>
                 <VStack style={styles.fieldContainer}>
-                    <Label>{t('newPassword.password', { ns: 'screens' })}</Label>
+                    <Label field>{t('newPassword.password', { ns: 'screens' })}</Label>
                     <Input
                         control={control}
                         name="password"
@@ -164,7 +168,7 @@ const NewPasswordScreen = () => {
                 </VStack>
 
                 <VStack style={styles.fieldContainer}>
-                    <Label>{t('newPassword.confirm', { ns: 'screens' })}</Label>
+                    <Label field>{t('newPassword.confirm', { ns: 'screens' })}</Label>
                     <Input
                         control={control}
                         name="confirmPassword"
@@ -184,6 +188,12 @@ const NewPasswordScreen = () => {
                     loading={pending}
                     disabled={pending}
                     onPress={onSubmit}
+                    // Android draws its own spinner; iOS keeps the system one.
+                    spinnerColor={
+                        rt.themeName === 'dark'
+                            ? theme.colors.neutral[950]
+                            : theme.colors.neutral[50]
+                    }
                 />
 
                 {isRecovery ? (

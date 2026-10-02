@@ -1,4 +1,5 @@
 import { FC, PropsWithChildren } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
@@ -9,7 +10,10 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: theme.space(1.5),
     },
     help: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[600],
+        }),
     },
 }));
 

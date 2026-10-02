@@ -1,5 +1,6 @@
 import { FC, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
@@ -14,7 +15,12 @@ import { WorkoutItem } from '../../types';
 const styles = StyleSheet.create((theme, rt) => ({
     setContainer: (isActive: boolean, isTimerActive: boolean) => ({
         backgroundColor:
-            isActive || isTimerActive ? theme.colors.primarySoft : theme.colors.foreground,
+            isActive || isTimerActive
+                ? Platform.select({
+                      ios: theme.colors.primarySoft,
+                      default: theme.colors.brand[400],
+                  })
+                : theme.colors.foreground,
         paddingVertical: theme.space(0.25),
         paddingHorizontal: theme.space(1.5),
         borderRadius: theme.radius.lg,
@@ -25,12 +31,24 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     typeBadge: (isActive: boolean, isFinished: boolean, isTimerActive: boolean) => ({
         fontSize: theme.fontSize.xs.fontSize,
-        color: isActive || isTimerActive ? theme.colors.typography : theme.colors.typography,
+        color:
+            isActive || isTimerActive
+                ? Platform.select({
+                      ios: theme.colors.typography,
+                      default: theme.colors.neutral[950],
+                  })
+                : theme.colors.typography,
         opacity: isActive || isTimerActive ? 1 : isFinished ? 1 : 0.45,
         fontWeight: theme.fontWeight.medium.fontWeight,
     }),
     setContent: (isActive: boolean, isFinished: boolean, isTimerActive: boolean) => ({
-        color: isActive || isTimerActive ? theme.colors.typography : theme.colors.typography,
+        color:
+            isActive || isTimerActive
+                ? Platform.select({
+                      ios: theme.colors.typography,
+                      default: theme.colors.neutral[950],
+                  })
+                : theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         opacity: isActive || isTimerActive ? 1 : isFinished ? 1 : 0.45,
         fontWeight: theme.fontWeight.default.fontWeight,

@@ -60,7 +60,8 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
     },
     listContent: {
-        // The tab bar is cleared by the content inset the list is given below.
+        // The tab bar is cleared by the content inset the list is given below on
+        // iOS; on Android `screenContentPadding('root')` reserves room for it.
         ...theme.screenContentPadding('root'),
     },
     headerContent: {

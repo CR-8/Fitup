@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { useIsMutating } from '@tanstack/react-query';
 
-import type { MenuAction } from '@/components/buttons/actions';
+import type { MenuAction } from '@expo/ui/community/menu';
 import { useSupersetEditStore } from '@/stores/superset-edit';
 import { useEditor } from '@/hooks/use-editor';
 import {
@@ -14,8 +14,10 @@ import {
     useDeleteWorkoutExercise,
     useDuplicateWorkout,
     useUpdateExerciseSet,
+    useUpdateWorkout,
     useWorkoutWithDetails,
 } from '@/hooks/use-workouts';
+import { reportError } from '@/services/error-reporting';
 import { useDeleteExercise, useExercise } from '@/hooks/use-exercises';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { isFitupExercise } from '@/crud/exercise';
@@ -23,9 +25,8 @@ import { normalizeSetType } from '@/helpers/set-type';
 import { addWorkoutExerciseSet, type SetType } from '@/screens/workouts/exercise/helpers/add-set';
 
 /**
- * The app's action menus as native menus (UIMenu / Material dropdown). Each hook
- * returns the items and the handler `ActionsMenu` needs; the bodies are the
- * ones the old action sheet ran.
+ * The app's action menus: the items, and what choosing one does. iOS shows them
+ * as native menus (`ActionsMenu`); Android lists them in its action sheet.
  */
 export type ActionMenu = { actions: MenuAction[]; onAction: (id: string) => void };
 
@@ -269,4 +270,25 @@ export const useSetTypeMenu = (setId: string, setType: string): ActionMenu => {
     );
 
     return { actions, onAction };
+};
+
+export const WORKOUT_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+export type WorkoutDifficulty = (typeof WORKOUT_DIFFICULTIES)[number];
+
+/**
+ * Records how hard a finished workout felt; `buildHistory` reads it back when
+ * the next plan is generated. Not awaited: the workout is already saved, so the
+ * answer is not worth holding the sheet open for.
+ */
+export const useWorkoutFeedback = () => {
+    const { mutateAsync: updateWorkout } = useUpdateWorkout();
+
+    return useCallback(
+        (workoutId: string, difficulty: WorkoutDifficulty) => {
+            void updateWorkout({ id: workoutId, updates: { difficulty } }).catch((error) =>
+                reportError(error, 'Failed to save workout difficulty feedback:'),
+            );
+        },
+        [updateWorkout],
+    );
 };

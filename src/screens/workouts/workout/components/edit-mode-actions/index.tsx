@@ -1,4 +1,5 @@
 import { FC, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +34,14 @@ const styles = StyleSheet.create((theme, rt) => ({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    customStartButtonContainer: {},
+    // Android keeps the pre-native coral chip; iOS uses the system button.
+    customStartButtonContainer: {
+        backgroundColor: Platform.select({ android: theme.colors.brand[400] }),
+    },
+    customStartButtonText: {
+        fontSize: theme.fontSize.lg.fontSize,
+        color: theme.colors.neutral[950],
+    },
 }));
 
 const getActionMode = (selectedIds: string[], items: WorkoutItem[]): ActionMode => {
@@ -90,6 +98,7 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.create', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
+                                textStyle={styles.customStartButtonText}
                                 onPress={onCreateCircuit}
                             />
                         )}
@@ -97,6 +106,7 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.remove', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
+                                textStyle={styles.customStartButtonText}
                                 onPress={onRemoveCircuit}
                             />
                         )}
@@ -104,6 +114,7 @@ export const EditModeActions: FC<EditModeActionsProps> = ({
                             <Button
                                 title={t('workout.supersets.removeFromGroup', { ns: 'screens' })}
                                 containerStyle={styles.customStartButtonContainer}
+                                textStyle={styles.customStartButtonText}
                                 onPress={onRemoveFromGroup}
                             />
                         )}

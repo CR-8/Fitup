@@ -1,12 +1,10 @@
 import { FC, useCallback, useDeferredValue, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Box } from '@/components/primitives/box';
-import { HStack } from '@/components/primitives/hstack';
-import { Stack } from '@/navigators/stack';
-import { HeaderTextButton } from '@/components/buttons/header';
 import { useExercisesList, useMergeExercise } from '@/hooks/use-exercises';
 import { ExercisesListContainer } from '@/screens/exercises/exercises/components/list/container';
 import { Button } from '@/components/buttons/base';
@@ -20,8 +18,6 @@ import {
 import { getExerciseLibrarySnapshot, getLastExerciseSetsByExerciseId } from '@/crud/exercise';
 import { getWorkoutProgressSnapshot } from '@/crud/workout';
 import { ExerciseSetSelect } from '@/db/schema';
-import { CreateButton } from '@/components/buttons/create';
-import { FilterButton } from '@/components/buttons/filter';
 import { useEditor } from '@/hooks/use-editor';
 import { useAnalytics } from '@/hooks/use-analytics';
 import {
@@ -32,18 +28,20 @@ import {
 import { useFilterStore, hasActiveFilters, countActiveFilters } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
+import { Header } from './components/header';
+
 type SelectedList = string[];
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
+        ...Platform.select({
+            ios: {},
+            default: { paddingTop: rt.insets.top },
+        }),
     },
     contentWrapper: {
         flexGrow: 1,
-    },
-    headerActions: {
-        alignItems: 'center',
-        gap: theme.space(3),
     },
     listContainer: {
         flex: 1,
@@ -320,30 +318,15 @@ const SelectExercisesScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: headerTitle,
-                    headerLeft: () => (
-                        <HeaderTextButton
-                            title={t('cancel', { ns: 'common' })}
-                            onPress={handleCancel}
-                        />
-                    ),
-                    headerRight: () => (
-                        <HStack style={styles.headerActions}>
-                            <FilterButton
-                                onPress={handleFilterOpen}
-                                active={hasActiveFilters(filterState)}
-                            />
-                            {!isMergeMode && <CreateButton onPressHandler={handleExerciseCreate} />}
-                        </HStack>
-                    ),
-                    headerSearchBarOptions: {
-                        placeholder: t('placeholder.search', { ns: 'common' }),
-                        hideWhenScrolling: false,
-                        onChangeText: (event) => setQuery(event.nativeEvent.text),
-                    },
-                }}
+            <Header
+                title={headerTitle}
+                isMergeMode={isMergeMode}
+                filterActive={hasActiveFilters(filterState)}
+                query={query}
+                onQueryChange={setQuery}
+                onCancel={handleCancel}
+                onFilterOpen={handleFilterOpen}
+                onCreate={handleExerciseCreate}
             />
             <ExercisesListContainer
                 mode="select"

@@ -6,6 +6,7 @@ import { useLocales } from 'expo-localization';
 
 import { HStack } from '@/components/primitives/hstack';
 import { Input as InputPrimitive } from '@/components/primitives/input';
+import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { getNumericValue, valueToType } from '@/helpers/values';
@@ -51,6 +52,7 @@ const styles = StyleSheet.create((theme) => ({
         borderWidth: stableOutlineWidth,
         borderColor: error ? theme.colors.destructive : 'transparent',
         paddingHorizontal: theme.space(3),
+        gap: theme.space(2),
         variants: {
             size: {
                 xs: {
@@ -65,12 +67,17 @@ const styles = StyleSheet.create((theme) => ({
             },
         },
     }),
+    // Flexes rather than taking the full width, so a unit can sit beside it.
     input: (error: boolean) => ({
+        flex: 1,
         height: '100%',
-        width: '100%',
         color: error ? theme.colors.destructive : theme.colors.typography,
         fontSize: theme.fontSize.lg.fontSize,
     }),
+    affix: {
+        fontSize: theme.fontSize.default.fontSize,
+        color: theme.colors.mutedTypography,
+    },
 }));
 
 export const InputContainer: FC<InputContainerProps> = ({
@@ -182,6 +189,8 @@ const BaseInput = forwardRef(
             help,
             inputContainerStyle,
             inputStyle,
+            prefix,
+            suffix,
             onChange,
             onSubmitEditing,
             placeholder,
@@ -289,7 +298,9 @@ const BaseInput = forwardRef(
             <VStack>
                 {label && <Label>{label}</Label>}
                 <InputContainer error={error} inputContainerStyle={inputContainerStyle} size={size}>
+                    {prefix ? <Text style={styles.affix}>{prefix}</Text> : null}
                     <InputComponent {...props} ref={ref} />
+                    {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}
                 </InputContainer>
                 {error?.message && <Error>{t(error.message, { ns: 'common' })}</Error>}
                 {help && !error && <Help>{help.message}</Help>}

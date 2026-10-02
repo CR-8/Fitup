@@ -1,21 +1,25 @@
 import { FC, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
 import { useExercise } from '@/hooks/use-exercises';
 import { Guide } from '@/screens/exercises/exercise/components/guide';
 
-import { Stack } from '@/navigators/stack';
 import { ScrollView } from '@/components/primitives/scrollview';
-import { HeaderTextButton } from '@/components/buttons/header';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { isFitupExerciseUserId } from '@/constants/fitup';
+
+import { Header } from './components/header';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
+        ...Platform.select({
+            ios: {},
+            default: { backgroundColor: theme.colors.background },
+        }),
     },
     content: {
         flex: 1,
@@ -29,7 +33,6 @@ const GuideScreen: FC = () => {
     const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
     const { data: exercise } = useExercise(exerciseId ?? '');
     const { track } = useAnalytics();
-    const { t } = useTranslation(['common', 'screens']);
     const trackedRef = useRef(false);
 
     useEffect(() => {
@@ -48,18 +51,7 @@ const GuideScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: t('exercise.tabs.guide', { ns: 'screens' }),
-                    headerRight: () => (
-                        <HeaderTextButton
-                            title={t('done', { ns: 'common' })}
-                            onPress={handleClose}
-                            prominent
-                        />
-                    ),
-                }}
-            />
+            <Header handleClose={handleClose} />
             <Box style={styles.content}>
                 {exercise && (
                     <ScrollView contentContainerStyle={styles.scroll}>

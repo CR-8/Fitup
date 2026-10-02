@@ -2,6 +2,7 @@ import { FC, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Sortable, { useItemContext } from 'react-native-sortables';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
@@ -91,7 +92,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginBottom: theme.space(1),
     },
     equipmentBadgeText: {
-        color: theme.colors.destructive,
+        color: Platform.select({ ios: theme.colors.destructive, default: theme.colors.red[500] }),
         fontSize: theme.fontSize['2xs'].fontSize,
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
@@ -104,7 +105,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginRight: theme.space(4),
     },
     swipeable: {
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -113,7 +117,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         justifyContent: 'center',
         alignItems: 'center',
     },

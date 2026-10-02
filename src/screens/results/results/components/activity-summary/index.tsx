@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { LineChart, type lineDataItem, yAxisSides } from 'react-native-gifted-charts';
-import { type GestureResponderEvent, View } from 'react-native';
+import { type GestureResponderEvent, Platform, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import type { WorkoutSelect } from '@/db/schema';
@@ -83,7 +83,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.solid.inset,
     },
     monthPrevIcon: {
         marginRight: theme.space(0.5),
@@ -382,7 +382,7 @@ const buildActivitySummaryModel = (
 
 const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
     const { t } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
+    const { theme, rt } = useUnistyles();
     const { data: workouts = [] } = useWorkouts();
     const { track } = useAnalytics();
     const [chartWidth, setChartWidth] = useState(0);
@@ -411,6 +411,10 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
 
     const currentLineColor = theme.colors.brand[400];
     const previousLineColor = theme.solid.border;
+    const navIconColor = Platform.select({
+        ios: theme.solid.typography,
+        default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+    });
 
     const clampedSelectedDayIndex = useMemo(() => {
         if (selectedDayIndex == null) return null;
@@ -730,7 +734,7 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                                 name="chevron-left"
                                 size={theme.space(6)}
                                 style={styles.monthPrevIcon}
-                                color={theme.solid.typography}
+                                color={navIconColor}
                             />
                         </Box>
                     </Pressable>
@@ -750,7 +754,7 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                                 name="chevron-right"
                                 size={theme.space(6)}
                                 style={styles.monthNextIcon}
-                                color={theme.solid.typography}
+                                color={navIconColor}
                             />
                         </Box>
                     </Pressable>

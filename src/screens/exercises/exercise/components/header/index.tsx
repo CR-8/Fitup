@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
@@ -43,7 +44,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     title: {
         flex: 1,
-        color: theme.colors.typography,
+        color: Platform.select({
+            ios: theme.colors.typography,
+            default: theme.colors.neutral[950],
+        }),
     },
     // Centred over the frozen frame while paused. Dark and translucent because
     // the animations sit on their own white ground.
@@ -70,16 +74,22 @@ const styles = StyleSheet.create((theme, rt) => ({
     muscleGroupValueContainer: {
         paddingHorizontal: theme.space(3),
         paddingVertical: theme.space(0.5),
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: Platform.select({
+            ios: theme.colors.elevated,
+            default: theme.colors.neutral[950],
+        }),
         borderRadius: theme.radius['full'],
     },
     muscleGroupValue: {
-        color: theme.colors.typography,
+        color: Platform.select({ ios: theme.colors.typography, default: theme.colors.white }),
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
     exerciseTrackingGroupValue: {
-        color: theme.colors.typography,
+        color: Platform.select({
+            ios: theme.colors.typography,
+            default: theme.colors.neutral[950],
+        }),
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
@@ -88,7 +98,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[500],
+        }),
         textAlign: 'center',
     },
 }));

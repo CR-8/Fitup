@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,23 +29,29 @@ import { resolveAuthDestination } from '@/services/auth-navigation';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
 import { AuthHero } from '@/screens/auth/components/hero';
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
         paddingHorizontal: theme.space(4),
     },
-    // No bar above sign-in. iOS insets the scroll view under the status bar
-    // itself; Android draws edge to edge, so it is cleared here.
+    // No bar above sign-in on iOS, which insets the scroll view under the status
+    // bar itself. Android keeps the pre-native header clearance.
     content: {
         ...theme.screenContentPadding('child'),
-        paddingTop: (process.env.EXPO_OS === 'android' ? rt.insets.top : 0) + theme.space(5),
+        paddingTop: Platform.select({
+            ios: theme.space(5),
+            default: theme.screenContentPadding('child').paddingTop,
+        }),
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -57,6 +63,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     dividerRow: {
         alignItems: 'center',
         gap: theme.space(3),
+    },
+    providerButton: {
+        backgroundColor: theme.colors.foreground,
+    },
+    providerButtonText: {
+        color: theme.colors.typography,
     },
     link: {
         // 44dp, the Apple HIG / WCAG 2.5.5 minimum. Padding alone gave these
@@ -86,6 +98,7 @@ type SignInForm = z.infer<typeof schema>;
 
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
+    const { theme, rt } = useUnistyles();
     // Set when the screen is opened deliberately (from Settings) rather than by
     // the first-launch gate.
     const { returnTo, reason } = useLocalSearchParams<{ returnTo?: string; reason?: string }>();
@@ -202,13 +215,17 @@ const SignInScreen = () => {
                         loading={pending === 'google'}
                         disabled={busy}
                         onPress={() => runProvider('google', signInWithGoogle)}
+                        // Android draws its own button; iOS keeps the system one.
+                        containerStyle={Platform.select({ android: styles.providerButton })}
+                        textStyle={styles.providerButtonText}
+                        spinnerColor={theme.solid.typography}
                     />
                 ) : null}
 
                 <Separator />
 
                 <VStack style={styles.fieldContainer}>
-                    <Label>{t('signIn.email', { ns: 'screens' })}</Label>
+                    <Label field>{t('signIn.email', { ns: 'screens' })}</Label>
                     <Input
                         control={control}
                         name="email"
@@ -223,7 +240,7 @@ const SignInScreen = () => {
                 </VStack>
 
                 <VStack style={styles.fieldContainer}>
-                    <Label>{t('signIn.password', { ns: 'screens' })}</Label>
+                    <Label field>{t('signIn.password', { ns: 'screens' })}</Label>
                     <Input
                         control={control}
                         name="password"
@@ -249,6 +266,12 @@ const SignInScreen = () => {
                     loading={pending === 'email'}
                     disabled={busy}
                     onPress={onSubmitEmail}
+                    // Android draws its own spinner; iOS keeps the system one.
+                    spinnerColor={
+                        rt.themeName === 'dark'
+                            ? theme.colors.neutral[950]
+                            : theme.colors.neutral[50]
+                    }
                 />
 
                 <Pressable style={styles.link} onPress={() => setIsRegistering((value) => !value)}>

@@ -1,4 +1,5 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
@@ -13,9 +14,9 @@ import { muscles } from '@/constants/muscles';
 import { useFilterStore } from '@/stores/filter';
 import type { ExerciseOwnershipFilter } from '@/stores/filter';
 
-import { Stack } from '@/navigators/stack';
 import { ScrollView } from '@/components/primitives/scrollview';
-import { HeaderTextButton } from '@/components/buttons/header';
+
+import { Header } from './components/header';
 
 const getFilterState = () => useFilterStore.getState();
 
@@ -38,6 +39,10 @@ type FilterForm = {
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
+        ...Platform.select({
+            ios: {},
+            default: { backgroundColor: theme.colors.foreground },
+        }),
     },
     content: {
         flex: 1,
@@ -76,10 +81,6 @@ const FilterScreen: FC = () => {
         setTracking(values.tracking);
         setPrimaryMuscle(values.primaryMuscle);
     };
-
-    // On the way out however the sheet goes — Done, swipe, or back — so a
-    // swiped-away filter still applies.
-    useEffect(() => () => flushToStore(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleClose = () => router.back();
 
@@ -160,18 +161,7 @@ const FilterScreen: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: t('filter.title', { ns: 'screens' }),
-                    headerRight: () => (
-                        <HeaderTextButton
-                            title={t('done', { ns: 'common' })}
-                            onPress={handleClose}
-                            prominent
-                        />
-                    ),
-                }}
-            />
+            <Header handleClose={handleClose} onSave={flushToStore} />
             <Box style={styles.content}>
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <VStack style={styles.section}>

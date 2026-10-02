@@ -1,5 +1,5 @@
 import { FC, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -50,7 +50,7 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -63,10 +63,16 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     hint: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
 }));
 

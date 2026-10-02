@@ -1,11 +1,14 @@
 import { FC } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
+import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import type { AiMessageSelect, AiPlanSelect } from '@/db/schema';
 
 import { PlanCard } from '../plan-card';
+import { SynAvatar } from '../avatar';
 
 const styles = StyleSheet.create((theme, rt) => ({
     row: {
@@ -17,6 +20,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     assistantRow: {
         alignItems: 'flex-start',
     },
+    // Syn's turns lead with its avatar, bottom-aligned like a messaging app.
+    assistantLine: {
+        alignItems: 'flex-end',
+        gap: theme.space(2),
+        maxWidth: '92%',
+    },
     bubble: {
         maxWidth: '88%',
         borderRadius: theme.radius['2xl'],
@@ -26,22 +35,30 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     // The user's own turn uses the app's primary fill, the same treatment as its
     // primary buttons, so the thread reads with the rest of the interface.
+    // Android keeps the pre-native inverted (ink) bubble.
     userBubble: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        }),
         borderBottomRightRadius: theme.radius.sm,
     },
     userText: {
-        color: theme.colors.primaryTypography,
+        color: Platform.select({
+            ios: theme.colors.primaryTypography,
+            default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
+        }),
     },
+    // A raised surface: on the page colour, as it was, the reply had no bubble
+    // at all on the black ground.
     assistantBubble: {
-        backgroundColor: theme.colors.background,
+        flexShrink: 1,
+        maxWidth: '100%',
+        backgroundColor: theme.colors.foreground,
         borderBottomLeftRadius: theme.radius.sm,
     },
-    errorBubble: {
-        backgroundColor: theme.colors.background,
-    },
     errorText: {
-        color: theme.colors.red[400],
+        color: theme.colors.destructive,
     },
     planWrapper: {
         width: '100%',
@@ -64,11 +81,11 @@ export const Message: FC<MessageProps> = ({ message, plan }) => {
         );
     }
 
-    if (message.errorCode) {
+    if (message.role === 'user' && !message.errorCode) {
         return (
-            <VStack style={[styles.row, styles.assistantRow]}>
-                <VStack style={[styles.bubble, styles.errorBubble]}>
-                    <Text fontSize="sm" style={styles.errorText}>
+            <VStack style={[styles.row, styles.userRow]}>
+                <VStack style={[styles.bubble, styles.userBubble]}>
+                    <Text fontSize="sm" style={styles.userText}>
                         {message.content}
                     </Text>
                 </VStack>
@@ -76,15 +93,16 @@ export const Message: FC<MessageProps> = ({ message, plan }) => {
         );
     }
 
-    const isUser = message.role === 'user';
-
     return (
-        <VStack style={[styles.row, isUser ? styles.userRow : styles.assistantRow]}>
-            <VStack style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-                <Text fontSize="sm" style={isUser ? styles.userText : undefined}>
-                    {message.content}
-                </Text>
-            </VStack>
+        <VStack style={[styles.row, styles.assistantRow]}>
+            <HStack style={styles.assistantLine}>
+                <SynAvatar />
+                <VStack style={[styles.bubble, styles.assistantBubble]}>
+                    <Text fontSize="sm" style={message.errorCode ? styles.errorText : undefined}>
+                        {message.content}
+                    </Text>
+                </VStack>
+            </HStack>
         </VStack>
     );
 };

@@ -22,5 +22,13 @@
     // `cms` is Strapi and `cms-payload` is Payload on Next.js: separate Node
     // apps with their own dependency trees and tsconfigs, never the app's
     // runtime, so neither may be type-checked or bundled as part of the client.
-    "exclude": ["cms", "cms-payload", "supabase/functions"],
+    // Android's presentation lives in `*.android.*` siblings and is checked by
+    // `tsconfig.android.json`, which resolves imports the way Metro does there.
+    "exclude": [
+        "cms",
+        "cms-payload",
+        "supabase/functions",
+        "**/*.android.ts",
+        "**/*.android.tsx",
+    ],
 }

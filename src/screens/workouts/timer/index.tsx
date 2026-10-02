@@ -1,10 +1,10 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { router } from 'expo-router';
+import { router, useNavigation, useRoute } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 import Reanimated, { ZoomIn } from 'react-native-reanimated';
 
 import { VStack } from '@/components/primitives/vstack';
@@ -44,6 +44,7 @@ import { equipmentTranslationKey, isBodyweightOnly } from '@/constants/equipment
 import { estimateOneRm } from '@/screens/exercises/exercise/components/statistics/components/metric-utils';
 import { useAiProfile } from '@/hooks/use-ai';
 import { SegmentedControl } from '@expo/ui/community/segmented-control';
+import { BaseButtons } from '@/components/forms/fields/base/buttons';
 import { Icon } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -84,7 +85,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(10),
         height: theme.space(10),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: Platform.select({
+            ios: theme.colors.elevated,
+            default: theme.colors.foreground,
+        }),
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -99,10 +103,14 @@ const styles = StyleSheet.create((theme, rt) => ({
      * The pill's label is `2xs` uppercase, far below the large-text allowance,
      * so white on it has to clear 4.5:1. `brand[500]` is 3.41:1; `brand[600]` is
      * 4.48:1 and still reads as the same coral. Same reasoning as the Home
-     * "Up Next" card, which is where this treatment comes from.
+     * "Up Next" card, which is where this treatment comes from. (iOS takes the
+     * system-tinted coral.)
      */
     phasePillWork: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: theme.colors.brand[600],
+        }),
     },
     phasePillMuted: {
         backgroundColor: theme.colors.elevated,
@@ -135,11 +143,15 @@ const styles = StyleSheet.create((theme, rt) => ({
     environmentToggle: {
         marginTop: theme.space(2),
         alignSelf: 'flex-start',
-        minWidth: theme.space(40),
+        // The native segmented control needs a width; Android's chips size themselves.
+        minWidth: Platform.select({ ios: theme.space(40) }),
     },
     equipmentWarning: {
         ...theme.fontSize.xs,
-        color: theme.colors.destructive,
+        color: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         marginTop: theme.space(1),
     },
     /**
@@ -264,6 +276,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     endAction: {
         alignSelf: 'center',
     },
+    // Android draws the link's label itself; iOS uses the system's.
+    endActionText: {
+        color: theme.colors.mutedTypography,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
     completeBody: {
         flex: 1,
         justifyContent: 'center',
@@ -325,6 +342,8 @@ type Phase = 'work' | 'rest' | 'paused' | 'between' | 'complete';
 const TimerScreen: FC = () => {
     const { t } = useTranslation(['screens', 'common']);
     const { theme } = useUnistyles();
+    const navigation = useNavigation();
+    const route = useRoute();
 
     const { runningWorkout, runningWorkoutExercises, completeWorkout, isPendingCompleteWorkout } =
         useRunningWorkoutStatic();
@@ -776,8 +795,15 @@ const TimerScreen: FC = () => {
         if (!hasHeldWorkout.current) return;
         hasHeldWorkout.current = false;
 
-        if (router.canGoBack()) router.back();
-    }, [runningWorkout]);
+        // Close the timer and anything opened over it, back to where the session
+        // was started from. `router.back()` closed only the top screen: ended from
+        // the workout sheet opened over the timer, that left the timer showing
+        // "No workout running".
+        const routes = navigation.getState()?.routes ?? [];
+        const index = routes.findIndex(({ key }) => key === route.key);
+        if (index > 0)
+            navigation.dispatch({ type: 'POP', payload: { count: routes.length - index } });
+    }, [navigation, route.key, runningWorkout]);
 
     const handleMinimize = useCallback(() => {
         // Back to the logging UI rather than out of the session entirely.
@@ -820,6 +846,10 @@ const TimerScreen: FC = () => {
     );
 
     if (phase === 'complete') {
+        const exerciseCount = workoutDetails?.exercises.length ?? 0;
+        const setCount =
+            workoutDetails?.exercises.reduce((total, entry) => total + entry.sets.length, 0) ?? 0;
+
         return (
             <VStack style={styles.container}>
                 <HStack style={styles.headerRow}>{minimizeButton}</HStack>
@@ -838,13 +868,11 @@ const TimerScreen: FC = () => {
                             blocks={[
                                 {
                                     key: 'sets',
-                                    value: String(
-                                        workoutDetails?.exercises.reduce(
-                                            (total, entry) => total + entry.sets.length,
-                                            0,
-                                        ) ?? 0,
-                                    ),
-                                    label: t('timer.summary.sets', { ns: 'screens' }),
+                                    value: String(setCount),
+                                    label: t('timer.summary.sets', {
+                                        ns: 'screens',
+                                        count: setCount,
+                                    }),
                                 },
                                 {
                                     key: 'time',
@@ -853,8 +881,11 @@ const TimerScreen: FC = () => {
                                 },
                                 {
                                     key: 'exercises',
-                                    value: String(workoutDetails?.exercises.length ?? 0),
-                                    label: t('timer.summary.exercises', { ns: 'screens' }),
+                                    value: String(exerciseCount),
+                                    label: t('timer.summary.exercises', {
+                                        ns: 'screens',
+                                        count: exerciseCount,
+                                    }),
                                 },
                             ]}
                         />
@@ -869,6 +900,10 @@ const TimerScreen: FC = () => {
                     loading={isPendingCompleteWorkout}
                     disabled={isPendingCompleteWorkout}
                     accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
+                    accessibilityState={{
+                        disabled: isPendingCompleteWorkout,
+                        busy: isPendingCompleteWorkout,
+                    }}
                 />
             </VStack>
         );
@@ -885,6 +920,7 @@ const TimerScreen: FC = () => {
             onPress={handleCompleteSet}
             disabled={controlsDisabled}
             accessibilityLabel={t('timer.a11y.completeSet', { ns: 'screens' })}
+            accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
         />
     );
 
@@ -956,20 +992,33 @@ const TimerScreen: FC = () => {
                             {t('timer.newBest', { ns: 'screens', value: personalBestLabel })}
                         </Text>
                     ) : null}
-                    <SegmentedControl
-                        style={styles.environmentToggle}
-                        values={environmentChoices.map((choice) => choice.title)}
-                        selectedIndex={environmentChoices.findIndex(
-                            (choice) => choice.value === (profile?.trainingEnvironment ?? 'gym'),
-                        )}
-                        onChange={({ nativeEvent }) =>
-                            saveProfile({
-                                trainingEnvironment: environmentChoices[
-                                    nativeEvent.selectedSegmentIndex
-                                ].value as 'home' | 'gym',
-                            })
-                        }
-                    />
+                    {Platform.OS === 'ios' ? (
+                        <SegmentedControl
+                            style={styles.environmentToggle}
+                            values={environmentChoices.map((choice) => choice.title)}
+                            selectedIndex={environmentChoices.findIndex(
+                                (choice) =>
+                                    choice.value === (profile?.trainingEnvironment ?? 'gym'),
+                            )}
+                            onChange={({ nativeEvent }) =>
+                                saveProfile({
+                                    trainingEnvironment: environmentChoices[
+                                        nativeEvent.selectedSegmentIndex
+                                    ].value as 'home' | 'gym',
+                                })
+                            }
+                        />
+                    ) : (
+                        <BaseButtons
+                            size="small"
+                            choicesContainerStyle={styles.environmentToggle}
+                            choices={environmentChoices}
+                            value={profile?.trainingEnvironment ?? 'gym'}
+                            onChange={(value) =>
+                                saveProfile({ trainingEnvironment: value as 'home' | 'gym' })
+                            }
+                        />
+                    )}
                     {needsEquipmentWarning ? (
                         <Text style={styles.equipmentWarning}>
                             {t('timer.needsEquipmentBanner', { ns: 'screens' })}
@@ -1073,6 +1122,7 @@ const TimerScreen: FC = () => {
                         onPress={handleSkipRest}
                         disabled={controlsDisabled}
                         accessibilityLabel={t('timer.a11y.skipRest', { ns: 'screens' })}
+                        accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
                     />
                 ) : null}
 
@@ -1084,6 +1134,7 @@ const TimerScreen: FC = () => {
                         onPress={handleStartNext}
                         disabled={controlsDisabled}
                         accessibilityLabel={t('timer.a11y.startNext', { ns: 'screens' })}
+                        accessibilityState={{ disabled: controlsDisabled, busy: isActionPending }}
                     />
                 ) : null}
 
@@ -1135,7 +1186,12 @@ const TimerScreen: FC = () => {
                     loading={isPendingCompleteWorkout}
                     disabled={isPendingCompleteWorkout}
                     containerStyle={styles.endAction}
+                    textStyle={styles.endActionText}
                     accessibilityLabel={t('timer.a11y.endWorkout', { ns: 'screens' })}
+                    accessibilityState={{
+                        disabled: isPendingCompleteWorkout,
+                        busy: isPendingCompleteWorkout,
+                    }}
                 />
             </VStack>
         </VStack>

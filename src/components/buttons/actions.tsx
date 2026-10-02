@@ -12,7 +12,7 @@ interface ActionsMenuProps {
     children?: ReactNode;
 }
 
-/** A native menu: UIMenu on iOS, a Material dropdown on Android. */
+/** A native menu (UIMenu). Android lists actions in its action sheet instead. */
 export const ActionsMenu: FC<ActionsMenuProps> = ({ actions, onAction, children }) => (
     <MenuView actions={actions} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
         {children ?? <HeaderButton icon="ellipsis" />}

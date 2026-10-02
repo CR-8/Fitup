@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Slider } from '@expo/ui';
-
-import { Host } from '@/components/native/host';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -20,6 +18,8 @@ import { reportError } from '@/services/error-reporting';
 import { markFormValuesSyncing, submitAutoSaveForm } from '../shared';
 import { Icon } from '@/components/primitives/icon';
 
+import { VolumeSlider } from './components/volume-slider';
+
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
@@ -30,22 +30,20 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(5),
     },
     fieldContainer: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
     },
     sliderWrapper: {
-        padding: theme.space(4),
         gap: theme.space(1),
-        alignItems: 'center',
+        ...Platform.select({
+            ios: { padding: theme.space(4), alignItems: 'center' as const },
+            default: { padding: theme.space(5) },
+        }),
     },
     sliderContainer: {
         flex: 1,
         paddingHorizontal: theme.space(2),
-    },
-    slider: {
-        width: '100%',
-        height: theme.space(6),
     },
     sliderThumb: {
         width: theme.space(6),
@@ -63,6 +61,11 @@ const styles = StyleSheet.create((theme, rt) => ({
     testSoundButton: {
         padding: theme.space(5),
         width: '100%',
+    },
+    testSoundButtonText: {
+        width: '100%',
+        textAlign: 'center',
+        fontSize: theme.fontSize.default.fontSize,
     },
     separator: {
         marginHorizontal: theme.space(5),
@@ -185,17 +188,12 @@ const SoundScreen = () => {
                             />
                         </Box>
                         <Box style={styles.sliderContainer}>
-                            <Host matchContents={{ vertical: true }}>
-                                <Slider
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    value={watchedSoundsVolume ?? 0}
-                                    onValueChange={(value) => {
-                                        setValue('soundsVolume', Math.round(value));
-                                    }}
-                                />
-                            </Host>
+                            <VolumeSlider
+                                value={watchedSoundsVolume}
+                                onValueChange={(value) => {
+                                    setValue('soundsVolume', value);
+                                }}
+                            />
                         </Box>
 
                         <Box>
@@ -211,6 +209,7 @@ const SoundScreen = () => {
                         type="link"
                         title={t('sound.testSound', { ns: 'screens' })}
                         containerStyle={styles.testSoundButton}
+                        textStyle={styles.testSoundButtonText}
                         size="sm"
                         onPress={handleTestSound}
                     />

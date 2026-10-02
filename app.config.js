@@ -202,12 +202,15 @@ module.exports = {
             'react-native-edge-to-edge',
             {
                 android: {
-                    // Material You: native alerts and pickers take the wallpaper's colours.
-                    parentTheme: 'Material3.Dynamic',
+                    // Android keeps the pre-native UI, so native dialogs stay off
+                    // Material You's wallpaper colours.
+                    parentTheme: 'Default',
                     enforceNavigationBarContrast: false,
                 },
             },
         ],
+        // Android's date fields use the community picker; iOS uses SwiftUI's.
+        '@react-native-community/datetimepicker',
         [
             'expo-build-properties',
             {
@@ -251,6 +254,23 @@ module.exports = {
             },
         ],
         [
+            // Android's typefaces (the pre-native UI); iOS uses the system font.
+            'expo-font',
+            {
+                android: {
+                    fonts: [
+                        './assets/fonts/DMSans-Regular.ttf',
+                        './assets/fonts/DMSans-Medium.ttf',
+                        './assets/fonts/DMSans-SemiBold.ttf',
+                        './assets/fonts/DMSans-Bold.ttf',
+                        './assets/fonts/SpaceGrotesk-Medium.ttf',
+                        './assets/fonts/SpaceGrotesk-SemiBold.ttf',
+                        './assets/fonts/SpaceGrotesk-Bold.ttf',
+                    ],
+                },
+            },
+        ],
+        [
             'expo-splash-screen',
             {
                 image: './assets/images/splash-icon.png',
@@ -260,6 +280,11 @@ module.exports = {
                 // opens in.
                 backgroundColor: '#f2f2f7',
                 dark: { backgroundColor: '#000000' },
+                // Android opens on the pre-native UI's ground.
+                android: {
+                    backgroundColor: '#0b0b0c',
+                    dark: { backgroundColor: '#0b0b0c' },
+                },
             },
         ],
         [

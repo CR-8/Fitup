@@ -1,5 +1,7 @@
 import { FC, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
@@ -15,15 +17,19 @@ import { Icon, type IconName } from '@/components/primitives/icon';
  * opened on a bare `<Title>` and a line of muted text on the plain background
  * — identical markup copied four times, and identical in effect: nothing on
  * the first screen someone opens said what app this was. This is that markup
- * pulled into one place: the app's logo, or a tinted SF Symbol / Material
- * icon badge, over the title.
+ * pulled into one place: the app's logo, or a tinted SF Symbol / Lucide icon
+ * badge, over the title — on Android over the `gradients.glow` bloom of the
+ * pre-native design.
  *
  * Purely presentational: every screen still owns its own copy, its own icon,
- * and everything below the fold.
+ * and everything below the fold. Syn's welcome uses it too, so the coach opens
+ * the way the app does.
  */
 
 // The app icon's own artwork, so the first screen and the home screen match.
 const LOGO = require('../../../../../assets/images/logo.png');
+
+const GLOW_SIZE = 220;
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -35,6 +41,12 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(20),
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    glow: {
+        position: 'absolute',
+        width: GLOW_SIZE,
+        height: GLOW_SIZE,
+        borderRadius: GLOW_SIZE / 2,
     },
     badge: {
         height: theme.space(16),
@@ -88,6 +100,17 @@ export const AuthHero: FC<AuthHeroProps> = ({ icon, eyebrow, title, subtitle, ch
     return (
         <VStack style={styles.container}>
             <Box style={styles.glowLayer}>
+                {/* Centered under the badge rather than behind it exactly, so it
+                    reads as ambient light the badge sits in front of, not a
+                    halo traced around its edge. */}
+                {Platform.OS === 'android' && (
+                    <LinearGradient
+                        colors={theme.gradients.glow as [string, string]}
+                        start={{ x: 0.5, y: 0.5 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.glow}
+                    />
+                )}
                 {icon ? (
                     <Box style={styles.badge}>
                         <Icon name={icon} size={theme.space(7)} color={theme.colors.primary} />

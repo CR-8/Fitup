@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
@@ -43,10 +43,13 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     panel: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -65,6 +68,7 @@ const styles = StyleSheet.create((theme) => ({
 
 const CheckEmailScreen = () => {
     const { t } = useTranslation(['screens']);
+    const { theme, rt } = useUnistyles();
     const { email = '', reason } = useLocalSearchParams<{ email?: string; reason?: string }>();
 
     const isRecovery = reason === 'recovery';
@@ -128,6 +132,12 @@ const CheckEmailScreen = () => {
                     loading={pending}
                     disabled={pending || cooldown > 0}
                     onPress={onResend}
+                    // Android draws its own spinner; iOS keeps the system one.
+                    spinnerColor={
+                        rt.themeName === 'dark'
+                            ? theme.colors.neutral[950]
+                            : theme.colors.neutral[50]
+                    }
                 />
 
                 {/* `replace`, not `back`: this screen is reached by `push` from

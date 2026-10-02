@@ -1,4 +1,5 @@
 import { FC, PropsWithChildren } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box, BoxProps } from '@/components/primitives/box';
@@ -13,7 +14,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: theme.space(1.5),
     },
     error: {
-        color: theme.colors.destructive,
+        color: Platform.select({ ios: theme.colors.destructive, default: theme.colors.red[500] }),
     },
 }));
 

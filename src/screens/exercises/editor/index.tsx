@@ -251,7 +251,7 @@ const styles = StyleSheet.create((theme) => ({
         borderTopWidth: 0,
     },
     weightContainer: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         paddingVertical: theme.space(2),

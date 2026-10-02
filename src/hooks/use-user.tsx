@@ -2,7 +2,8 @@ import { createContext, PropsWithChildren, useContext, useEffect, FC } from 'rea
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Appearance } from 'react-native';
+import { Appearance, Platform } from 'react-native';
+import { UnistylesRuntime } from 'react-native-unistyles';
 import { getLocales, getCalendars } from 'expo-localization';
 
 import i18n from '@/locale/i18n';
@@ -40,10 +41,24 @@ export const editUserSchema = z.object({
 
 export type EditUserFormData = z.infer<typeof editUserSchema>;
 
-// Driving the OS appearance, rather than picking a unistyles theme, is what makes
-// native views and PlatformColors follow the choice too.
+/**
+ * Light and Dark pin the unistyles theme; Auto lets it follow the system. On iOS
+ * the choice also goes to the OS appearance, which is what native bars, menus
+ * and PlatformColors follow. Unistyles reads the screen's own appearance, which
+ * that override does not change, so it has to be told as well.
+ */
 const applyTheme = (theme: (typeof themes)[number]) => {
-    Appearance.setColorScheme(theme === 'auto' ? 'unspecified' : theme);
+    if (theme === 'auto') {
+        UnistylesRuntime.setAdaptiveThemes(true);
+    } else {
+        UnistylesRuntime.setAdaptiveThemes(false);
+        UnistylesRuntime.setTheme(theme);
+    }
+
+    if (Platform.OS === 'ios') {
+        Appearance.setColorScheme(theme === 'auto' ? 'unspecified' : theme);
+    }
+
     storage.set('user.theme', theme);
 };
 
@@ -108,6 +123,12 @@ const useUserProvider = () => {
         },
         onSettled: () => queryClient.invalidateQueries({ queryKey: ['user'] }),
     });
+
+    // The stored row is the source of truth: apply it once it loads, so launch
+    // (and a row restored on sign-in) can't leave the app on another theme.
+    useEffect(() => {
+        if (user?.theme) applyTheme(user.theme);
+    }, [user?.theme]);
 
     useEffect(() => {
         const initUser = async () => {

@@ -9,7 +9,8 @@ const getLeafRoutes = (directory: string): string[] =>
         const path = join(directory, entry.name);
 
         if (entry.isDirectory()) return getLeafRoutes(path);
-        if (!entry.name.endsWith('.tsx') || entry.name === '_layout.tsx') return [];
+        // Layouts, including platform ones (`_layout.android.tsx`), are not screens.
+        if (!entry.name.endsWith('.tsx') || /^_layout(\.\w+)?\.tsx$/.test(entry.name)) return [];
 
         return [path];
     });

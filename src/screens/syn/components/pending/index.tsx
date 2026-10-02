@@ -3,9 +3,10 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { HStack } from '@/components/primitives/hstack';
-import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import Spinner from '@/components/feedback/spinner';
+
+import { SynAvatar } from '../avatar';
 
 /**
  * Syn, working, in the place the answer will appear.
@@ -21,15 +22,16 @@ import Spinner from '@/components/feedback/spinner';
  * between the two waits is how long they last, and telling someone a plan is
  * being built is what stops them tapping again and spending another generation.
  *
- * Deliberately borrows the assistant bubble's geometry from `../message` rather
- * than importing it — this is not a message, has no row in the database, and
- * must not be mistaken for one.
+ * Deliberately borrows the assistant turn's geometry (avatar, bubble) from
+ * `../message` rather than importing it — this is not a message, has no row in
+ * the database, and must not be mistaken for one.
  */
 
 const styles = StyleSheet.create((theme) => ({
     row: {
         width: '100%',
-        alignItems: 'flex-start',
+        alignItems: 'flex-end',
+        gap: theme.space(2),
     },
     bubble: {
         maxWidth: '88%',
@@ -57,13 +59,15 @@ export const Pending: FC<PendingProps> = ({ kind }) => {
     const { theme } = useUnistyles();
 
     return (
-        <VStack style={styles.row}>
+        <HStack style={styles.row}>
+            <SynAvatar />
             <HStack style={styles.bubble}>
-                <Spinner size={theme.space(4)} color={theme.colors.mutedTypography} />
+                {/* A plain string on Android, whose spinner needs one. */}
+                <Spinner size={theme.space(4)} color={theme.colors.mutedTypography as string} />
                 <Text fontSize="sm" style={styles.label}>
                     {t(kind === 'plan' ? 'syn.pending.plan' : 'syn.pending.reply')}
                 </Text>
             </HStack>
-        </VStack>
+        </HStack>
     );
 };

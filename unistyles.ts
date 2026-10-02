@@ -1,6 +1,5 @@
 import { storage } from '@/storage';
 import { Appearance, Platform, PlatformColor, type ColorValue } from 'react-native';
-import { requireNativeModule } from 'expo-modules-core';
 import { StyleSheet, UnistylesRuntime } from 'react-native-unistyles';
 
 const FONT_SIZE_BASE = 16;
@@ -98,24 +97,47 @@ const common = {
     },
 };
 
+/** Android's hand-built header: the status bar plus a 64pt bar. */
+const ANDROID_HEADER_HEIGHT = 64;
+
 const func = {
     space: (v: number) => v * SPACE,
-    /**
-     * Breathing room only. Native headers and tab bars inset scroll content
-     * themselves (`contentInsetAdjustmentBehavior` on iOS, layout on Android);
-     * Android still draws edge to edge under the gesture bar on pushed screens.
+    /*
+     * Android keeps the pre-native UI, whose headers are drawn by the app and
+     * float over the content; these place things around them. iOS uses native
+     * bars, which inset their content themselves.
      */
+    statusBarHeight: () => UnistylesRuntime.insets.top,
+    headerHeight: (_modalPresentation: boolean = false) => ANDROID_HEADER_HEIGHT,
+    screenHeaderHeight: (modalPresentation: boolean = false) =>
+        func.headerHeight(modalPresentation) + func.statusBarHeight(),
+    headerContentTopOffset: (contentHeight: number, modalPresentation: boolean = false): number =>
+        func.statusBarHeight() +
+        Math.max(0, (func.headerHeight(modalPresentation) - contentHeight) / 2),
+    sheetHeaderHeight: () => func.screenHeaderHeight() - func.space(5),
     screenContentPadding: (screen: 'root' | 'child' | 'editor' | 'sheet') => {
-        const bottom = Platform.OS === 'android' ? UnistylesRuntime.insets.bottom : 0;
+        const bottom = UnistylesRuntime.insets.bottom;
 
+        if (Platform.OS === 'android') {
+            const top = func.screenHeaderHeight();
+
+            if (screen === 'root')
+                return { paddingTop: top, paddingBottom: bottom + func.space(20) };
+            if (screen === 'editor')
+                return { paddingTop: top + func.space(5), paddingBottom: bottom + func.space(24) };
+            if (screen === 'sheet') return { paddingTop: func.sheetHeaderHeight() };
+
+            return { paddingTop: top + func.space(5), paddingBottom: bottom + func.space(5) };
+        }
+
+        // Breathing room only: native headers and tab bars inset scroll content
+        // themselves (`contentInsetAdjustmentBehavior`).
         if (screen === 'root') return { paddingTop: func.space(2), paddingBottom: func.space(8) };
-
         if (screen === 'editor')
-            return { paddingTop: func.space(5), paddingBottom: bottom + func.space(24) };
-
+            return { paddingTop: func.space(5), paddingBottom: func.space(24) };
         if (screen === 'sheet') return { paddingTop: func.space(5) };
 
-        return { paddingTop: func.space(5), paddingBottom: bottom + func.space(5) };
+        return { paddingTop: func.space(5), paddingBottom: func.space(5) };
     },
 };
 
@@ -207,26 +229,10 @@ export const colors = {
 
 type Scheme = 'light' | 'dark';
 
-type ExpoRouterNative = {
-    Material3DynamicColor: (role: string, scheme: Scheme) => string | null;
-};
-
 /**
- * Material You roles resolved for one scheme. Android hands them back as plain
- * hex, so each theme gets its own set and JS consumers (charts, svg) can use
- * them as-is.
- *
- * ponytail: read once at launch, so a wallpaper change shows after a restart.
- */
-const material = (role: string, scheme: Scheme): string =>
-    requireNativeModule<ExpoRouterNative>('ExpoRouter').Material3DynamicColor(role, scheme) ??
-    colors.neutral[500];
-
-/**
- * The app's vocabulary (`foreground` is a card, `typography` is text) mapped onto
- * the OS's own colours: UIKit semantic colours on iOS, which follow the
- * appearance by themselves, and Material You on Android. The web default keeps
- * the old palette.
+ * The app's vocabulary (`foreground` is a card, `typography` is text). iOS maps
+ * it onto UIKit's semantic colours, which follow the appearance by themselves;
+ * Android (and web) keep FitSyn's own palette, as before the native UI.
  */
 const semantic = (scheme: Scheme): SemanticColors => {
     const dark = scheme === 'dark';
@@ -235,6 +241,7 @@ const semantic = (scheme: Scheme): SemanticColors => {
         return {
             background: PlatformColor('systemGroupedBackground'),
             foreground: PlatformColor('secondarySystemGroupedBackground'),
+            inset: PlatformColor('secondarySystemGroupedBackground'),
             elevated: PlatformColor('tertiarySystemGroupedBackground'),
             typography: PlatformColor('label'),
             mutedTypography: PlatformColor('secondaryLabel'),
@@ -249,27 +256,10 @@ const semantic = (scheme: Scheme): SemanticColors => {
             destructive: PlatformColor('systemRed'),
         };
 
-    if (Platform.OS === 'android')
-        return {
-            background: material('surface', scheme),
-            foreground: material('surfaceContainer', scheme),
-            elevated: material('surfaceContainerHigh', scheme),
-            typography: material('onSurface', scheme),
-            mutedTypography: material('onSurfaceVariant', scheme),
-            border: material('outlineVariant', scheme),
-            input: material('surfaceContainerHighest', scheme),
-            primary: material('primary', scheme),
-            primaryTypography: material('onPrimary', scheme),
-            primarySoft: material('primaryContainer', scheme),
-            accent: material('onSurface', scheme),
-            accentTypography: material('surface', scheme),
-            success: dark ? '#35c47f' : '#1f9d63',
-            destructive: material('error', scheme),
-        };
-
     return {
         background: dark ? colors.neutral[950] : colors.neutral[50],
         foreground: dark ? colors.neutral[900] : colors.white,
+        inset: dark ? colors.neutral[950] : colors.neutral[50],
         elevated: dark ? colors.neutral[800] : colors.neutral[100],
         typography: dark ? colors.neutral[50] : colors.neutral[900],
         mutedTypography: dark ? colors.neutral[400] : colors.neutral[500],
@@ -295,6 +285,7 @@ const IOS_SOLID: Record<Scheme, SolidColors> = {
     light: {
         background: '#f2f2f7',
         foreground: '#ffffff',
+        inset: '#ffffff',
         elevated: '#ffffff',
         typography: '#000000',
         mutedTypography: 'rgba(60, 60, 67, 0.6)',
@@ -311,6 +302,7 @@ const IOS_SOLID: Record<Scheme, SolidColors> = {
     dark: {
         background: '#000000',
         foreground: '#1c1c1e',
+        inset: '#1c1c1e',
         elevated: '#2c2c2e',
         typography: '#ffffff',
         mutedTypography: 'rgba(235, 235, 245, 0.6)',
@@ -334,6 +326,11 @@ type SolidColors = Record<keyof SemanticColors, string>;
 type SemanticColors = Record<
     | 'background'
     | 'foreground'
+    /**
+     * A section set into the page: a raised card on iOS (inset grouped), flush
+     * with the page on Android, as the pre-native design drew it.
+     */
+    | 'inset'
     | 'elevated'
     | 'typography'
     | 'mutedTypography'
@@ -349,12 +346,55 @@ type SemanticColors = Record<
     ColorValue
 >;
 
+/** Android's pre-native surfaces paint with these; iOS draws flat system surfaces. */
+const GRADIENTS = {
+    light: {
+        brand: ['#ff6a55', '#ff2d20'],
+        ink: ['#1e1e22', '#3a3a44'],
+        surface: ['#ffffff', '#f7f7f9'],
+        /** Stands in for the design's radial bloom; see `glow` in the theme. */
+        glow: ['rgba(255, 69, 58, 0.14)', 'rgba(255, 69, 58, 0)'],
+    },
+    dark: {
+        brand: ['#ff6a55', '#e0342a'],
+        ink: ['#1e1e22', '#0b0b0c'],
+        surface: ['#1e1e22', '#17171a'],
+        glow: ['rgba(255, 69, 58, 0.20)', 'rgba(255, 69, 58, 0)'],
+    },
+} as const;
+
+const shadows = (ink: string, soft: number, lift: number, glow: number) => ({
+    soft: {
+        shadowColor: ink,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: soft,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    lift: {
+        shadowColor: ink,
+        shadowOffset: { width: 0, height: 18 },
+        shadowOpacity: lift,
+        shadowRadius: 24,
+        elevation: 10,
+    },
+    glow: {
+        shadowColor: colors.brand[500],
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: glow,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+});
+
 export const lightTheme = {
     colors: {
         ...semantic('light'),
         ...colors,
     },
     solid: solid('light'),
+    gradients: GRADIENTS.light,
+    shadows: shadows('#1e1e22', 0.14, 0.18, 0.45),
     ...common,
     ...func,
 } as const;
@@ -365,6 +405,8 @@ export const darkTheme = {
         ...colors,
     },
     solid: solid('dark'),
+    gradients: GRADIENTS.dark,
+    shadows: shadows(colors.black, 0.5, 0.65, 0.55),
     ...common,
     ...func,
 } as const;
@@ -390,19 +432,19 @@ declare module 'react-native-unistyles' {
     export interface UnistylesBreakpoints extends AppBreakpoints {}
 }
 
-// The in-app override is applied to the OS appearance itself, so native views
-// and PlatformColors follow it along with the adaptive unistyles theme. No
-// stored choice means Auto.
+// A stored Light or Dark pins the theme; anything else (Auto, or nothing yet)
+// follows the system. `applyTheme` in `use-user` keeps this in step afterwards.
 const storedTheme = storage.getString('user.theme');
+const pinnedTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : undefined;
 
-if (storedTheme === 'light' || storedTheme === 'dark') {
-    Appearance.setColorScheme(storedTheme);
+// iOS: native bars, menus and PlatformColors follow the OS appearance, so the
+// override goes there too.
+if (pinnedTheme && Platform.OS === 'ios') {
+    Appearance.setColorScheme(pinnedTheme);
 }
 
 StyleSheet.configure({
-    settings: {
-        adaptiveThemes: true,
-    },
+    settings: pinnedTheme ? { initialTheme: pinnedTheme } : { adaptiveThemes: true },
     themes: {
         light: lightTheme,
         dark: darkTheme,

@@ -1,4 +1,5 @@
 import { FC, useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -31,7 +32,7 @@ import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-ru
  * rather than the home dashboard header.
  */
 
-const styles = StyleSheet.create((theme) => ({
+const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
     },
@@ -61,7 +62,11 @@ const styles = StyleSheet.create((theme) => ({
     emptyBody: {
         flex: 1,
         justifyContent: 'center',
-        paddingBottom: theme.space(16),
+        // Android's tab bar floats over the content; iOS insets for its own.
+        paddingBottom: Platform.select({
+            ios: theme.space(16),
+            default: rt.insets.bottom + theme.space(16),
+        }),
         gap: theme.space(4),
     },
     emptyText: {
@@ -121,6 +126,10 @@ const WorkoutHubScreen: FC = () => {
         () => (
             <VStack style={styles.headerContent}>
                 <VStack style={styles.titleBlock}>
+                    {/* iOS shows the title in the native large title. */}
+                    {Platform.OS === 'android' && (
+                        <Title type="h1">{t('workoutHub.title', { ns: 'screens' })}</Title>
+                    )}
                     <Text style={styles.subtitle}>
                         {t('workoutHub.subtitle', { ns: 'screens' })}
                     </Text>
@@ -154,6 +163,11 @@ const WorkoutHubScreen: FC = () => {
     if (!hasWorkouts) {
         return (
             <VStack style={styles.empty}>
+                {Platform.OS === 'android' && (
+                    <VStack style={styles.titleBlock}>
+                        <Title type="h1">{t('workoutHub.title', { ns: 'screens' })}</Title>
+                    </VStack>
+                )}
                 <VStack style={styles.emptyBody}>
                     <Title type="h3">{t('workoutHub.empty.title', { ns: 'screens' })}</Title>
                     <Text style={styles.emptyText}>
@@ -163,6 +177,7 @@ const WorkoutHubScreen: FC = () => {
                         size="lg"
                         onPress={handleCreateWorkout}
                         title={t('workoutHub.empty.action', { ns: 'screens' })}
+                        textStyle={styles.buttonTitle}
                     />
                 </VStack>
             </VStack>

@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { Platform } from 'react-native';
+import { useMemo } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { DateTimePicker, type DateTimePickerEvent } from '@expo/ui/community/datetime-picker';
 import {
@@ -17,7 +16,6 @@ import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
 import { Box, BoxProps } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
-import { Pressable } from '@/components/primitives/pressable';
 import { useUser } from '@/hooks/use-user';
 
 import { Error } from '../components';
@@ -52,16 +50,6 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
         gap: theme.space(2),
     },
-    androidValueButton: {
-        paddingVertical: theme.space(2),
-        paddingHorizontal: theme.space(3),
-        borderRadius: theme.radius.full,
-        alignItems: 'center',
-        backgroundColor: theme.colors.elevated,
-    },
-    androidValueText: {
-        color: theme.colors.typography,
-    },
     errorContainer: {
         paddingHorizontal: theme.space(5),
         marginTop: -theme.space(2),
@@ -88,26 +76,10 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
     const {
         field: { onChange, value },
     } = useController({ name, control, defaultValue });
-    const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time' | null>(null);
 
     const pickerValue = useMemo(
         () => (value ?? defaultValue ?? new Date()) as Date,
         [defaultValue, value],
-    );
-    const isAndroid = Platform.OS === 'android';
-
-    const formattedDate = useMemo(
-        () => pickerValue.toLocaleDateString(i18n.language),
-        [i18n.language, pickerValue],
-    );
-    const formattedTime = useMemo(
-        () =>
-            pickerValue.toLocaleTimeString(i18n.language, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: user?.timeFormat === '12h',
-            }),
-        [i18n.language, pickerValue, user?.timeFormat],
     );
 
     const mergeDate = (base: Date, selectedDate: Date) => {
@@ -129,10 +101,6 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
     };
 
     const handleDateChange = (event: DateTimePickerEvent, selected: Date | undefined) => {
-        if (isAndroid) {
-            setAndroidPickerMode(null);
-        }
-
         if (event.type === 'set') {
             if (!selected) {
                 return;
@@ -143,10 +111,6 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
     };
 
     const handleTimeChange = (event: DateTimePickerEvent, selected: Date | undefined) => {
-        if (isAndroid) {
-            setAndroidPickerMode(null);
-        }
-
         if (event.type === 'set') {
             if (!selected) {
                 return;
@@ -170,63 +134,18 @@ export function Datetime<T extends FieldValues, TName extends FieldPath<T>>({
                     )}
                 </VStack>
                 <HStack style={styles.selectContainer}>
-                    {isAndroid ? (
-                        <>
-                            <Pressable
-                                style={styles.androidValueButton}
-                                onPress={() => setAndroidPickerMode('date')}
-                            >
-                                <Text style={styles.androidValueText}>{formattedDate}</Text>
-                            </Pressable>
-                            {mode === 'datetime' && (
-                                <Pressable
-                                    style={styles.androidValueButton}
-                                    onPress={() => setAndroidPickerMode('time')}
-                                >
-                                    <Text style={styles.androidValueText}>{formattedTime}</Text>
-                                </Pressable>
-                            )}
-                            {androidPickerMode && (
-                                <DateTimePicker
-                                    value={pickerValue}
-                                    mode={androidPickerMode}
-                                    locale={i18n.language}
-                                    display="default"
-                                    minimumDate={
-                                        androidPickerMode === 'date' ? minimumDate : undefined
-                                    }
-                                    maximumDate={
-                                        androidPickerMode === 'date' ? maximumDate : undefined
-                                    }
-                                    is24Hour={
-                                        androidPickerMode === 'time'
-                                            ? user?.timeFormat === '24h'
-                                            : undefined
-                                    }
-                                    onChange={
-                                        androidPickerMode === 'date'
-                                            ? handleDateChange
-                                            : handleTimeChange
-                                    }
-                                    themeVariant={rt.themeName}
-                                    accentColor={theme.colors.primary as string}
-                                />
-                            )}
-                        </>
-                    ) : (
-                        <DateTimePicker
-                            value={pickerValue}
-                            mode="date"
-                            locale={i18n.language}
-                            display="default"
-                            minimumDate={minimumDate}
-                            maximumDate={maximumDate}
-                            onChange={handleDateChange}
-                            themeVariant={rt.themeName}
-                            accentColor={theme.colors.primary as string}
-                        />
-                    )}
-                    {!isAndroid && mode === 'datetime' && (
+                    <DateTimePicker
+                        value={pickerValue}
+                        mode="date"
+                        locale={i18n.language}
+                        display="default"
+                        minimumDate={minimumDate}
+                        maximumDate={maximumDate}
+                        onChange={handleDateChange}
+                        themeVariant={rt.themeName}
+                        accentColor={theme.colors.primary as string}
+                    />
+                    {mode === 'datetime' && (
                         <DateTimePicker
                             value={pickerValue}
                             mode="time"

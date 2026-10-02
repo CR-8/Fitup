@@ -1,8 +1,9 @@
 import { FC, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -42,7 +43,22 @@ const styles = StyleSheet.create((theme) => ({
         padding: theme.space(5),
         gap: theme.space(4),
         overflow: 'hidden' as const,
+        // Android keeps the design board's coral-edged card.
+        ...Platform.select({
+            ios: {},
+            default: {
+                borderWidth: 1,
+                borderColor: isResume ? theme.colors.primary : 'rgba(255, 69, 58, 0.35)',
+            },
+        }),
     }),
+    glow: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+    },
     badge: (isResume: boolean) => ({
         height: theme.space(12),
         width: theme.space(12),
@@ -75,13 +91,19 @@ const styles = StyleSheet.create((theme) => ({
         paddingVertical: theme.space(2.5),
         paddingHorizontal: theme.space(5),
         borderRadius: theme.radius.full,
-        backgroundColor: isResume ? theme.colors.primaryTypography : theme.colors.primary,
+        // Android darkens the coral a step so the white label clears 4.5:1.
+        backgroundColor: isResume
+            ? theme.colors.primaryTypography
+            : Platform.select({ ios: theme.colors.primary, default: theme.colors.brand[600] }),
     }),
-    // Resume inverts the pill onto the card's tint colour.
+    // Resume inverts the pill onto the card's tint colour (darker still on
+    // Android: `brand[700]` on white is 5.84:1).
     actionText: (isResume: boolean) => ({
         ...theme.fontSize.default,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: isResume ? theme.colors.primary : theme.colors.primaryTypography,
+        color: isResume
+            ? Platform.select({ ios: theme.colors.primary, default: theme.colors.brand[700] })
+            : theme.colors.primaryTypography,
     }),
     header: {
         flex: 1,
@@ -192,6 +214,15 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                 accessibilityRole="button"
                 accessibilityLabel={actionLabel}
             >
+                {Platform.OS === 'android' && !isResume ? (
+                    <LinearGradient
+                        colors={theme.gradients.glow as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.glow}
+                    />
+                ) : null}
+
                 <HStack style={styles.row}>
                     <Box style={styles.badge(isResume)}>
                         <Icon
@@ -246,7 +277,14 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
                         <Icon
                             name="arrow-right"
                             size={theme.space(4.5)}
-                            color={isResume ? theme.colors.primary : theme.colors.primaryTypography}
+                            color={
+                                isResume
+                                    ? Platform.select({
+                                          ios: theme.colors.primary,
+                                          default: theme.colors.brand[700],
+                                      })
+                                    : theme.colors.primaryTypography
+                            }
                         />
                     )}
                 </Box>

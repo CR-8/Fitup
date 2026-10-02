@@ -1,5 +1,6 @@
 import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { router } from 'expo-router';
 
@@ -45,7 +46,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
     },
     button: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        }),
         borderRadius: theme.radius.full,
         height: theme.space(16),
         width: theme.space(16),
@@ -56,7 +60,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 }));
 const EmptyState: FC<EmptyStateProps> = ({ workout }) => {
     const { t } = useTranslation(['screens']);
-    const { theme } = useUnistyles();
+    const { theme, rt } = useUnistyles();
     const { track } = useAnalytics();
 
     const title = useMemo(() => {
@@ -102,7 +106,13 @@ const EmptyState: FC<EmptyStateProps> = ({ workout }) => {
                             name="plus"
                             style={styles.icon}
                             size={theme.space(8)}
-                            color={theme.colors.primaryTypography}
+                            color={Platform.select({
+                                ios: theme.colors.primaryTypography,
+                                default:
+                                    rt.themeName === 'dark'
+                                        ? theme.colors.neutral[950]
+                                        : theme.colors.white,
+                            })}
                         />
                     </Box>
                 </Pressable>

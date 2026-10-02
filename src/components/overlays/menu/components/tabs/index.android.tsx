@@ -1,0 +1,168 @@
+import React, { useCallback, useMemo, type FC } from 'react';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { useTranslation } from 'react-i18next';
+import { RelativePathString, router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import {
+    LucideIcon,
+    House,
+    Dumbbell,
+    CircleGauge,
+    ChartNoAxesColumn,
+    MessageCircle,
+} from 'lucide-react-native';
+
+import { Pressable } from '@/components/primitives/pressable';
+import { VStack } from '@/components/primitives/vstack';
+import { Box } from '@/components/primitives/box';
+import { Text } from '@/components/primitives/text';
+import { HStack } from '@/components/primitives/hstack';
+import { runInBackground } from '@/services/error-reporting';
+
+type TabsType = Omit<BottomTabBarProps, 'descriptors' | 'insets' | 'navigation'>;
+
+interface ItemType {
+    isFocused: boolean;
+    children: string;
+    onPress: () => void;
+    Icon: LucideIcon;
+}
+
+const styles = StyleSheet.create((theme, rt) => ({
+    tabsContainer: {
+        justifyContent: 'space-around',
+        height: theme.space(16),
+        paddingTop: theme.space(3),
+        paddingHorizontal: theme.space(1),
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        backgroundColor:
+            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
+    },
+    itemContainer: {
+        flex: 1,
+    },
+    itemWrapper: {
+        alignItems: 'center',
+        gap: theme.space(0.25),
+    },
+    itemIconWrapper: {
+        marginBottom: theme.space(1.5),
+        height: theme.space(5),
+        width: theme.space(5),
+    },
+    // Inactive tabs used to be `typography` faded by opacity, which reads as
+    // "slightly less faded" rather than as the place you are not. Using the
+    // muted colour at full opacity says it directly, and matches every other
+    // secondary label in the app rather than inventing a bar-specific fade.
+    itemText: (isFocused: boolean) => ({
+        color: isFocused ? theme.colors.primary : theme.colors.mutedTypography,
+    }),
+}));
+
+const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
+    const { theme } = useUnistyles();
+    const { t } = useTranslation(['menu']);
+
+    return (
+        <Box style={styles.itemContainer}>
+            <Pressable
+                onPressIn={() => {
+                    runInBackground(
+                        () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+                        'Failed to trigger tab haptic feedback:',
+                    );
+                    onPress();
+                }}
+            >
+                <VStack style={styles.itemWrapper}>
+                    <Box style={styles.itemIconWrapper}>
+                        <Icon
+                            size={theme.space(5)}
+                            color={isFocused ? theme.colors.primary : theme.colors.mutedTypography}
+                        />
+                    </Box>
+                    <Box>
+                        <Text
+                            fontSize="xs"
+                            fontWeight={isFocused ? 'semibold' : 'medium'}
+                            style={styles.itemText(isFocused)}
+                        >
+                            {t(children, { ns: 'menu' })}
+                        </Text>
+                    </Box>
+                </VStack>
+            </Pressable>
+        </Box>
+    );
+};
+
+const Tabs: FC<TabsType> = ({ state }) => {
+    const menu = useMemo(() => {
+        // Home, Exercises, Workout, Results, Syn — in the order the product
+        // is used. Each tab is a route group, so `screen` is the group's name. Settings left the bar because it is configuration rather
+        // than a daily destination; it is reached from the home header.
+        const items = [
+            {
+                screen: '(home)',
+                href: '/',
+                title: 'home.title',
+                icon: House,
+            },
+            {
+                screen: '(exercises)',
+                href: '/exercises',
+                title: 'exercises.title',
+                icon: CircleGauge,
+            },
+            {
+                screen: '(workouts)',
+                href: '/workouts',
+                title: 'workouts.title',
+                icon: Dumbbell,
+            },
+            {
+                screen: '(results)',
+                href: '/results',
+                title: 'results.title',
+                icon: ChartNoAxesColumn,
+            },
+            {
+                screen: '(syn)',
+                href: '/syn',
+                title: 'syn.title',
+                icon: MessageCircle,
+            },
+        ];
+
+        return items;
+    }, []);
+
+    const isFocused = useCallback(
+        (name: string) => {
+            if (name === 'menu') {
+                return !menu.map((i) => i.screen).includes(state.routes[state.index].name);
+            }
+            return name === state.routes[state.index].name;
+        },
+        [state, menu],
+    );
+
+    return (
+        <HStack style={styles.tabsContainer}>
+            {menu.map((item, index) => (
+                <Item
+                    key={index}
+                    onPress={() => router.navigate(item.href as RelativePathString)}
+                    isFocused={isFocused(item.screen)}
+                    Icon={item.icon}
+                >
+                    {item.title}
+                </Item>
+            ))}
+        </HStack>
+    );
+};
+
+export default Tabs;

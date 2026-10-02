@@ -1,10 +1,10 @@
 import { FC, useCallback, useDeferredValue, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 
 import { Box } from '@/components/primitives/box';
-import { Stack } from '@/navigators/stack';
 import {
     useExercisesList,
     useFavoriteExerciseIds,
@@ -13,12 +13,17 @@ import {
 import { countActiveFilters, useFilterStore } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
+import { SearchHeader } from './components/search-header';
 import { Shelf } from './components/shelf';
 import { ExercisesListContainer } from './components/list/container';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
+        ...Platform.select({
+            ios: {},
+            default: { paddingTop: theme.screenContentPadding('root').paddingTop },
+        }),
     },
     contentContainer: {
         paddingBottom: theme.screenContentPadding('root').paddingBottom,
@@ -86,14 +91,7 @@ const Exercises: FC = () => {
 
     return (
         <Box style={styles.container}>
-            <Stack.Screen
-                options={{
-                    headerSearchBarOptions: {
-                        placeholder: t('placeholder.search', { ns: 'common' }),
-                        onChangeText: (event) => setQuery(event.nativeEvent.text),
-                    },
-                }}
-            />
+            <SearchHeader query={query} onQueryChange={setQuery} />
             <ExercisesListContainer
                 mode="browse"
                 rawExercises={rawExercises}

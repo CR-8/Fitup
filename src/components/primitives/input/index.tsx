@@ -1,5 +1,5 @@
 import { ForwardedRef, forwardRef } from 'react';
-import { TextInput, TextInputProps } from 'react-native';
+import { Platform, TextInput, TextInputProps } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 
 export type InputProps = TextInputProps;
@@ -10,8 +10,11 @@ const Input = forwardRef<TextInput, InputProps>(({ ...rest }, ref: ForwardedRef<
     return (
         <TextInput
             ref={ref}
-            placeholderTextColor={theme.colors.mutedTypography}
-            selectionColor={theme.colors.primary}
+            placeholderTextColor={Platform.select({
+                ios: theme.colors.mutedTypography,
+                default: theme.colors.neutral[400],
+            })}
+            selectionColor={Platform.select({ ios: theme.colors.primary, default: undefined })}
             {...rest}
         />
     );

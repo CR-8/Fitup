@@ -1,5 +1,6 @@
 import { FC, useCallback, useMemo } from 'react';
-import { StyleSheet } from 'react-native-unistyles';
+import { Platform } from 'react-native';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -8,13 +9,12 @@ import { WorkoutSelect } from '@/db/schema';
 import { Button } from '@/components/buttons/base';
 import { CreateButton } from '@/components/buttons/create';
 import { HStack } from '@/components/primitives/hstack';
-import { Text } from '@/components/primitives/text';
-import { ActionsMenu } from '@/components/buttons/actions';
-import { useDuplicateMenu } from '@/hooks/use-action-menus';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { getExerciseLibrarySnapshot } from '@/crud/exercise';
 import { getExerciseLibraryProperties } from '@/analytics/helpers';
+
+import { RepeatButton } from './components/repeat-button';
 
 interface ActionsProps {
     workout?: WorkoutSelect;
@@ -47,31 +47,18 @@ const styles = StyleSheet.create((theme, rt) => ({
     startButtonContainer: {
         width: '100%',
     },
-    // A completed workout's main action opens the repeat menu, so its trigger
-    // is drawn as the prominent button rather than being one.
-    menuTrigger: {
-        height: 50,
-        paddingHorizontal: theme.space(12),
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    menuTriggerText: {
-        ...theme.fontSize.lg,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.primaryTypography,
+    customStartButtonText: {
+        fontSize: theme.fontSize.lg.fontSize,
     },
 }));
 
 export const Actions: FC<ActionsProps> = ({ workout }) => {
     const { t } = useTranslation(['common', 'screens']);
     const { track } = useAnalytics();
+    const { theme } = useUnistyles();
 
     const { startWorkout, completeWorkout, isPendingStartWorkout, isPendingCompleteWorkout } =
         useRunningWorkoutStatic();
-
-    const repeatMenu = useDuplicateMenu(workout?.id ?? '', 'repeat');
 
     const mainButtonTitle = useMemo(() => {
         if (workout?.status === 'in_progress') {
@@ -121,20 +108,27 @@ export const Actions: FC<ActionsProps> = ({ workout }) => {
         <Box style={styles.bottomActionsContainer}>
             <HStack>
                 <Box style={[styles.actionContainer, styles.leftContainer]}>
-                    <CreateButton onPressHandler={handleExerciseAdd} />
+                    <CreateButton
+                        onPressHandler={handleExerciseAdd}
+                        {...Platform.select<{ iconSize?: number }>({
+                            ios: {},
+                            default: { iconSize: theme.space(6) },
+                        })}
+                    />
                 </Box>
                 <Box style={[styles.actionContainer, styles.centerContainer]}>
                     <Box style={styles.startButtonContainer}>
                         {workout?.status === 'completed' ? (
-                            <ActionsMenu {...repeatMenu}>
-                                <Box style={styles.menuTrigger}>
-                                    <Text style={styles.menuTriggerText}>{mainButtonTitle}</Text>
-                                </Box>
-                            </ActionsMenu>
+                            <RepeatButton
+                                workoutId={workout.id}
+                                title={mainButtonTitle}
+                                loading={isPendingStartWorkout || isPendingCompleteWorkout}
+                            />
                         ) : (
                             <Button
                                 title={mainButtonTitle}
                                 type="primary"
+                                textStyle={styles.customStartButtonText}
                                 loading={isPendingStartWorkout || isPendingCompleteWorkout}
                                 disabled={!workout}
                                 onPress={handleMainAction}

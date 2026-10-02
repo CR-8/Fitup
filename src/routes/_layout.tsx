@@ -19,6 +19,7 @@ import i18n from '@/locale/i18n';
 import { useUser, UserProvider } from '@/hooks/use-user';
 import { queryClient } from '@/queries';
 import { Stack } from '@/navigators/stack';
+import { NavigationChrome, useAppFonts, useRootScreens } from '@/navigators/root';
 import { useScreen } from '@/hooks/use-screen';
 import { NotificationsProvider } from '@/hooks/use-notifications';
 import Actions from '@/components/overlays/actions';
@@ -68,11 +69,6 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
-/** Sheets that rise over the app: a page sheet on iOS, a slide-up on Android. */
-const modal = { presentation: 'modal', headerShown: true } as const;
-/** Pushed screens show the native bar, and with it the platform back button. */
-const pushed = { headerShown: true } as const;
-
 const SETTINGS_SCREENS = [
     ['account', 'account'],
     ['profile', 'profile'],
@@ -85,11 +81,6 @@ const SETTINGS_SCREENS = [
     ['language', 'language'],
     ['heartrate', 'heartRate'],
 ] as const;
-
-/** A bare bar carrying only the platform back button. */
-const backOnly = { headerShown: true, title: '' } as const;
-// The timer draws its own now-playing chrome, so it takes the whole screen.
-const fullScreenModal = { presentation: 'fullScreenModal' } as const;
 
 /**
  * Hears the redirect, so a screen that mounts because of it does not have to.
@@ -110,6 +101,9 @@ const App: FC = () => {
     const { t } = useTranslation(['screens']);
     const { user } = useUser();
     const { options } = useScreen();
+    // How each screen is presented differs by platform: native sheets and bars
+    // on iOS, the pre-native UI's own on Android.
+    const screens = useRootScreens();
     const { isSignedIn, isReady } = useAccount();
 
     useAuthRedirectCapture();
@@ -140,58 +134,55 @@ const App: FC = () => {
         <RunningWorkoutProvider>
             <StoreReviewGateProvider>
                 <PendingStoreReviewCoordinator />
-                <Stack
-                    screenOptions={{
-                        ...options,
-                        headerShown: false,
-                    }}
-                >
-                    {/* Removing these from the navigator — rather than
+                <NavigationChrome>
+                    <Stack
+                        screenOptions={{
+                            ...options,
+                            headerShown: false,
+                        }}
+                    >
+                        {/* Removing these from the navigator — rather than
                                 redirecting away from them — is what makes signing out a
                                 real logout: their history entries go with them, so back
                                 cannot re-enter the app. */}
-                    <Stack.Protected guard={!authRequired || isSignedIn}>
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="onboarding" />
-                        <Stack.Screen name="diet" options={modal} />
-                        <Stack.Screen name="timer" options={fullScreenModal} />
-                        <Stack.Screen name="workout/[workoutId]" options={pushed} />
-                        <Stack.Screen
-                            name="workout/[workoutId]/[workoutExerciseId]"
-                            options={modal}
-                        />
-                        <Stack.Screen name="exercises/[exerciseId]" options={pushed} />
-                        <Stack.Screen
-                            name="settings/index"
-                            options={{
-                                ...pushed,
-                                headerLargeTitle: true,
-                                title: t('settings.title'),
-                            }}
-                        />
-                        {SETTINGS_SCREENS.map(([name, key]) => (
+                        <Stack.Protected guard={!authRequired || isSignedIn}>
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="onboarding" />
+                            <Stack.Screen name="diet" options={screens.modal} />
+                            <Stack.Screen name="timer" options={screens.timer} />
+                            <Stack.Screen name="workout/[workoutId]" options={screens.pushed} />
                             <Stack.Screen
-                                key={name}
-                                name={`settings/${name}`}
-                                options={{ ...pushed, title: t(`settings.items.${key}.title`) }}
+                                name="workout/[workoutId]/[workoutExerciseId]"
+                                options={screens.workoutExercise}
                             />
-                        ))}
-                        <Stack.Screen name="editor" options={modal} />
-                        <Stack.Screen name="select" options={modal} />
-                        <Stack.Screen name="preview" options={modal} />
-                        <Stack.Screen name="guide" options={modal} />
-                        <Stack.Screen name="review" options={modal} />
-                        <Stack.Screen name="day" options={modal} />
-                        <Stack.Screen name="filter" options={modal} />
-                    </Stack.Protected>
+                            <Stack.Screen name="exercises/[exerciseId]" options={screens.pushed} />
+                            <Stack.Screen
+                                name="settings/index"
+                                options={screens.settings(t('settings.title'))}
+                            />
+                            {SETTINGS_SCREENS.map(([name, key]) => (
+                                <Stack.Screen
+                                    key={name}
+                                    name={`settings/${name}`}
+                                    options={screens.setting(t(`settings.items.${key}.title`))}
+                                />
+                            ))}
+                            <Stack.Screen name="editor" options={screens.modal} />
+                            <Stack.Screen name="select" options={screens.modal} />
+                            <Stack.Screen name="preview" options={screens.modal} />
+                            <Stack.Screen name="guide" options={screens.modal} />
+                            <Stack.Screen name="review" options={screens.modal} />
+                            <Stack.Screen name="day" options={screens.modal} />
+                            <Stack.Screen name="filter" options={screens.modal} />
+                        </Stack.Protected>
 
-                    {/* After the protected group, not before: when a navigator has to
+                        {/* After the protected group, not before: when a navigator has to
                                 pick a screen on its own — a development reload did exactly
                                 that — it takes the first one declared. First was sign-in, so
                                 a signed-in user was put in front of the sign-in form with
                                 nothing to move them on. Signed out, the protected screens
                                 are gone and sign-in is first again. */}
-                    {/* Reachable without a session: sign-in itself, the
+                        {/* Reachable without a session: sign-in itself, the
                                 redirect target — which by definition lands before
                                 one exists — and the three screens either side of an
                                 email link.
@@ -201,14 +192,15 @@ const App: FC = () => {
                                 so the guard would admit it, but the screen has to
                                 survive its own sign-out escape hatch, and it is
                                 pre-session in every sense that matters. */}
-                    <Stack.Screen name="sign-in" />
-                    <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
-                    <Stack.Screen name="auth/forgot-password" options={backOnly} />
-                    <Stack.Screen name="auth/check-email" options={backOnly} />
-                    <Stack.Screen name="auth/new-password" options={backOnly} />
-                </Stack>
-                <Actions />
-                <RestInput />
+                        <Stack.Screen name="sign-in" />
+                        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+                        <Stack.Screen name="auth/forgot-password" options={screens.auth} />
+                        <Stack.Screen name="auth/check-email" options={screens.auth} />
+                        <Stack.Screen name="auth/new-password" options={screens.auth} />
+                    </Stack>
+                    <Actions />
+                    <RestInput />
+                </NavigationChrome>
             </StoreReviewGateProvider>
         </RunningWorkoutProvider>
     );
@@ -240,12 +232,14 @@ const isDrizzleStudioEnabled =
 
 const RootLayout: FC = () => {
     const { success: dbSuccess, error: dbError } = useMigrations(db, migrations);
+    const { fontsLoaded, fontsError } = useAppFonts();
 
     useEffect(() => {
+        if (fontsError) throw fontsError;
         if (dbError) throw dbError;
-    }, [dbError]);
+    }, [dbError, fontsError]);
 
-    if (!dbSuccess) {
+    if (!dbSuccess || !fontsLoaded) {
         return null;
     }
 

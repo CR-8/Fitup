@@ -7,6 +7,7 @@ import {
     PathValue,
     useController,
 } from 'react-hook-form';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +18,7 @@ import { Box, BoxProps } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/buttons/base';
+import { stableOutlineWidth } from '@/helpers/styles';
 
 import { Label, Error } from '../components';
 import { ControlledInputType } from '../types';
@@ -62,11 +64,19 @@ export interface ChoicesFieldType<
 const styles = StyleSheet.create((theme) => ({
     choicesContainer: {
         gap: theme.space(0.5),
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        backgroundColor: theme.colors.inset,
         borderCurve: 'continuous',
-        paddingVertical: theme.space(3),
-        paddingHorizontal: theme.space(4),
+        ...Platform.select({
+            ios: {
+                borderRadius: theme.radius['2xl'],
+                paddingVertical: theme.space(3),
+                paddingHorizontal: theme.space(4),
+            },
+            default: {
+                borderRadius: theme.radius['4xl'],
+                padding: theme.space(5),
+            },
+        }),
     },
     choicesWrapper: {
         gap: theme.space(3),
@@ -95,27 +105,41 @@ const styles = StyleSheet.create((theme) => ({
         paddingTop: showTopBorder ? theme.space(3) : 0,
         paddingBottom: showBottomBorder ? theme.space(3) : 0,
     }),
-    // Android's radio: a ring, filled in the primary colour when chosen. iOS
-    // marks the chosen row with a trailing checkmark instead (see `Choice`).
-    iconWrapper: (checked: boolean, error: boolean) => ({
-        borderWidth: 2,
-        borderColor: error
-            ? theme.colors.destructive
-            : checked
-              ? theme.colors.primary
-              : theme.colors.mutedTypography,
-        borderRadius: theme.radius.full,
-        height: theme.space(5),
-        width: theme.space(5),
-        justifyContent: 'center',
-        alignItems: 'center',
-    }),
-    iconDot: {
-        height: theme.space(2.5),
-        width: theme.space(2.5),
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.primary,
-    },
+    // The radio ring. iOS marks a chosen row with a trailing checkmark instead
+    // (see `Choice`) and draws the ring only beside the compact selection.
+    iconWrapper: (checked: boolean, error: boolean, uncheckedIndicatorBackgroundColor?: string) =>
+        Platform.select({
+            ios: {
+                borderWidth: 2,
+                borderColor: error
+                    ? theme.colors.destructive
+                    : checked
+                      ? theme.colors.primary
+                      : theme.colors.mutedTypography,
+                borderRadius: theme.radius.full,
+                height: theme.space(5),
+                width: theme.space(5),
+                justifyContent: 'center',
+                alignItems: 'center',
+            },
+            default: {
+                borderWidth: stableOutlineWidth,
+                borderColor: error
+                    ? theme.colors.red[500]
+                    : checked
+                      ? theme.colors.typography
+                      : theme.colors.border,
+                backgroundColor: checked
+                    ? theme.colors.typography
+                    : (uncheckedIndicatorBackgroundColor ?? theme.colors.background),
+                borderRadius: theme.radius.full,
+                height: theme.space(6),
+                width: theme.space(6),
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: theme.space(0.25),
+            },
+        }),
     checkmark: {
         width: theme.space(5),
         alignItems: 'center',
@@ -127,7 +151,9 @@ const styles = StyleSheet.create((theme) => ({
         paddingBottom: showBottomBorder ? theme.space(3) : 0,
     }),
     choiceTitle: (error: boolean) => ({
-        color: error ? theme.colors.destructive : theme.colors.typography,
+        color: error
+            ? Platform.select({ ios: theme.colors.destructive, default: theme.colors.red[500] })
+            : theme.colors.typography,
     }),
     selectedContainer: {
         flex: 1,
@@ -217,6 +243,7 @@ const Choice: FC<{
     checked,
     error,
     selectPosition = 'left',
+    uncheckedIndicatorBackgroundColor,
 }) => {
     const { theme } = useUnistyles();
 
@@ -239,13 +266,22 @@ const Choice: FC<{
                                 ) : null}
                             </Box>
                         ) : (
-                            <Box style={styles.iconWrapper(checked, !!error)}>
-                                {checked ? <Box style={styles.iconDot} /> : null}
-                            </Box>
+                            <Box
+                                style={styles.iconWrapper(
+                                    checked,
+                                    !!error,
+                                    uncheckedIndicatorBackgroundColor,
+                                )}
+                            />
                         )}
                     </Box>
                     <VStack style={styles.choiceTitleContainer(showTopBorder, showBottomBorder)}>
-                        <Text style={styles.choiceTitle(!!error)}>{choice.title}</Text>
+                        <Text
+                            fontWeight={isIOS ? undefined : 'medium'}
+                            style={styles.choiceTitle(!!error)}
+                        >
+                            {choice.title}
+                        </Text>
                     </VStack>
                 </HStack>
                 {showBottomBorder && <Box style={styles.choiceSeparator} />}

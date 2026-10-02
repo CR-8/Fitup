@@ -1,4 +1,5 @@
 import { FC, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
@@ -72,14 +73,20 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(5),
     },
     heroTitle: {
-        color: theme.colors.typography,
+        color: Platform.select({
+            ios: theme.colors.typography,
+            default: theme.colors.neutral[950],
+        }),
     },
     heroImage: {
         width: '100%',
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[500],
+        }),
         textAlign: 'center',
     },
 
@@ -130,7 +137,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(7),
         height: theme.space(7),
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -156,7 +163,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 
     mistakeSection: {
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),

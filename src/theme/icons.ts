@@ -1,3 +1,4 @@
+import type { ColorValue, StyleProp, ViewStyle } from 'react-native';
 import type { SymbolViewProps } from 'expo-symbols';
 
 /**
@@ -58,3 +59,10 @@ export const icons = {
 } satisfies Record<string, Extract<SymbolViewProps['name'], object>>;
 
 export type IconName = keyof typeof icons;
+
+export interface IconProps {
+    name: IconName;
+    size?: number;
+    color?: ColorValue;
+    style?: StyleProp<ViewStyle>;
+}

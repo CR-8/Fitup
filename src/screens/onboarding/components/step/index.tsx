@@ -199,7 +199,14 @@ export const OnboardingStep: FC<StepProps> = ({
             <Box style={styles.spacer} />
 
             <VStack style={styles.actions}>
-                <Button title={nextLabel} type="primary" loading={isSubmitting} onPress={onNext} />
+                <Button
+                    title={nextLabel}
+                    type="primary"
+                    loading={isSubmitting}
+                    onPress={onNext}
+                    // Android draws its own spinner; iOS keeps the system one.
+                    spinnerColor={theme.solid.primaryTypography}
+                />
 
                 <HStack style={styles.secondaryRow}>
                     {onBack ? (

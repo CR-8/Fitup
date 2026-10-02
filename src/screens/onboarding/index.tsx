@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +26,10 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
     },
     hint: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
 }));
 
@@ -219,7 +222,7 @@ const OnboardingScreen = () => {
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.name', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.name', { ns: 'screens' })}</Label>
                             <Input
                                 control={control}
                                 name="displayName"
@@ -229,18 +232,21 @@ const OnboardingScreen = () => {
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.age', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.age', { ns: 'screens' })}</Label>
                             <Input
                                 control={control}
                                 name="age"
                                 valueType="number"
-                                placeholder={String(MEDIAN_AGE_YEARS)}
+                                placeholder={t('onboarding.example', {
+                                    ns: 'screens',
+                                    value: MEDIAN_AGE_YEARS,
+                                })}
                                 error={errors.age}
                             />
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.sex', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.sex', { ns: 'screens' })}</Label>
                             <Buttons
                                 control={control}
                                 name="biologicalSex"
@@ -259,29 +265,37 @@ const OnboardingScreen = () => {
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.weight', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.weight', { ns: 'screens' })}</Label>
                             <Input
                                 control={control}
                                 name="bodyWeightKg"
                                 valueType="decimal"
-                                placeholder={String(averages.bodyWeightKg)}
+                                placeholder={t('onboarding.example', {
+                                    ns: 'screens',
+                                    value: averages.bodyWeightKg,
+                                })}
                                 error={errors.bodyWeightKg}
                             />
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.height', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.height', { ns: 'screens' })}</Label>
                             <Input
                                 control={control}
                                 name="heightCm"
                                 valueType="decimal"
-                                placeholder={String(averages.heightCm)}
+                                placeholder={t('onboarding.example', {
+                                    ns: 'screens',
+                                    value: averages.heightCm,
+                                })}
                                 error={errors.heightCm}
                             />
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.somatotype', { ns: 'screens' })}</Label>
+                            <Label field>
+                                {t('onboarding.fields.somatotype', { ns: 'screens' })}
+                            </Label>
                             <Buttons
                                 control={control}
                                 name="somatotype"
@@ -307,7 +321,7 @@ const OnboardingScreen = () => {
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.goal', { ns: 'screens' })}</Label>
+                            <Label field>{t('onboarding.fields.goal', { ns: 'screens' })}</Label>
                             <Buttons
                                 control={control}
                                 name="goal"
@@ -317,12 +331,17 @@ const OnboardingScreen = () => {
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.targetWeight', { ns: 'screens' })}</Label>
+                            <Label field>
+                                {t('onboarding.fields.targetWeight', { ns: 'screens' })}
+                            </Label>
                             <Input
                                 control={control}
                                 name="targetWeightKg"
                                 valueType="decimal"
-                                placeholder={String(targetWeightHint)}
+                                placeholder={t('onboarding.example', {
+                                    ns: 'screens',
+                                    value: targetWeightHint,
+                                })}
                                 error={errors.targetWeightKg}
                             />
                         </VStack>
@@ -337,7 +356,9 @@ const OnboardingScreen = () => {
                 content: (
                     <>
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.activity', { ns: 'screens' })}</Label>
+                            <Label field>
+                                {t('onboarding.fields.activity', { ns: 'screens' })}
+                            </Label>
                             <Buttons
                                 control={control}
                                 name="activityLevel"
@@ -353,18 +374,23 @@ const OnboardingScreen = () => {
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>{t('onboarding.fields.sessions', { ns: 'screens' })}</Label>
+                            <Label field>
+                                {t('onboarding.fields.sessions', { ns: 'screens' })}
+                            </Label>
                             <Input
                                 control={control}
                                 name="sessionsPerWeek"
                                 valueType="number"
-                                placeholder={String(GUIDELINE_SESSIONS_PER_WEEK)}
+                                placeholder={t('onboarding.example', {
+                                    ns: 'screens',
+                                    value: GUIDELINE_SESSIONS_PER_WEEK,
+                                })}
                                 error={errors.sessionsPerWeek}
                             />
                         </VStack>
 
                         <VStack style={styles.fieldContainer}>
-                            <Label>
+                            <Label field>
                                 {t('onboarding.fields.trainingEnvironment', { ns: 'screens' })}
                             </Label>
                             <Buttons

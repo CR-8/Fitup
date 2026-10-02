@@ -1,4 +1,5 @@
 import { FC, memo, useMemo, useCallback, useEffect } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import Reanimated, {
     SharedValue,
@@ -16,10 +17,9 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ExerciseSetSelect, ExerciseSelect, WorkoutExerciseSelect } from '@/db/schema';
 import { Separator } from '@/components/layout/separator';
 import { useDeleteExerciseSet, useUpdateExerciseSet } from '@/hooks/use-workouts';
-import { ActionsMenu } from '@/components/buttons/actions';
-import { useSetTypeMenu } from '@/hooks/use-action-menus';
 
 import { Rest } from '../rest';
+import { SetTypeMenu } from './components/type-menu';
 import { formatClockSecondsCompact } from '@/helpers/times';
 import { TimeDurationInput } from '@/components/primitives/time-duration-input';
 import { WeightInput } from '@/components/primitives/weight-input';
@@ -114,7 +114,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     orderTitle: {
         fontWeight: theme.fontWeight.default.fontWeight,
         fontSize: theme.fontSize.sm.fontSize,
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     setContainer: {
         flex: 1,
@@ -127,7 +130,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginRight: theme.space(4),
     },
     swipeable: {
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
     },
     swipeableContainer: {
         backgroundColor: theme.colors.background,
@@ -159,7 +165,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -249,7 +258,6 @@ const SetItemComponent = ({
 
     const { mutateAsync: updateSet } = useUpdateExerciseSet();
     const { mutate: deleteSet } = useDeleteExerciseSet();
-    const setTypeMenu = useSetTypeMenu(set.id, normalizeSetType(set.type));
 
     const isActive = set.id === activeSetId;
     const isCompleted = !!set.completedAt;
@@ -440,13 +448,17 @@ const SetItemComponent = ({
                 <HStack style={styles.set(isActive, isTimerActive)}>
                     <HStack style={styles.orderContainer}>
                         <SetStatus active={isActive} completed={isCompleted} />
-                        <ActionsMenu {...setTypeMenu}>
+                        <SetTypeMenu
+                            setId={set.id}
+                            workoutExerciseId={set.workoutExerciseId}
+                            setType={normalizeSetType(set.type)}
+                        >
                             <Box style={styles.orderWrapper(isActive, isTimerActive)}>
                                 <Text style={styles.orderTitle}>
                                     {`${index + 1} ${setTypeShort}`}
                                 </Text>
                             </Box>
-                        </ActionsMenu>
+                        </SetTypeMenu>
                     </HStack>
                     <HStack style={styles.setContainer}>{interspersedFields}</HStack>
                     <Box style={styles.restContainer}>

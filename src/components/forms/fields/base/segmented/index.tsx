@@ -56,7 +56,7 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-/** A titled row with the platform's segmented control (UISegmentedControl / Material). */
+/** A titled row with the platform's segmented control (UISegmentedControl). */
 function Segmented<T extends FieldValues, TName extends FieldPath<T>>({
     name,
     control,

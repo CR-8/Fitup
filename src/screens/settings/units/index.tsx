@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -65,7 +66,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     headerContainer: {
         padding: theme.space(5),
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         gap: theme.space(5),
@@ -86,7 +87,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(15),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        }),
         borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         marginBottom: theme.space(2),
@@ -99,7 +103,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 const UnitsScreen = () => {
     const { user, updateUser } = useUser();
     const { t } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
+    const { theme, rt } = useUnistyles();
 
     const {
         control,
@@ -216,7 +220,13 @@ const UnitsScreen = () => {
                         <Icon
                             name="language"
                             size={theme.space(8)}
-                            color={theme.colors.primaryTypography}
+                            color={Platform.select({
+                                ios: theme.colors.primaryTypography,
+                                default:
+                                    rt.themeName === 'dark'
+                                        ? theme.colors.neutral[950]
+                                        : theme.colors.white,
+                            })}
                         />
                     </Box>
                     <Box>

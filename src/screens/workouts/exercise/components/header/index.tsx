@@ -1,4 +1,5 @@
 import { FC, useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -26,99 +27,129 @@ interface HeaderProps {
     setProgress: { current: number; total: number; allDone: boolean } | null;
 }
 
-const styles = StyleSheet.create((theme) => ({
-    container: {
-        paddingHorizontal: theme.space(4),
-        paddingTop: theme.space(2),
-        paddingBottom: theme.space(5),
-        alignItems: 'center',
-    },
-    titleContainer: {
-        paddingHorizontal: theme.space(6),
-        alignItems: 'center',
-    },
-    title: {
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: theme.fontSize.sm.fontSize,
-        color: theme.colors.typography,
-    },
-    // Sits on the coral band, so it takes the same near-black as everything
-    // else up here and earns its emphasis from weight rather than colour.
-    setProgress: {
-        marginTop: theme.space(1),
-        fontSize: theme.fontSize.sm.fontSize,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.typography,
-        opacity: 0.75,
-    },
-    actionsContainer: {
-        marginTop: theme.space(2.5),
-        width: '100%',
-        minHeight: theme.space(12),
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    previewThumbnail: {
-        position: 'absolute',
-        left: 0,
-        top: '50%',
-        transform: [{ translateY: -theme.space(6) }],
-        marginRight: 0,
-    },
-    leftActionsContainer: {
-        flex: 1,
-    },
-    centerActionsContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    rightActionsContainer: {
-        flex: 1,
-        alignItems: 'flex-end',
-    },
-    rightActions: {
-        alignItems: 'center',
-        gap: theme.space(2),
-    },
-    guideButton: {
-        height: theme.space(11),
-        width: theme.space(11),
-        backgroundColor: theme.colors.elevated,
-        borderRadius: theme.radius.full,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    previewThumbnailContainer: {
-        borderWidth: theme.space(0),
-        width: theme.space(11),
-        height: theme.space(11),
-    },
-    exerciseLinkWrapper: {
-        flexDirection: 'row',
-        backgroundColor: theme.colors.elevated,
-        paddingRight: theme.space(1),
-        paddingLeft: theme.space(2.5),
-        paddingVertical: theme.space(0.25),
-        borderRadius: theme.radius['full'],
-        alignItems: 'center',
-        gap: theme.space(0.5),
-    },
-    exerciseLink: {
-        color: theme.colors.typography,
-        fontSize: theme.fontSize.xs.fontSize,
-        fontWeight: theme.fontWeight.default.fontWeight,
-    },
-}));
+const styles = StyleSheet.create((theme) => {
+    // Android draws this header on a coral band: near-black ink, coral chips.
+    const ink = Platform.select({
+        ios: theme.colors.typography,
+        default: theme.colors.neutral[950],
+    });
+    const chip = Platform.select({ ios: theme.colors.elevated, default: theme.colors.brand[500] });
+
+    return {
+        container: {
+            paddingHorizontal: theme.space(4),
+            ...Platform.select({
+                ios: { paddingTop: theme.space(2) },
+                default: { backgroundColor: theme.colors.brand[400] },
+            }),
+            paddingBottom: theme.space(5),
+            alignItems: 'center',
+        },
+        titleContainer: {
+            paddingHorizontal: theme.space(6),
+            alignItems: 'center',
+        },
+        title: {
+            fontWeight: theme.fontWeight.bold.fontWeight,
+            color: ink,
+            textAlign: 'center',
+        },
+        subtitle: {
+            fontSize: theme.fontSize.sm.fontSize,
+            color: ink,
+        },
+        // Sits on the coral band, so it takes the same near-black as everything
+        // else up here and earns its emphasis from weight rather than colour.
+        setProgress: {
+            marginTop: theme.space(1),
+            fontSize: theme.fontSize.sm.fontSize,
+            fontWeight: theme.fontWeight.bold.fontWeight,
+            color: ink,
+            opacity: 0.75,
+        },
+        // Android only: iOS shows the muscle group as the native title.
+        muscleGroupContainer: {
+            position: 'relative',
+            marginTop: theme.headerContentTopOffset(theme.space(11)),
+            marginBottom: theme.space(3.5),
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: theme.space(11),
+        },
+        muscleGroup: {
+            fontWeight: theme.fontWeight.semibold.fontWeight,
+            fontSize: theme.fontSize.default.fontSize,
+            color: theme.colors.neutral[950],
+        },
+        actionsContainer: {
+            marginTop: theme.space(2.5),
+            width: '100%',
+            minHeight: theme.space(12),
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            position: 'relative',
+        },
+        previewThumbnail: {
+            position: 'absolute',
+            left: 0,
+            top: '50%',
+            transform: [{ translateY: -theme.space(6) }],
+            marginRight: 0,
+        },
+        leftActionsContainer: {
+            flex: 1,
+        },
+        centerActionsContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        rightActionsContainer: {
+            flex: 1,
+            alignItems: 'flex-end',
+        },
+        rightActions: {
+            alignItems: 'center',
+            gap: theme.space(2),
+        },
+        guideButton: {
+            height: theme.space(11),
+            width: theme.space(11),
+            backgroundColor: chip,
+            borderRadius: theme.radius.full,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        previewThumbnailContainer: {
+            borderWidth: theme.space(0),
+            width: theme.space(11),
+            height: theme.space(11),
+        },
+        exerciseLinkWrapper: {
+            flexDirection: 'row',
+            backgroundColor: chip,
+            paddingRight: theme.space(1),
+            paddingLeft: theme.space(2.5),
+            paddingVertical: theme.space(0.25),
+            borderRadius: theme.radius['full'],
+            alignItems: 'center',
+            gap: theme.space(0.5),
+        },
+        exerciseLink: {
+            color: ink,
+            fontSize: theme.fontSize.xs.fontSize,
+            fontWeight: theme.fontWeight.default.fontWeight,
+        },
+    };
+});
 
 export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
     const { t } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
+    const ink = Platform.select({
+        ios: theme.colors.typography,
+        default: theme.colors.neutral[950],
+    });
     const { runningWorkout } = useRunningWorkoutStatic();
 
     const muscleGroup = useMemo(() => {
@@ -180,9 +211,15 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
     return (
         <VStack style={styles.container}>
             {/* The muscle group names the sheet; the exercise leads its content. */}
-            <Stack.Screen options={{ title: muscleGroup }} />
+            {Platform.OS === 'ios' ? (
+                <Stack.Screen options={{ title: muscleGroup }} />
+            ) : (
+                <Box style={styles.muscleGroupContainer}>
+                    <Text style={styles.muscleGroup}>{muscleGroup}</Text>
+                </Box>
+            )}
             <Box style={styles.titleContainer}>
-                <Title type="h3" style={styles.title}>
+                <Title type={Platform.OS === 'ios' ? 'h3' : 'h5'} style={styles.title}>
                     {exerciseInfo ? exerciseDisplayName(exerciseInfo.exercise) : 'Exercise'}
                 </Title>
                 <Text style={styles.subtitle}>
@@ -221,11 +258,7 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
                 <Box style={styles.centerActionsContainer}>
                     <Pressable style={styles.exerciseLinkWrapper} onPress={handleExerciseLinkPress}>
                         <Text style={styles.exerciseLink}>{t('exercise', { ns: 'common' })}</Text>
-                        <Icon
-                            name="chevron-right"
-                            size={theme.space(4)}
-                            color={theme.colors.typography}
-                        />
+                        <Icon name="chevron-right" size={theme.space(4)} color={ink} />
                     </Pressable>
                 </Box>
                 <Box style={styles.rightActionsContainer}>
@@ -237,22 +270,14 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo, setProgress }) => {
                                 accessibilityLabel={t('timer.open', { ns: 'screens' })}
                             >
                                 <Box style={styles.guideButton}>
-                                    <Icon
-                                        name="timer"
-                                        size={theme.space(6)}
-                                        color={theme.colors.typography}
-                                    />
+                                    <Icon name="timer" size={theme.space(6)} color={ink} />
                                 </Box>
                             </Pressable>
                         )}
                         {hasGuide && (
                             <Pressable onPress={handleGuideOpen}>
                                 <Box style={styles.guideButton}>
-                                    <Icon
-                                        name="chevrons-up"
-                                        size={theme.space(6)}
-                                        color={theme.colors.typography}
-                                    />
+                                    <Icon name="chevrons-up" size={theme.space(6)} color={ink} />
                                 </Box>
                             </Pressable>
                         )}

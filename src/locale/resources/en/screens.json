@@ -620,6 +620,7 @@
     },
     "syn": {
         "title": "Syn",
+        "eyebrow": "Your AI coach",
         "empty": {
             "title": "Ask Syn",
             "message": "Get a training plan, a food chart, or just ask about your training."
@@ -741,6 +742,7 @@
         "skip": "Skip for now",
         "saveFailed": "Could not save your details. Try again.",
         "somatotypeHint": "A rough self-description, not a measurement.",
+        "example": "e.g. {{value}}",
         "fields": {
             "name": "What should we call you?",
             "age": "Age",
@@ -846,9 +848,11 @@
         "startNext": "Start next set",
         "finish": "Finish workout",
         "summary": {
-            "sets": "Sets",
+            "sets_one": "Set",
+            "sets_other": "Sets",
             "time": "Time",
-            "exercises": "Exercises"
+            "exercises_one": "Exercise",
+            "exercises_other": "Exercises"
         }
     },
     "workout-feedback": {

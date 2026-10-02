@@ -1,5 +1,5 @@
 import { FC, useCallback, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
@@ -14,8 +14,6 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Title } from '@/components/typography/title';
 import { Separator } from '@/components/layout/separator';
 import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
-import { Stack } from '@/navigators/stack';
-import { HeaderTextButton } from '@/components/buttons/header';
 import { Button } from '@/components/buttons/base';
 import { MEAL_SLOTS, type MealSlot } from '@/db/schema';
 import {
@@ -29,23 +27,27 @@ import {
 import { useAiAvailable, useAiChat, useAiConversation, useAiQuota } from '@/hooks/use-ai';
 
 import { MacroBar } from './components/macro-bar';
+import { DietHeader } from './components/header';
 import { Icon } from '@/components/primitives/icon';
 
-const styles = StyleSheet.create((theme) => ({
+const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
         paddingHorizontal: theme.space(4),
     },
     content: {
-        ...theme.screenContentPadding('child'),
+        ...Platform.select({
+            ios: theme.screenContentPadding('child'),
+            // No navigation header above this screen; it clears the status bar itself.
+            default: {
+                paddingTop: rt.insets.top + theme.space(2),
+                paddingBottom: theme.screenContentPadding('root').paddingBottom,
+            },
+        }),
         gap: theme.space(4),
     },
     header: {
         gap: theme.space(1),
-    },
-    subtitle: {
-        ...theme.fontSize.sm,
-        color: theme.colors.mutedTypography,
     },
     /** One pill: previous, the day (tap to come back to today), next. */
     dayRow: {
@@ -71,7 +73,10 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     // A card on the page, like Home's. It used to be the page colour, so
     // nothing on this screen read as a card.
@@ -118,10 +123,16 @@ const styles = StyleSheet.create((theme) => ({
     },
     // Planned but not yet eaten reads as pending rather than as a record.
     itemPending: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     itemQuantity: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     /**
      * The setup state.
@@ -282,25 +293,14 @@ const DietScreen: FC = () => {
             onPress={handleBuildPlan}
             disabled={isBusy}
             loading={isBusy}
+            spinnerColor={theme.solid.primaryTypography}
             accessibilityLabel={t('diet.buildPlan', { ns: 'screens' })}
         />
     ) : null;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Stack.Screen
-                options={{
-                    title: t('diet.title', { ns: 'screens' }),
-                    headerRight: () => (
-                        <HeaderTextButton
-                            title={t('done', { ns: 'common' })}
-                            onPress={() => router.back()}
-                            prominent
-                        />
-                    ),
-                }}
-            />
-            <Text style={styles.subtitle}>{t('diet.subtitle', { ns: 'screens' })}</Text>
+            <DietHeader />
 
             <HStack style={styles.dayRow}>
                 <Pressable
@@ -469,7 +469,10 @@ const DietScreen: FC = () => {
                                                         <Icon
                                                             name="check"
                                                             size={theme.space(3.5)}
-                                                            color={theme.colors.typography}
+                                                            color={Platform.select({
+                                                                ios: theme.colors.typography,
+                                                                default: theme.colors.neutral[950],
+                                                            })}
                                                         />
                                                     ) : null}
                                                 </Box>

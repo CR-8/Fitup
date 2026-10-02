@@ -135,7 +135,10 @@ export const RepsInput: FC<RepsInputProps> = ({
                 onChangeText={handleChangeText}
                 {...(selection != null ? { selection } : {})}
                 placeholder=""
-                placeholderTextColor={theme.colors.mutedTypography}
+                placeholderTextColor={Platform.select({
+                    ios: theme.colors.mutedTypography,
+                    default: theme.colors.neutral[400],
+                })}
             />
         </Box>
     );

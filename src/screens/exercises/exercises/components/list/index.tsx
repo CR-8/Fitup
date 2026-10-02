@@ -1,5 +1,5 @@
 import { FC, ReactElement } from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
+import { Platform, StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { FlashList, ViewToken } from '@shopify/flash-list';
 
@@ -59,7 +59,7 @@ export const ExerciseList: FC<ExerciseListProps> = ({
                 getItemType={getItemType}
                 drawDistance={250}
                 contentInsetAdjustmentBehavior="automatic"
-                keyboardDismissMode="on-drag"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : undefined}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{ itemVisiblePercentThreshold: 10 }}
                 contentContainerStyle={contentContainerStyle}

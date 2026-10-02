@@ -48,6 +48,8 @@ export interface InputType extends TextEntryProps {
     };
     inputContainerStyle?: BoxProps['style'];
     inputStyle?: InputProps['style'];
+    /** Android: edit in a bottom sheet rather than inline. */
+    asSheet?: boolean;
     prefix?: string;
     suffix?: string;
 }

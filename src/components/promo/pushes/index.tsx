@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { RESULTS } from 'react-native-permissions';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -20,7 +21,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     container: {
         padding: theme.space(5),
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+        }),
         borderRadius: theme.radius['4xl'],
         gap: theme.space(5),
     },
@@ -28,10 +32,16 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1),
     },
     title: {
-        color: theme.colors.primaryTypography,
+        color: Platform.select({
+            ios: theme.colors.primaryTypography,
+            default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        }),
     },
     descriptionText: {
-        color: theme.colors.primaryTypography,
+        color: Platform.select({
+            ios: theme.colors.primaryTypography,
+            default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        }),
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
         fontWeight: theme.fontWeight.default.fontWeight,
@@ -43,7 +53,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
     buttonText: {
-        color: theme.colors.primaryTypography,
+        color: Platform.select({
+            ios: theme.colors.primaryTypography,
+            default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
+        }),
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.default.fontWeight,
     },
@@ -106,11 +119,13 @@ export const Pushes = ({ wrapperStyle }: { wrapperStyle?: BoxProps['style'] }) =
                             onPress={handleTurnOn}
                             type="link"
                             title={t('promo.pushes.turnOn', { ns: 'common' })}
+                            textStyle={[styles.buttonText, styles.turnOnButton]}
                         />
                         <Button
                             onPress={handleDelay}
                             type="link"
                             title={t('promo.pushes.delay', { ns: 'common' })}
+                            textStyle={styles.buttonText}
                         />
                     </HStack>
                 </VStack>

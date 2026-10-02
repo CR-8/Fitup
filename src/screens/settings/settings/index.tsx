@@ -16,6 +16,7 @@ import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { SUPPORT_EMAIL } from '@/constants/contact';
 
 type Row = { icon: IconName; title: string; value?: string; onPress: () => void };
 
@@ -182,7 +183,7 @@ const SettingsScreen = () => {
             onPress: () =>
                 handleComposeEmail({
                     subject: t('problem', { ns: 'common' }),
-                    recipients: ['errors@fitup.app'],
+                    recipients: [SUPPORT_EMAIL],
                     body: `\n\n---\n${t('code', { ns: 'common' })}: ${user?.id}`,
                 }),
         },
@@ -192,7 +193,7 @@ const SettingsScreen = () => {
             onPress: () =>
                 handleComposeEmail({
                     subject: t('feedback', { ns: 'common' }),
-                    recipients: ['hello@fitup.app'],
+                    recipients: [SUPPORT_EMAIL],
                     body: `\n\n---\n${t('code', { ns: 'common' })}: ${user?.id}`,
                 }),
         },

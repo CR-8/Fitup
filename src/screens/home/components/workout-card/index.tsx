@@ -1,4 +1,5 @@
 import { FC, memo, useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -101,7 +102,10 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.primary,
     },
     swipeable: {
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
     },
@@ -112,7 +116,10 @@ const styles = StyleSheet.create((theme) => ({
     rightAction: {
         width: 75,
         height: '100%',
-        backgroundColor: theme.colors.destructive,
+        backgroundColor: Platform.select({
+            ios: theme.colors.destructive,
+            default: theme.colors.red[500],
+        }),
         justifyContent: 'center',
         alignItems: 'center',
     },

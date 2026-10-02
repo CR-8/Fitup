@@ -1,4 +1,5 @@
 import { FC, useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
@@ -38,13 +39,29 @@ import { summarisePlans } from '@/helpers/ai-plan';
 /** Home is a glance at recent training, not the archive — that's the Workout tab. */
 const RECENT_LIMIT = 3;
 
-const styles = StyleSheet.create((theme) => ({
+const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
     },
     content: {
-        ...theme.screenContentPadding('root'),
+        ...Platform.select({
+            ios: theme.screenContentPadding('root'),
+            // Android has no header here, so the screen clears the status bar itself.
+            default: {
+                paddingTop: rt.insets.top + theme.space(4),
+                paddingBottom: theme.screenContentPadding('root').paddingBottom,
+            },
+        }),
         gap: theme.space(5),
+    },
+    /** Android: keeps scrolled cards from running under the clock and battery icons. */
+    statusBarScrim: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: rt.insets.top,
+        backgroundColor: theme.colors.background,
     },
     loading: {
         flex: 1,
@@ -210,6 +227,7 @@ const HomeScreen: FC = () => {
                     <AiPlanCard finishedPlans={planSummary.finished} />
                 )}
             </ScrollView>
+            {Platform.OS === 'android' && <Box style={styles.statusBarScrim} />}
         </Box>
     );
 };

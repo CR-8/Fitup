@@ -1,10 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 
 import { HStack } from '@/components/primitives/hstack';
-import { Box } from '@/components/primitives/box';
-import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { useLatestMeasurementsByMetric, useMeasurementTimeline } from '@/hooks/use-measurements';
@@ -13,7 +11,7 @@ import { useUser } from '@/hooks/use-user';
 import { WeightChart } from './components/weight-chart';
 import { type MeasurementWithDisplayValue } from './types';
 import { convertToDisplayWeight } from './utils';
-import { Icon } from '@/components/primitives/icon';
+import { WeighInButton } from './components/weigh-in';
 
 const styles = StyleSheet.create((theme, rt) => ({
     section: {
@@ -48,22 +46,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },
-    prefixBox: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.full,
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: theme.space(8),
-        width: theme.space(8),
-        marginTop: theme.space(1.5),
-    },
 }));
 
 const Scale = () => {
     const { t, i18n } = useTranslation(['common', 'screens']);
     const { navigate } = useEditor();
     const { user } = useUser();
-    const { theme } = useUnistyles();
     const weightTimeline = useMeasurementTimeline('body_weight');
     const bodyFatTimeline = useMeasurementTimeline('body_fat_percentage');
     const latestByMetric = useLatestMeasurementsByMetric(['body_weight']);
@@ -156,19 +144,7 @@ const Scale = () => {
                             {t('results.scale.metrics.currentWeight', { ns: 'screens' })}
                         </Text>
                     </VStack>
-                    <Pressable
-                        onPress={handleOpenMeasurementEditor}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('results.scale.actions.weighIn', { ns: 'screens' })}
-                    >
-                        <Box style={styles.prefixBox}>
-                            <Icon
-                                name="plus"
-                                size={theme.space(5.5)}
-                                color={theme.colors.primaryTypography}
-                            />
-                        </Box>
-                    </Pressable>
+                    <WeighInButton onPress={handleOpenMeasurementEditor} />
                 </HStack>
                 <WeightChart
                     timeline={timelineWithDisplayValues}

@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
@@ -17,7 +18,10 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     track: {
         height: theme.space(1.5),

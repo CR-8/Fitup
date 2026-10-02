@@ -6,10 +6,11 @@ import { BottomSheet, Column, List, ListItem, Text } from '@expo/ui';
 import { brandTint } from '@/components/native/modifiers';
 import { useActionsStore } from '@/stores/actions';
 import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
-import { useUpdateWorkout } from '@/hooks/use-workouts';
-import { reportError } from '@/services/error-reporting';
-
-const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+import {
+    useWorkoutFeedback,
+    WORKOUT_DIFFICULTIES,
+    type WorkoutDifficulty,
+} from '@/hooks/use-action-menus';
 
 /**
  * How hard the session felt, asked once as it is ended.
@@ -28,22 +29,18 @@ const ActionsSheet: FC = () => {
             close: state.close,
         })),
     );
-    const { mutateAsync: updateWorkout } = useUpdateWorkout();
+    const saveFeedback = useWorkoutFeedback();
 
     useStoreReviewGateBlocker('actions-sheet', !!type);
 
     const handleSelect = useCallback(
-        (difficulty: (typeof DIFFICULTIES)[number]) => {
+        (difficulty: WorkoutDifficulty) => {
             if (!payload) return;
 
-            // Closed first: the workout is already saved, so the answer is not
-            // worth holding the sheet open for a database round trip.
             close();
-            void updateWorkout({ id: payload.workoutId, updates: { difficulty } }).catch((error) =>
-                reportError(error, 'Failed to save workout difficulty feedback:'),
-            );
+            saveFeedback(payload.workoutId, difficulty);
         },
-        [close, payload, updateWorkout],
+        [close, payload, saveFeedback],
     );
 
     return (
@@ -58,7 +55,7 @@ const ActionsSheet: FC = () => {
                     <Text textStyle={{ fontSize: 20, fontWeight: '600' }}>{title}</Text>
                 ) : null}
                 <List>
-                    {DIFFICULTIES.map((difficulty) => (
+                    {WORKOUT_DIFFICULTIES.map((difficulty) => (
                         <ListItem
                             key={difficulty}
                             supportingText={t(`workout-feedback.${difficulty}Hint`)}

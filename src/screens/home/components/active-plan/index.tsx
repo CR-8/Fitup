@@ -1,9 +1,10 @@
 import { FC, useCallback, useEffect, useMemo } from 'react';
-import { Alert, ScrollView } from 'react-native';
+import { Alert, Platform, ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Flame } from 'lucide-react-native';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -100,7 +101,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         borderWidth: 1,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         paddingHorizontal: theme.space(3),
         paddingVertical: theme.space(1.5),
     },
@@ -217,7 +218,21 @@ export const ActivePlanCard: FC<ActivePlanCardProps> = ({ workouts, streak }) =>
 
                 {streak > 0 ? (
                     <HStack style={styles.streak}>
-                        <Icon name="flame" size={theme.space(3.5)} color={theme.colors.primary} />
+                        {/* Android keeps the pre-native filled flame. */}
+                        {Platform.OS === 'android' ? (
+                            <Flame
+                                size={theme.space(3.5)}
+                                strokeWidth={2}
+                                color={theme.colors.primary}
+                                fill={theme.colors.primary}
+                            />
+                        ) : (
+                            <Icon
+                                name="flame"
+                                size={theme.space(3.5)}
+                                color={theme.colors.primary}
+                            />
+                        )}
                         <Text style={styles.meta}>
                             {t('home.streak', { ns: 'screens', count: streak })}
                         </Text>

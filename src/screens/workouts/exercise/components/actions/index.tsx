@@ -1,6 +1,8 @@
 import { FC, useCallback, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
+import { ClockFading } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 
@@ -67,13 +69,19 @@ const styles = StyleSheet.create((theme, rt) => ({
     actionButtonContainer: {
         width: theme.space(10),
         height: theme.space(10),
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: Platform.select({
+            ios: theme.colors.elevated,
+            default: theme.colors.background,
+        }),
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
     },
     mainButtonContainer: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primary,
+            default: theme.colors.brand[400],
+        }),
         width: theme.space(16),
         height: theme.space(16),
     },
@@ -95,6 +103,12 @@ export const Actions: FC<ActionsProps> = ({
     setActionsHeight,
 }) => {
     const { theme } = useUnistyles();
+    // The glyphs on the main (coral) button.
+    const mainIconColor = Platform.select({
+        ios: theme.colors.primaryTypography,
+        default: theme.colors.neutral[950],
+    });
+    const mainChevronSize = Platform.select({ ios: theme.space(7), default: theme.space(10) });
     const { startWorkout } = useRunningWorkoutStatic();
 
     const [isMainActionPending, setIsMainActionPending] = useState(false);
@@ -359,6 +373,10 @@ export const Actions: FC<ActionsProps> = ({
                                 name="chevron-left"
                                 size={theme.space(8)}
                                 color={theme.colors.typography}
+                                style={Platform.select({
+                                    ios: undefined,
+                                    default: { opacity: isPrevDisabled ? 0.6 : 1 },
+                                })}
                             />
                         </Box>
                     </Pressable>
@@ -376,42 +394,37 @@ export const Actions: FC<ActionsProps> = ({
                     <Pressable onPress={handleMainAction} disabled={isMainActionPending}>
                         <Box style={[styles.actionButtonContainer, styles.mainButtonContainer]}>
                             {mainIcon === 'play' && (
-                                <Icon
-                                    name="play"
-                                    size={theme.space(5)}
-                                    color={theme.colors.primaryTypography}
-                                />
+                                <Icon name="play" size={theme.space(5)} color={mainIconColor} />
                             )}
                             {mainIcon === 'check' && (
                                 <Icon
                                     name="check"
                                     style={styles.checkIcon}
-                                    size={theme.space(7)}
-                                    color={theme.colors.primaryTypography}
+                                    size={Platform.select({
+                                        ios: theme.space(7),
+                                        default: theme.space(8),
+                                    })}
+                                    color={mainIconColor}
                                 />
                             )}
                             {mainIcon === 'collapse' && (
                                 <Icon
                                     name="chevron-down"
                                     style={styles.chevronDownIcon}
-                                    size={theme.space(7)}
-                                    color={theme.colors.primaryTypography}
+                                    size={mainChevronSize}
+                                    color={mainIconColor}
                                 />
                             )}
                             {mainIcon === 'back' && (
                                 <Icon
                                     name="chevron-left"
                                     style={styles.chevronLeftIcon}
-                                    size={theme.space(7)}
-                                    color={theme.colors.primaryTypography}
+                                    size={mainChevronSize}
+                                    color={mainIconColor}
                                 />
                             )}
                             {mainIcon === 'stop' && (
-                                <Icon
-                                    name="stop"
-                                    size={theme.space(5)}
-                                    color={theme.colors.primaryTypography}
-                                />
+                                <Icon name="stop" size={theme.space(5)} color={mainIconColor} />
                             )}
                         </Box>
                     </Pressable>
@@ -419,11 +432,18 @@ export const Actions: FC<ActionsProps> = ({
                 <Box style={[styles.actionContainer, styles.rightContainer]}>
                     <Pressable onPress={handleRest}>
                         <Box style={[styles.actionButtonContainer]}>
-                            <Icon
-                                name="timer"
-                                size={theme.space(8)}
-                                color={theme.colors.typography}
-                            />
+                            {Platform.OS === 'ios' ? (
+                                <Icon
+                                    name="timer"
+                                    size={theme.space(8)}
+                                    color={theme.colors.typography}
+                                />
+                            ) : (
+                                <ClockFading
+                                    size={theme.space(8)}
+                                    color={theme.colors.typography}
+                                />
+                            )}
                         </Box>
                     </Pressable>
                     <Pressable onPress={handleNextExercise} disabled={isNextDisabled}>
@@ -432,6 +452,10 @@ export const Actions: FC<ActionsProps> = ({
                                 name="chevron-right"
                                 size={theme.space(8)}
                                 color={theme.colors.typography}
+                                style={Platform.select({
+                                    ios: undefined,
+                                    default: { opacity: isNextDisabled ? 0.6 : 1 },
+                                })}
                             />
                         </Box>
                     </Pressable>

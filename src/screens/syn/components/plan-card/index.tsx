@@ -1,5 +1,5 @@
 import { FC, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -19,7 +19,7 @@ import { Icon } from '@/components/primitives/icon';
 const styles = StyleSheet.create((theme, rt) => ({
     // Mirrors the rounded panel used across settings, results, and workout cards.
     container: {
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
         borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
@@ -34,7 +34,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(2),
     },
     muted: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     section: {
         gap: theme.space(3),
@@ -43,7 +46,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1.5),
     },
     dayLabel: {
-        color: theme.colors.mutedTypography,
+        color: Platform.select({
+            ios: theme.colors.mutedTypography,
+            default: theme.colors.neutral[400],
+        }),
     },
     itemRow: {
         justifyContent: 'space-between',
@@ -61,6 +67,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.space(1),
+    },
+    appliedButton: {
+        backgroundColor: theme.colors.foreground,
+    },
+    appliedButtonText: {
+        color: theme.colors.typography,
     },
 }));
 
@@ -263,13 +275,19 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             <Icon
                                 name="chevron-up"
                                 size={theme.space(3.5)}
-                                color={theme.colors.mutedTypography}
+                                color={Platform.select({
+                                    ios: theme.colors.mutedTypography,
+                                    default: theme.colors.neutral[400],
+                                })}
                             />
                         ) : (
                             <Icon
                                 name="chevron-down"
                                 size={theme.space(3.5)}
-                                color={theme.colors.mutedTypography}
+                                color={Platform.select({
+                                    ios: theme.colors.mutedTypography,
+                                    default: theme.colors.neutral[400],
+                                })}
                             />
                         )}
                     </HStack>
@@ -284,6 +302,10 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             title={t('syn.plan.undo')}
                             loading={isReverting}
                             onPress={handleRevert}
+                            // Android draws its own button; iOS keeps the system one.
+                            containerStyle={Platform.select({ android: styles.appliedButton })}
+                            textStyle={styles.appliedButtonText}
+                            spinnerColor={theme.solid.typography}
                         />
                     ) : (
                         <Button
@@ -292,6 +314,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                             title={t('syn.plan.addToSchedule')}
                             loading={isApplying}
                             onPress={handleApply}
+                            spinnerColor={theme.solid.primaryTypography}
                         />
                     )}
                 </Box>

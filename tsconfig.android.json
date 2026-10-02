@@ -1,0 +1,26 @@
+{
+    // The Android graph, checked from its entry points: imports resolve
+    // `foo.android.tsx` ahead of `foo.tsx`, as Metro does on Android, so the
+    // iOS presentation beside each Android file is never part of this program.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "moduleSuffixes": [".android", ""],
+    },
+    "include": [
+        "index.ts",
+        "src/routes/**/*.ts",
+        "src/routes/**/*.tsx",
+        ".expo/types/**/*.ts",
+        "expo-env.d.ts",
+    ],
+    // Layouts with an Android sibling: expo-router requires the plain file as a
+    // fallback, but Android never loads it.
+    "exclude": [
+        "src/routes/(tabs)/_layout.tsx",
+        "src/routes/(tabs)/(home)/_layout.tsx",
+        "src/routes/(tabs)/(exercises)/_layout.tsx",
+        "src/routes/(tabs)/(workouts)/_layout.tsx",
+        "src/routes/(tabs)/(results)/_layout.tsx",
+        "src/routes/(tabs)/(syn)/_layout.tsx",
+    ],
+}

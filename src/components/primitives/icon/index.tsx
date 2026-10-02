@@ -1,18 +1,10 @@
 import { FC } from 'react';
-import type { ColorValue, StyleProp, ViewStyle } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useUnistyles } from 'react-native-unistyles';
 
-import { icons, type IconName } from '@/theme/icons';
+import { icons, type IconName, type IconProps } from '@/theme/icons';
 
-export type { IconName };
-
-export interface IconProps {
-    name: IconName;
-    size?: number;
-    color?: ColorValue;
-    style?: StyleProp<ViewStyle>;
-}
+export type { IconName, IconProps };
 
 export const Icon: FC<IconProps> = ({ name, size = 20, color, style }) => {
     const { theme } = useUnistyles();

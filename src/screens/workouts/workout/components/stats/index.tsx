@@ -201,10 +201,14 @@ const RECOVERY_SCALE_BOUNDS_BY_AGE: readonly {
     { minAge: 70, maxAge: Number.POSITIVE_INFINITY, starts: [0, 14, 21, 29, 36] },
 ] as const;
 
+// Views and text take the theme's PlatformColors, which lift to their elevated
+// shades inside a sheet; the static `solid` values are only for the chart props
+// further down, which need plain strings. Static colours here left a black block
+// in the grey workout sheet.
 const styles = StyleSheet.create((theme) => ({
     container: {
         marginHorizontal: theme.space(4),
-        backgroundColor: theme.solid.background,
+        backgroundColor: theme.colors.background,
         paddingTop: theme.space(5),
         paddingBottom: theme.space(3),
         gap: theme.space(5),
@@ -215,11 +219,11 @@ const styles = StyleSheet.create((theme) => ({
     sectionTitle: {
         fontSize: theme.fontSize.lg.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.solid.typography,
+        color: theme.colors.typography,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
-        backgroundColor: theme.solid.border,
+        backgroundColor: theme.colors.border,
     },
     zonesContainer: {
         gap: theme.space(5),
@@ -247,7 +251,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     zoneLabel: {
         flexShrink: 1,
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
@@ -264,7 +268,7 @@ const styles = StyleSheet.create((theme) => ({
     zonePercent: {
         minWidth: theme.space(12),
         textAlign: 'right',
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -272,7 +276,7 @@ const styles = StyleSheet.create((theme) => ({
     zoneDuration: {
         minWidth: theme.space(14),
         textAlign: 'right',
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
@@ -298,11 +302,11 @@ const styles = StyleSheet.create((theme) => ({
     heartRateChartAverageValue: {
         ...theme.fontSize['2xl'],
         fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.solid.typography,
+        color: theme.colors.typography,
     },
     heartRateChartAverageLabel: {
         ...theme.fontSize.sm,
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.6,
     },
     heartRateChartZone: {
@@ -321,7 +325,7 @@ const styles = StyleSheet.create((theme) => ({
     heartRateChartYAxisLabel: {
         position: 'absolute',
         right: 0,
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.35,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -338,7 +342,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: -theme.space(1.5),
     },
     heartRateChartMetaLabel: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -367,7 +371,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(2.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.colors.inset,
     },
     heartRateZoneScaleGradient: {
         flex: 1,
@@ -378,7 +382,7 @@ const styles = StyleSheet.create((theme) => ({
         bottom: 0,
         width: theme.space(0.5),
         marginLeft: -theme.space(0.25),
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.colors.foreground,
     },
     heartRateZoneScaleMarker: {
         position: 'absolute',
@@ -399,7 +403,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingRight: theme.space(0.5),
     },
     heartRateZoneScaleTick: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -428,7 +432,7 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: -theme.space(1.5),
     },
     recoveryChartMetaLabel: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -457,7 +461,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(2.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.colors.inset,
     },
     recoveryScaleGradient: {
         flex: 1,
@@ -468,7 +472,7 @@ const styles = StyleSheet.create((theme) => ({
         bottom: 0,
         width: theme.space(0.5),
         marginLeft: -theme.space(0.25),
-        backgroundColor: theme.solid.background,
+        backgroundColor: theme.colors.background,
     },
     recoveryScaleDivider1: {
         left: '20%',
@@ -501,7 +505,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingRight: theme.space(0.5),
     },
     recoveryScaleTick: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -512,19 +516,19 @@ const styles = StyleSheet.create((theme) => ({
         paddingVertical: theme.space(1.5),
         borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
-        backgroundColor: theme.solid.foreground,
+        backgroundColor: theme.colors.inset,
         borderWidth: stableOutlineWidth,
-        borderColor: theme.solid.border,
+        borderColor: theme.colors.border,
         gap: theme.space(0.5),
     },
     recoveryPointerValue: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
     },
     recoveryPointerTime: {
-        color: theme.solid.typography,
+        color: theme.colors.typography,
         opacity: 0.55,
         fontSize: theme.fontSize['2xs'].fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,

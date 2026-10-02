@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
+import { Platform } from 'react-native';
 
 import { VStack } from '@/components/primitives/vstack';
 import { Box } from '@/components/primitives/box';
@@ -67,7 +68,7 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.foreground,
+        backgroundColor: theme.colors.inset,
     },
     calendarPrevMonth: {
         marginRight: theme.space(0.5),
@@ -119,8 +120,14 @@ const styles = StyleSheet.create((theme) => ({
         borderColor: theme.colors.border,
     },
     calendarDayCircleCompleted: {
-        backgroundColor: theme.colors.primarySoft,
-        borderColor: theme.colors.primarySoft,
+        backgroundColor: Platform.select({
+            ios: theme.colors.primarySoft,
+            default: theme.colors.brand[400],
+        }),
+        borderColor: Platform.select({
+            ios: theme.colors.primarySoft,
+            default: theme.colors.brand[400],
+        }),
     },
     calendarDayCircleToday: {
         borderColor: theme.colors.typography,
@@ -134,7 +141,10 @@ const styles = StyleSheet.create((theme) => ({
         opacity: 0.6,
     },
     calendarDayTextCompleted: {
-        color: theme.colors.typography,
+        color: Platform.select({
+            ios: theme.colors.typography,
+            default: theme.colors.neutral[950],
+        }),
         opacity: 1,
     },
     calendarDayTextToday: {
@@ -180,7 +190,7 @@ const styles = StyleSheet.create((theme) => ({
 
 const MonthStats = () => {
     const { i18n } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
+    const { theme, rt } = useUnistyles();
     const router = useRouter();
     const { track } = useAnalytics();
     const { user } = useUser();
@@ -287,6 +297,11 @@ const MonthStats = () => {
         [router, track],
     );
 
+    const navIconColor = Platform.select({
+        ios: theme.colors.typography,
+        default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+    });
+
     return (
         <VStack style={styles.calendarContainer}>
             <HStack style={styles.calendarHeader}>
@@ -296,7 +311,7 @@ const MonthStats = () => {
                             name="chevron-left"
                             size={theme.space(6)}
                             style={styles.calendarPrevMonth}
-                            color={theme.colors.typography}
+                            color={navIconColor}
                         />
                     </Box>
                 </Pressable>
@@ -316,7 +331,7 @@ const MonthStats = () => {
                             name="chevron-right"
                             size={theme.space(6)}
                             style={styles.calendarNextMonth}
-                            color={theme.colors.typography}
+                            color={navIconColor}
                         />
                     </Box>
                 </Pressable>

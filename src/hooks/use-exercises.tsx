@@ -10,6 +10,7 @@ import {
     getExerciseById,
     getExerciseHistory,
     getFavoriteExerciseIds,
+    getPersonalRecords,
     getRecentlyUsedExerciseIds,
     toggleFavoriteExercise,
     updateExercise,
@@ -28,6 +29,24 @@ export type {
     ExerciseListItem,
     ExerciseSearchIndex,
 } from '@/helpers/exercise-search';
+
+/**
+ * The best set on record for every exercise the user has trained.
+ *
+ * Keyed under `workout-stats`, which every set and workout mutation already
+ * invalidates — so a record broken mid-workout is on the Monthly Tracker by the
+ * time the user gets there, with no invalidation of its own to forget.
+ */
+export const usePersonalRecords = () => {
+    const { user } = useUser();
+
+    return useQuery({
+        queryKey: ['workout-stats', 'personal-records', user?.id],
+        queryFn: () => getPersonalRecords(user!.id),
+        enabled: !!user?.id,
+        staleTime: 60000 * 10,
+    });
+};
 
 export const useExercisesList = (filters?: ExerciseFilterParams) => {
     const { user } = useUser();

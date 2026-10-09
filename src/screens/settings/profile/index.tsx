@@ -5,7 +5,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
@@ -19,8 +18,13 @@ import { useAccount } from '@/hooks/use-account';
 import { readProfileDetails, saveProfileDetails, type ProfileDetails } from '@/crud/onboarding';
 import { GUIDELINE_SESSIONS_PER_WEEK, MEDIAN_AGE_YEARS, worldAverages } from '@/constants/averages';
 import { queryClient } from '@/queries';
-import { profileSchema, type ProfileFormData } from '@/screens/onboarding/schema';
+import {
+    profileResolver,
+    type ProfileFormData,
+    type ProfileFormValues,
+} from '@/screens/onboarding/schema';
 import { reportError } from '@/services/error-reporting';
+import { ageToBirthday, birthdayToAge } from '@/helpers/profile';
 
 /**
  * The About You answers, after About You.
@@ -76,25 +80,7 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-type ProfileForm = ProfileFormData;
-
-/** Age is friendlier to answer than a date, so it is converted on both sides. */
-const birthdayToAge = (birthday: Date | null): number | null => {
-    if (!birthday) return null;
-
-    const years = (Date.now() - birthday.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-
-    return years > 0 ? Math.round(years) : null;
-};
-
-const ageToBirthday = (age: number | null | undefined): Date | null => {
-    if (typeof age !== 'number' || !Number.isFinite(age)) return null;
-
-    const birthday = new Date();
-    birthday.setFullYear(birthday.getFullYear() - Math.round(age));
-
-    return birthday;
-};
+type ProfileForm = ProfileFormValues;
 
 interface ProfileFormProps {
     userId: string;
@@ -118,8 +104,8 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<ProfileForm>({
-        resolver: zodResolver(profileSchema),
+    } = useForm<ProfileForm, unknown, ProfileFormData>({
+        resolver: profileResolver,
         defaultValues: {
             displayName: details.displayName,
             age: birthdayToAge(details.birthday),

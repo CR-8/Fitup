@@ -4,14 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { RelativePathString, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import {
-    LucideIcon,
-    House,
-    Dumbbell,
-    CircleGauge,
-    ChartNoAxesColumn,
-    MessageCircle,
-} from 'lucide-react-native';
+import { LucideIcon, House, CalendarDays, Sparkles } from 'lucide-react-native';
 
 import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
@@ -100,9 +93,10 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
-        // Home, Exercises, Workout, Results, Syn — in the order the product
-        // is used. Each tab is a route group, so `screen` is the group's name. Settings left the bar because it is configuration rather
-        // than a daily destination; it is reached from the home header.
+        // Home, the Monthly Tracker, and the AI plan — the same three tabs as
+        // iOS. Each tab is a route group, so `screen` is the group's name.
+        // Settings is configuration rather than a daily destination; it is
+        // reached from the home header.
         const items = [
             {
                 screen: '(home)',
@@ -111,28 +105,16 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 icon: House,
             },
             {
-                screen: '(exercises)',
-                href: '/exercises',
-                title: 'exercises.title',
-                icon: CircleGauge,
-            },
-            {
-                screen: '(workouts)',
-                href: '/workouts',
-                title: 'workouts.title',
-                icon: Dumbbell,
-            },
-            {
                 screen: '(results)',
                 href: '/results',
                 title: 'results.title',
-                icon: ChartNoAxesColumn,
+                icon: CalendarDays,
             },
             {
                 screen: '(syn)',
                 href: '/syn',
                 title: 'syn.title',
-                icon: MessageCircle,
+                icon: Sparkles,
             },
         ];
 

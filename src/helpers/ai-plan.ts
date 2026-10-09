@@ -1,5 +1,5 @@
 import type { AiPlanSelect, WorkoutSelect } from '@/db/schema';
-import type { AiPlanPayload } from '@/types/ai';
+import type { AiPlanPayload, AiPlanWorkout, AiPlanWorkoutType } from '@/types/ai';
 
 /**
  * What the active-plan card shows, derived from the plan row.
@@ -115,4 +115,39 @@ export const summarisePlans = (
     });
 
     return { current, finished };
+};
+
+/**
+ * The plan workouts that become real workouts when a plan is applied, in the
+ * order they are created.
+ *
+ * `applyPlanToSchedule` walks exactly this list, which is what lets
+ * `planWorkoutTypes` line a plan's stored `appliedWorkoutIds` back up with the
+ * plan workouts they came from. Change the filter here, not in either caller.
+ */
+export const schedulablePlanWorkouts = (payload: AiPlanPayload): AiPlanWorkout[] =>
+    (payload.workouts ?? []).filter((workout) => workout.exercises.length > 0);
+
+/**
+ * Which workouts on the schedule a plan created as training and which as active
+ * rest, keyed by workout id.
+ *
+ * Derived rather than stored on the workout row: the workout table is mirrored
+ * to the account backup column by column, and the plan row already records both
+ * halves — its payload says what each session is, and `appliedWorkoutIds` holds
+ * the ids created from it, in order.
+ */
+export const planWorkoutTypes = (plans: AiPlanSelect[]): Map<string, AiPlanWorkoutType> => {
+    const types = new Map<string, AiPlanWorkoutType>();
+
+    for (const plan of plans) {
+        const ids = plan.appliedWorkoutIds ?? [];
+        const schedulable = schedulablePlanWorkouts(plan.payload as AiPlanPayload);
+
+        ids.forEach((id, index) => {
+            types.set(id, schedulable[index]?.type ?? 'training');
+        });
+    }
+
+    return types;
 };

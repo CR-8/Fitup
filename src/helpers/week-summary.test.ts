@@ -9,7 +9,7 @@ jest.mock('@/locale/i18n', () => ({ __esModule: true, default: { t: (key: string
 jest.mock('@/services/error-reporting', () => ({ reportError: jest.fn() }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { startOfWeekMs, summariseWeek } = require('@/helpers/workouts');
+const { getPlannedWorkouts, startOfWeekMs, summariseWeek } = require('@/helpers/workouts');
 
 /**
  * The home screen's three figures are only meaningful if "this week" means the
@@ -106,5 +106,47 @@ describe('summarising the week so far', () => {
 
     test('no workouts is zero, not a crash', () => {
         expect(summariseWeek([], 2, WEDNESDAY)).toEqual({ sessions: 0, durationSeconds: 0 });
+    });
+});
+
+describe('which planned workout comes first', () => {
+    const plannedAt = (id: string, startAt: Date | null, createdAt = at(1)) => ({
+        id,
+        status: 'planned' as const,
+        startAt,
+        createdAt,
+    });
+    const ids = (list: { id: string }[]) => list.map((entry) => entry.id);
+
+    // A plan creates the whole week in one go, so creation order is noise.
+    test('scheduled sessions come soonest first, starting today', () => {
+        const order = getPlannedWorkouts(
+            [plannedAt('fri', at(4)), plannedAt('today', at(2, 8, 9)), plannedAt('thu', at(3))],
+            WEDNESDAY,
+        );
+
+        expect(ids(order)).toEqual(['today', 'thu', 'fri']);
+    });
+
+    test('drafts without a date follow, newest first', () => {
+        const order = getPlannedWorkouts(
+            [
+                plannedAt('old-draft', null, at(1)),
+                plannedAt('thu', at(3)),
+                plannedAt('new-draft', null, at(2)),
+            ],
+            WEDNESDAY,
+        );
+
+        expect(ids(order)).toEqual(['thu', 'new-draft', 'old-draft']);
+    });
+
+    test('a session from a day already gone is never offered ahead of today', () => {
+        const order = getPlannedWorkouts(
+            [plannedAt('missed', at(1)), plannedAt('today', at(2))],
+            WEDNESDAY,
+        );
+
+        expect(ids(order)).toEqual(['today', 'missed']);
     });
 });

@@ -1,6 +1,6 @@
 import type { AiChatMessage } from '@/api/ai';
 import type { AiPlanKind } from '@/constants/ai';
-import type { AiRequestContext } from '@/types/ai';
+import type { AiPlanPayload, AiRequestContext } from '@/types/ai';
 
 /**
  * Prompt assembly.
@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '4';
+export const PROMPT_VERSION = '5';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -23,6 +23,7 @@ const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
       "name": string,
       "dayOffset": number,
       "focus": string,
+      "type": "training" | "active_rest",
       "exercises": [
         {
           "exerciseId": string,
@@ -68,32 +69,30 @@ const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
  * prose instead" is not an option the transport allows — a shape has to carry
  * whatever the model needs to say, questions or a safety stop included.
  */
-const ASSESSMENT_SCHEMA_HINT = `Before writing a plan, decide whether you actually know enough to write a safe
-one for this specific person. Two things can stop you, and they are answered
-with a different shape each — never a plan:
+const ASSESSMENT_SCHEMA_HINT = `Default to writing the plan. USER PROFILE already holds the person's goal,
+training days, training place and body stats, and whatever they say in this
+request fills in the rest. Anything still unknown, assume conservatively and
+say in the summary what you assumed — that is better than a question.
 
-1. Not enough is known yet. You are missing, and nothing in USER PROFILE or
-   the conversation above already answers, at least one of:
-   - Any injury, joint issue, or diagnosed medical condition training or diet
-     should account for — or a clear "none".
-   - What equipment is actually available, when generating a workout — or a
-     clear "bodyweight only".
-   - Any dietary restriction or allergen, when generating a nutrition plan.
+Do NOT ask about injuries, pain, joint problems or medical conditions, and do
+not ask for confirmation of anything USER PROFILE or the conversation already
+says.
 
-   Respond with exactly this instead of a plan:
+Two things can still stop you, and each is answered with its own shape —
+never a plan:
 
-   { "status": "need_info", "questions": [string, ...] }
+1. A food plan is asked for and nothing says what the person eats (vegetarian,
+   eggs, non-veg, allergies) — USER PROFILE has no dietary pattern and the
+   request does not say. Only then, respond with exactly:
 
-   At most 3 questions, only for what is actually missing, asked together in
-   one turn — never one question per turn, and never re-asking something
-   USER PROFILE or the conversation already answered. Phrase them as a trainer
-   would, not as a form.
+   { "status": "need_info", "questions": [string] }
 
-2. Something in what the user described is a reason to stop, not to program
-   around. Chest pain, fainting, numbness, an acute unassessed injury, or
-   anything else that reads as needing a clinician before training at all.
+   One short, friendly question, phrased the way a coach would text it. Never
+   ask this for a training-only plan.
 
-   Respond with exactly this instead of a plan:
+2. Something the user wrote is a reason to stop, not to program around. Chest
+   pain, fainting, numbness, or anything else that reads as needing a clinician
+   before training at all. Respond with exactly:
 
    { "status": "stop", "message": string }
 
@@ -101,12 +100,10 @@ with a different shape each — never a plan:
    other qualified professional before training, in the language specified
    below. Do not diagnose what it might be.
 
-If FORCE_READY appears in the request below, skip this assessment and go
-straight to a plan under conservative, general-population assumptions for
-whatever is still unknown — a cautious plan beats asking a question for the
-third time in the same conversation.
+If FORCE_READY appears in the request below, never ask — go straight to a plan
+under conservative, general-population assumptions for whatever is unknown.
 
-Otherwise, once you know enough, respond with the plan itself:`;
+Otherwise, respond with the plan itself:`;
 
 const SYSTEM_RULES = `You are Syn, the training assistant inside FitSyn, a workout tracking app.
 
@@ -114,8 +111,11 @@ Hard rules:
 1. Every exerciseId you emit MUST come from the supplied exercise catalogue. Never
    invent an exercise or an id. If the catalogue lacks something you want, choose the
    closest available entry.
-2. Never program an exercise that conflicts with a declared condition. If the user has
-   declared a condition, prefer movements that avoid loading the affected area.
+2. Never claim a plan has been adapted around an injury, pain or a medical
+   condition. If the user mentions one themselves, keep the plan general and
+   conservative, and say in the summary to clear it with a physiotherapist or
+   doctor and to skip any movement that hurts. (CONDITION GUIDANCE, when present
+   below, is the one exception — see its rules.)
 3. Never include a food that conflicts with a declared allergen or dietary pattern.
 4. Only use equipment the user has declared. Bodyweight is always available.
 5. Respect the user's stated sessions per week and session length.
@@ -123,15 +123,23 @@ Hard rules:
    anything. Do not present the plan as medical advice.
 
 Style:
-- Be concise and practical. Short sentences. No filler and no hype.
+- Sound like a friendly coach texting, not a form. Short sentences. No filler,
+  no hype.
+- People write tersely and casually: "4 days", "gym 45 min", "legs n back",
+  "no", "idk", "veg". Read replies like these generously, as answers to what was
+  asked or said last, and never ask for the same thing twice. "idk" or "anything"
+  means pick a sensible default.
+- What the user asks for now beats USER PROFILE: "4 days" means four training
+  days even if the profile says three.
 - Use the user's weight unit as supplied.
 - When the user is only chatting, answer normally in plain prose.`;
 
 const CHAT_SYSTEM = `${SYSTEM_RULES}
 
-Answer the user's question directly. Do not return JSON. If the user asks for a plan,
-a routine, a workout split, or a diet, tell them to use the plan buttons instead of
-writing the plan out in the chat.`;
+Answer the user's question directly, in two or three short paragraphs at most. Do
+not return JSON. The app builds plans itself whenever the user asks for one, so never
+write a full plan or diet out in chat; if the user seems to want one, tell them in
+one line to just ask for it, for example "make me a 4-day gym plan".`;
 
 const PLAN_SYSTEM = `${SYSTEM_RULES}
 
@@ -191,7 +199,15 @@ ignores them is wrong:
    session's clock, so drop movements rather than cutting rest below the ranges
    above. Leave at least one rest day between sessions training the same muscle
    group.
-8. Calibrate to the measured fitness level in USER PROFILE, when present — it is
+8. Lay out the whole horizon, every day of it. Training days get "type":
+   "training" and follow the person's training days per week. On one or two of
+   the other days each week, schedule a short active-recovery session with
+   "type": "active_rest": 15-30 minutes of easy walking or cycling, mobility and
+   stretching from the catalogue, as timed holds or easy steady work with no
+   load and no warm-up sets. Leave at least one day a week with nothing at all —
+   that is a full rest day, and it is part of the plan. Never put two hard
+   sessions for the same muscle group on consecutive days.
+9. Calibrate to the measured fitness level in USER PROFILE, when present — it is
    computed from real training history, not self-reported, so weight it over a
    stated goal that implies something different:
    - "beginner": simple movement patterns, conservative loads, more full-body
@@ -251,7 +267,7 @@ const formatProfile = (context: AiRequestContext): string => {
     push('Notes', profile.notes);
 
     if (lines.length === 0) {
-        return 'The user has not filled in a profile yet. Ask for what you need, or make conservative general-population assumptions.';
+        return 'The user has not filled in a profile yet. Make conservative general-population assumptions and say which in the summary.';
     }
 
     return lines.join('\n');
@@ -306,6 +322,31 @@ const formatGuidance = (context: AiRequestContext): string | null => {
     return context.guidance
         .map((entry) => `${entry.title} (${entry.condition}):\n${entry.body}`)
         .join('\n\n');
+};
+
+/**
+ * The plan the user is on, so "make it harder" or "swap the squats" has
+ * something to change. Without it the model only knew the request's words and
+ * the training history, and every revision came back as an unrelated new plan.
+ * One line per session keeps it to a few hundred tokens.
+ */
+const formatCurrentPlan = (plan: AiPlanPayload): string => {
+    const lines = [`Title: ${plan.title}`];
+
+    for (const workout of [...plan.workouts].sort((a, b) => a.dayOffset - b.dayOffset)) {
+        const exercises = workout.exercises
+            .map((exercise) =>
+                exercise.reps
+                    ? `${exercise.name} ${exercise.sets}x${exercise.reps}`
+                    : exercise.name,
+            )
+            .join(', ');
+        const type = workout.type === 'active_rest' ? 'active rest' : 'training';
+
+        lines.push(`Day ${workout.dayOffset + 1} · ${workout.name} (${type}): ${exercises}`);
+    }
+
+    return lines.join('\n');
 };
 
 /**
@@ -397,6 +438,11 @@ export const buildPlanMessages = (
      * being asked a fourth time.
      */
     forceReady = false,
+    /**
+     * The plan the user is training on now, if any. Sent so a request to change
+     * it can start from it — see `formatCurrentPlan`.
+     */
+    currentPlan: AiPlanPayload | null = null,
 ): AiChatMessage[] => {
     const ask =
         kind === 'nutrition'
@@ -428,12 +474,29 @@ per meal, short food names, no commentary beyond a one-line summary.`;
         ? '\n\nFORCE_READY: this conversation has already asked what it needs to. Do not ask again — generate the plan now under conservative assumptions for anything still unknown.'
         : '';
 
+    const currentPlanBlock =
+        currentPlan && currentPlan.workouts.length > 0
+            ? [
+                  {
+                      role: 'system' as const,
+                      content: `CURRENT PLAN (what the user is training on now)
+${formatCurrentPlan(currentPlan)}
+
+If the request below asks to change this plan ("harder", "swap X", "add cardio",
+"4 days instead"), write the changed version of it: keep every session and
+exercise the user did not ask to change, and apply the change throughout. If it
+asks for something new, you may ignore this.`,
+                  },
+              ]
+            : [];
+
     return [
         { role: 'system', content: PLAN_SYSTEM },
         {
             role: 'system',
             content: buildContextBlock(context, { includeCatalogue: kind !== 'nutrition' }),
         },
+        ...currentPlanBlock,
         ...priorHistory,
         {
             role: 'user',

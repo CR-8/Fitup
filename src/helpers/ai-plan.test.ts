@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 
-import { derivePlanProgress, summarisePlans } from './ai-plan';
+import { derivePlanProgress, planWorkoutTypes, summarisePlans } from './ai-plan';
 
 /**
  * Guards the arithmetic behind "Week 2 of 8 — 7 of 32 sessions done".
@@ -180,5 +180,54 @@ describe('which plan Home shows, and how many are behind the user', () => {
         const older = plan('a', NOW - 10 * DAY);
 
         expect(summarisePlans([newer, older], [], NOW)).toEqual({ current: newer, finished: 1 });
+    });
+});
+
+describe('which plan workouts are active rest', () => {
+    const session = (type?: 'training' | 'active_rest', exercises = 1) => ({
+        name: 'Session',
+        dayOffset: 0,
+        type,
+        exercises: Array.from({ length: exercises }, () => ({ exerciseId: 'x' })),
+    });
+
+    test('created ids line up with the plan workouts they came from', () => {
+        const types = planWorkoutTypes([
+            {
+                appliedWorkoutIds: ['a', 'b', 'c'],
+                payload: { workouts: [session('training'), session('active_rest'), session()] },
+            },
+        ] as never);
+
+        expect([...types.entries()]).toEqual([
+            ['a', 'training'],
+            ['b', 'active_rest'],
+            // Plans from before the marker existed are all training.
+            ['c', 'training'],
+        ]);
+    });
+
+    // `applyPlanToSchedule` creates nothing for an empty session, so it has no id
+    // to line up with — skipping it is what keeps the ones after it aligned.
+    test('a session with no exercises is skipped, as applying skips it', () => {
+        const types = planWorkoutTypes([
+            {
+                appliedWorkoutIds: ['a', 'b'],
+                payload: {
+                    workouts: [session('training', 0), session('active_rest'), session('training')],
+                },
+            },
+        ] as never);
+
+        expect(types.get('a')).toBe('active_rest');
+        expect(types.get('b')).toBe('training');
+    });
+
+    test('a plan never applied contributes nothing', () => {
+        expect(
+            planWorkoutTypes([
+                { appliedWorkoutIds: null, payload: { workouts: [session('active_rest')] } },
+            ] as never).size,
+        ).toBe(0);
     });
 });

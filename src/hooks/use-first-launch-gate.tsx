@@ -18,9 +18,9 @@ import { useUser } from './use-user';
  * because there would be no way to satisfy the requirement and the app would be
  * unusable — that is the only path that still reaches the app signed out.
  *
- * Onboarding remains skippable; skipping records completion, so a user who
- * declines is never asked again and the assistant falls back to general
- * assumptions.
+ * Onboarding cannot be skipped. It counts as done only once the profile holds
+ * every required answer (`hasCompletedOnboarding`), so an account that skipped
+ * it back when that was allowed is sent back to finish it.
  *
  * The root layout removes every app route from the navigator while signed out
  * (`src/routes/_layout.tsx`), which is what actually enforces the requirement.

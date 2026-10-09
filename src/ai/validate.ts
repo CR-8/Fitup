@@ -240,6 +240,9 @@ const validateWorkout = (
         name: asTrimmedString(raw.name) ?? 'Workout',
         dayOffset: asNonNegativeInt(raw.dayOffset, MAX_HORIZON_DAYS) ?? 0,
         focus: asTrimmedString(raw.focus),
+        // Anything but an explicit active-rest marker is a training session,
+        // which is what every plan was before the marker existed.
+        type: asTrimmedString(raw.type) === 'active_rest' ? 'active_rest' : 'training',
         exercises,
     };
 };

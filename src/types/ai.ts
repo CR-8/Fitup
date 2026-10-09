@@ -36,11 +36,20 @@ export interface AiPlanExercise {
     notes?: string | null;
 }
 
+/**
+ * A full training session, or a short active-recovery one (an easy walk,
+ * mobility, stretching) on a day off. The Home weekly tracker counts the two
+ * separately; days with neither are rest days.
+ */
+export type AiPlanWorkoutType = 'training' | 'active_rest';
+
 export interface AiPlanWorkout {
     name: string;
     /** Zero-based offset from the plan start, so a plan is not pinned to a date. */
     dayOffset: number;
     focus?: string | null;
+    /** Absent on plans written before active rest existed; read as training. */
+    type?: AiPlanWorkoutType;
     exercises: AiPlanExercise[];
 }
 

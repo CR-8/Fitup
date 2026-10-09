@@ -1,6 +1,5 @@
 export { default as HomeScreen } from './home';
 export { default as EditorScreen } from './editor';
-export { default as ExercisesScreen } from './exercises/exercises';
 export { default as ExerciseScreen } from './exercises/exercise';
 export { default as PreviewScreen } from './exercises/preview';
 export { default as GuideScreen } from './exercises/guide';
@@ -8,7 +7,6 @@ export { default as AppReviewScreen } from './app-review';
 export { default as FilterScreen } from './exercises/filter';
 export { default as SelectScreen } from './select';
 export { default as WorkoutScreen } from './workouts/workout';
-export { default as WorkoutHubScreen } from './workouts/hub';
 export { default as WorkoutExerciseScreen } from './workouts/exercise';
 export { default as SynScreen } from './syn';
 export { default as SignInScreen } from './auth/sign-in';

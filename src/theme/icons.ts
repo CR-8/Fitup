@@ -32,6 +32,7 @@ export const icons = {
     megaphone: { ios: 'megaphone', android: 'campaign' },
     message: { ios: 'bubble.left', android: 'chat_bubble' },
     minus: { ios: 'minus', android: 'remove' },
+    moon: { ios: 'moon.zzz', android: 'bedtime' },
     pause: { ios: 'pause.fill', android: 'pause' },
     person: { ios: 'person', android: 'person' },
     'person-circle': { ios: 'person.crop.circle', android: 'account_circle' },
@@ -55,6 +56,7 @@ export const icons = {
     utensils: { ios: 'fork.knife', android: 'restaurant' },
     'volume-high': { ios: 'speaker.wave.2', android: 'volume_up' },
     'volume-low': { ios: 'speaker.wave.1', android: 'volume_down' },
+    walk: { ios: 'figure.walk', android: 'directions_walk' },
     x: { ios: 'xmark', android: 'close' },
 } satisfies Record<string, Extract<SymbolViewProps['name'], object>>;
 

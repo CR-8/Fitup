@@ -35,7 +35,7 @@
         "upNext": {
             "eyebrow": {
                 "resume": "In progress",
-                "start": "Today's workout",
+                "start": "Up next",
                 "create": "Get started"
             },
             "action": {
@@ -52,50 +52,62 @@
         "streak_one": "{{count}} day streak",
         "streak_other": "{{count}} day streak",
         "ai": {
-            "title": "Generate your plan with AI",
-            "description": "Tell Syn your goal and body stats — get a full week of training in seconds.",
-            "action": "Generate a new plan",
-            "chips": {
-                "week": "Training week",
-                "weekIntent": "Build me a training plan for the week around my goal.",
-                "cut": "Fat loss plan",
-                "cutIntent": "Build me a training plan and a food chart for fat loss for the next 3 days.",
-                "food": "Food chart",
-                "foodIntent": "Build me a food chart for the next 3 days."
-            },
             "finished_one": "{{count}} plan finished",
             "finished_other": "{{count}} plans finished",
-            "nextTitle": "Ready for your next plan?",
-            "nextDescription": "Syn builds the next week from where you are now."
-        },
-        "plan": {
-            "eyebrow": "Active plan",
-            "week": "Week {{week}} of {{weeks}}",
-            "cadence_one": "{{count}} session a week",
-            "cadence_other": "{{count}} sessions a week",
-            "sessions": "{{done}} of {{total}} sessions done",
-            "revise": {
-                "label": "Revise with AI",
-                "harder": "Make it harder",
-                "harderIntent": "Rebuild my plan harder than the one I am on — more volume or heavier work.",
-                "swap": "Swap exercises",
-                "swapIntent": "Rebuild my plan with different exercises for the same muscle groups.",
-                "nutrition": "Add nutrition",
-                "nutritionIntent": "Rebuild my plan with a food chart alongside the training.",
-                "confirmTitle": "Generate a new plan?",
-                "confirmBody": "Syn writes a new plan rather than editing this one, and applying it replaces your schedule. It uses one of your plans for this month.",
-                "confirm": "Generate"
+            "intent": "Build me a training plan for the week around my goal.",
+            "new": {
+                "title": "Generate your plan with AI",
+                "description": "A full week of training built around your goal, in seconds.",
+                "action": "Generate my plan"
+            },
+            "next": {
+                "title": "Ready for your next plan?",
+                "description": "Syn builds the next week from where you are now.",
+                "action": "Generate my next plan"
+            },
+            "adjust": {
+                "title": "Want to change your plan?",
+                "description": "Tell Syn what to change — harder, different exercises, add food.",
+                "action": "Adjust with AI"
             }
         },
-        "tiles": {
-            "streak": "Day streak",
-            "month": "This month"
-        },
         "recentActivity": "Recent activity",
-        "viewAll": "View all"
+        "viewAll": "View all",
+        "buildOwn": {
+            "prompt": "Prefer to plan it yourself?",
+            "action": "Build a workout"
+        },
+        "tracker": {
+            "eyebrow": "This week",
+            "of": "of {{target}}",
+            "following": "{{title}} · week {{week}} of {{weeks}}",
+            "a11y": "{{label}}: {{done}} of {{target}}",
+            "noPlanHint": "Generate a plan with AI and your week fills in automatically.",
+            "metrics": {
+                "workouts": "Workouts",
+                "rest": "Rest days",
+                "activeRest": "Active rest"
+            },
+            "legend": {
+                "workout": "Workout",
+                "rest": "Rest",
+                "activeRest": "Active rest",
+                "planned": "Planned"
+            },
+            "status": {
+                "trained": "workout done",
+                "active_rest": "active rest done",
+                "rested": "rest day",
+                "missed": "planned workout missed",
+                "planned_workout": "workout planned",
+                "planned_active_rest": "active rest planned",
+                "planned_rest": "rest day planned",
+                "open": "nothing planned"
+            }
+        }
     },
     "results": {
-        "title": "Results",
+        "title": "Monthly Tracker",
         "stats": {
             "title": "Stats",
             "trainingWeeks": {
@@ -185,6 +197,16 @@
                 "intermediate": "Intermediate",
                 "advanced": "Advanced"
             }
+        },
+        "records": {
+            "title": "Personal records",
+            "newThisMonth_one": "{{count}} new this month",
+            "newThisMonth_other": "{{count}} new this month",
+            "new": "New",
+            "empty": "Finish a workout and your best set for each exercise shows up here.",
+            "showAll_one": "Show all {{count}}",
+            "showAll_other": "Show all {{count}}",
+            "showLess": "Show less"
         }
     },
     "exercises": {
@@ -619,7 +641,7 @@
         }
     },
     "syn": {
-        "title": "Syn",
+        "title": "AI Plan",
         "eyebrow": "Your AI coach",
         "empty": {
             "title": "Ask Syn",
@@ -630,7 +652,7 @@
             "message": "This build has no AI host configured. Set EXPO_PUBLIC_AI_BASE_URL to turn it on."
         },
         "composer": {
-            "placeholder": "Message Syn…",
+            "placeholder": "Ask for a plan, or anything about training…",
             "send": "Send"
         },
         "actions": {
@@ -665,18 +687,18 @@
             "protein": "P {{value}}g",
             "carbs": "C {{value}}g",
             "fat": "F {{value}}g",
-            "applied": "Added",
+            "applied": "In your week",
             "showMore": "Show full plan",
             "showLess": "Show less",
-            "addToSchedule": "Add to schedule",
+            "addToSchedule": "Add to my week",
             "undo": "Undo",
             "cancel": "Cancel",
-            "applyTitle": "Add to schedule",
-            "applyMessage": "This creates planned workouts. Completed workouts are never changed.",
+            "applyTitle": "Add to my week",
+            "applyMessage": "This replaces the upcoming sessions of your current plan. Completed workouts are never changed.",
             "applyConfirm": "Add",
             "applyFailed": "Could not add the plan to your schedule.",
             "revertTitle": "Undo plan",
-            "revertMessage": "This deletes the planned workouts this plan created.",
+            "revertMessage": "This removes the upcoming workouts this plan added. Workouts you have done stay.",
             "revertConfirm": "Undo",
             "revertFailed": "Could not undo the plan.",
             "slots": {
@@ -684,7 +706,8 @@
                 "lunch": "Lunch",
                 "dinner": "Dinner",
                 "snack": "Snack"
-            }
+            },
+            "activeRestName": "{{name}} · active rest"
         },
         "errors": {
             "disabled": "The assistant is not configured in this build.",
@@ -700,7 +723,7 @@
         "intro": {
             "greeting": "Hey {{name}} 👋",
             "greetingFallback": "Hey there 👋",
-            "body": "I can see your training history and your profile. Ask me anything, or start with one of these."
+            "body": "I know your profile and your training history. Just say what you want — \"a 4-day gym plan\", \"make it harder\" — or start with one of these."
         },
         "subtitle": "Your personal fitness assistant.",
         "pending": {
@@ -737,9 +760,8 @@
     },
     "onboarding": {
         "title": "About you",
-        "subtitle": "This is what Syn uses to tailor your plans. Every field is optional and you can change it later.",
+        "subtitle": "This is what Syn uses to tailor your plans. You can change it later in Settings.",
         "save": "Start training",
-        "skip": "Skip for now",
         "saveFailed": "Could not save your details. Try again.",
         "somatotypeHint": "A rough self-description, not a measurement.",
         "example": "e.g. {{value}}",
@@ -807,7 +829,8 @@
                 "subtitle": "How much time you actually have.",
                 "motivation": "Showing up beats going hard. Pick days you will keep."
             }
-        }
+        },
+        "optional": "{{label}} (optional)"
     },
     "timer": {
         "elapsed": "Elapsed",
@@ -922,14 +945,5 @@
         "confirm": "Confirm password",
         "action": "Save password",
         "abandon": "Not you? Sign out"
-    },
-    "workoutHub": {
-        "title": "Workout",
-        "subtitle": "Your sessions, planned and completed.",
-        "empty": {
-            "title": "No workouts yet",
-            "description": "Plan your first workout and it will show up here, ready to start.",
-            "action": "Plan a workout"
-        }
     }
 }

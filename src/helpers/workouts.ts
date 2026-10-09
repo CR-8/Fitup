@@ -2,57 +2,45 @@ import { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { useWorkoutWithDetails } from '@/hooks/use-workouts';
 import { formatClockSecondsCompact } from './times';
 
-export interface WorkoutGroup {
-    id: string;
-    title: string;
-    workouts: WorkoutSelect[];
-}
-
-export const groupWorkoutsByWeek = (
+/**
+ * Planned workouts, the one to do next first.
+ *
+ * An applied AI plan creates a week of sessions at the same moment, so creation
+ * order says nothing about which comes first; the schedule does. In order:
+ *
+ *   1. Scheduled today or later, soonest first — today's session leads.
+ *   2. Unscheduled drafts, newest first, as before plans had dates.
+ *   3. Scheduled on a day already gone (missed), most recent first — still
+ *      startable, but never offered ahead of today's.
+ */
+export const getPlannedWorkouts = (
     workouts: WorkoutSelect[],
-    locale: string = 'en',
-    firstWeekday: number = 2,
-): WorkoutGroup[] => {
-    const groups: WorkoutGroup[] = [];
-    const weekMap = new Map<string, WorkoutSelect[]>();
+    now: Date = new Date(),
+): WorkoutSelect[] => {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
 
-    workouts
-        .filter((workout) => workout.status === 'completed' && workout.completedAt)
-        .forEach((workout) => {
-            const completedDate = new Date(workout.completedAt!);
-            const weekStart = getWeekStart(completedDate, firstWeekday);
-            const weekKey = weekStart.toISOString().split('T')[0];
+    const rank = (workout: WorkoutSelect): number => {
+        if (!workout.startAt) return 1;
+        return new Date(workout.startAt).getTime() >= todayMs ? 0 : 2;
+    };
 
-            if (!weekMap.has(weekKey)) {
-                weekMap.set(weekKey, []);
-            }
-            weekMap.get(weekKey)!.push(workout);
-        });
-
-    const sortedWeeks = Array.from(weekMap.entries()).sort(([a], [b]) => b.localeCompare(a));
-
-    sortedWeeks.forEach(([weekKey, weekWorkouts]) => {
-        const weekStart = new Date(weekKey);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-
-        const title = formatWeekRange(weekStart, weekEnd, locale);
-        groups.push({
-            id: weekKey,
-            title,
-            workouts: weekWorkouts.sort(
-                (a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime(),
-            ),
-        });
-    });
-
-    return groups;
-};
-
-export const getPlannedWorkouts = (workouts: WorkoutSelect[]): WorkoutSelect[] => {
     return workouts
         .filter((workout) => workout.status === 'planned')
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .sort((a, b) => {
+            const byRank = rank(a) - rank(b);
+            if (byRank !== 0) return byRank;
+
+            if (rank(a) === 0) {
+                return new Date(a.startAt!).getTime() - new Date(b.startAt!).getTime();
+            }
+            if (rank(a) === 2) {
+                return new Date(b.startAt!).getTime() - new Date(a.startAt!).getTime();
+            }
+
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
 };
 
 export const getInProgressWorkouts = (workouts: WorkoutSelect[]): WorkoutSelect[] => {
@@ -123,15 +111,11 @@ export const getFlattenedOrderedSetsFromDetails = (
 /**
  * The first day of the week `date` falls in.
  *
- * Exported because the home screen's week strip had its own dayjs copy of this
- * arithmetic, and two implementations of "when does the week start" drift into
- * a strip that highlights different days than the list groups by.
+ * Exported so every "this week" in the app — the Home weekly tracker, the
+ * week summaries — agrees on where the week starts.
  *
- * The time of day is deliberately carried over rather than zeroed.
- * `groupWorkoutsByWeek` keys on `toISOString().split('T')[0]`, which converts to
- * UTC first — so normalising to local midnight would move the key back a day for
- * every timezone ahead of UTC. Use `startOfWeekMs` where a real boundary is
- * wanted.
+ * The time of day is carried over rather than zeroed; use `startOfWeekMs`
+ * where a real local-midnight boundary is wanted.
  */
 export const getWeekStart = (date: Date, firstWeekday: number = 2): Date => {
     const d = new Date(date);
@@ -237,19 +221,6 @@ export const computeStreakDays = (workouts: WorkoutSelect[], now: Date = new Dat
     }
 
     return streak;
-};
-
-const formatWeekRange = (start: Date, end: Date, locale: string): string => {
-    const startMonth = start.toLocaleDateString(locale, { month: 'long' });
-    const endMonth = end.toLocaleDateString(locale, { month: 'long' });
-    const startDay = start.getDate();
-    const endDay = end.getDate();
-
-    if (startMonth === endMonth) {
-        return `${startDay} — ${endDay} ${startMonth}`;
-    } else {
-        return `${startDay} ${startMonth} — ${endDay} ${endMonth}`;
-    }
 };
 
 export const formatSet = (exercise: ExerciseSelect | undefined, set: ExerciseSetSelect) => {

@@ -414,7 +414,8 @@
         },
         "profile": {
             "displayName": {
-                "tooLong": "Name must be 80 characters or fewer"
+                "tooLong": "Name must be 80 characters or fewer",
+                "required": "Tell us what to call you"
             },
             "age": {
                 "range": "Age must be a whole number between 13 and 100"
@@ -430,7 +431,8 @@
             },
             "sessionsPerWeek": {
                 "range": "Training days must be a whole number between 0 and 14"
-            }
+            },
+            "required": "Please answer this to continue"
         }
     },
     "pushes": {

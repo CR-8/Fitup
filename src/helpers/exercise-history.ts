@@ -23,12 +23,47 @@ const bestKey = (exercise: ExerciseSelect): 'weight' | 'reps' | 'time' | 'distan
 };
 
 /**
+ * The best set among `sets`, judged the way `bestKey` describes.
+ *
+ * Shared by the exercise screen's history and the Monthly Tracker's personal
+ * records, so a PR and the "best set" on the exercise it links to can never
+ * disagree. Warm-ups never count as a best: a warm-up at a heavier weight than
+ * the working sets is rare, but a warm-up out-repping them is routine.
+ */
+export const pickBestSet = <T extends ExerciseSetSelect>(
+    exercise: ExerciseSelect,
+    sets: Iterable<T>,
+): T | null => {
+    const key = bestKey(exercise);
+    if (!key) return null;
+
+    let bestSet: T | null = null;
+
+    for (const set of sets) {
+        if (set.type === 'warmup') continue;
+
+        const value = set[key];
+        if (value == null) continue;
+
+        const current = bestSet?.[key] ?? null;
+        const better =
+            current == null ||
+            value > current ||
+            // Same load: the set with more reps is the better one.
+            (key === 'weight' && value === current && (set.reps ?? 0) > (bestSet?.reps ?? 0));
+
+        if (better) bestSet = set;
+    }
+
+    return bestSet;
+};
+
+/**
  * The two cards at the top of an exercise's history: when it was last done, and
  * the best set on record.
  *
  * `history` arrives newest first with completed sets only — `getExerciseHistory`
- * does both. Warm-ups never count as a best: a warm-up at a heavier weight than
- * the working sets is rare, but a warm-up out-repping them is routine.
+ * does both.
  */
 export const summariseExerciseHistory = (
     exercise: ExerciseSelect,
@@ -36,32 +71,14 @@ export const summariseExerciseHistory = (
 ): ExerciseHistorySummary | null => {
     if (history.length === 0) return null;
 
-    const key = bestKey(exercise);
-    let bestSet: ExerciseSetSelect | null = null;
-
-    for (const item of history) {
-        for (const set of item.sets) {
-            if (!key || set.type === 'warmup') continue;
-
-            const value = set[key];
-            if (value == null) continue;
-
-            const current = bestSet?.[key] ?? null;
-            const better =
-                current == null ||
-                value > current ||
-                // Same load: the set with more reps is the better one.
-                (key === 'weight' && value === current && (set.reps ?? 0) > (bestSet?.reps ?? 0));
-
-            if (better) bestSet = set;
-        }
-    }
-
     const [latest] = history;
 
     return {
         lastPerformedAt: latest.workout.completedAt ? new Date(latest.workout.completedAt) : null,
         lastSetCount: latest.sets.length,
-        bestSet,
+        bestSet: pickBestSet(
+            exercise,
+            history.flatMap((item) => item.sets),
+        ),
     };
 };

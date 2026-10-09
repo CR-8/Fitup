@@ -2,6 +2,7 @@ import { getCurrentUser, updateUser } from '@/crud/user';
 import { createMeasurements, getLatestMeasurementsByMetric } from '@/crud/measurement';
 import { getProfile, upsertProfile } from '@/crud/ai';
 import type { AiProfileSelect, UserSelect } from '@/db/schema';
+import { isProfileComplete } from '@/helpers/profile';
 
 /**
  * Persists the onboarding answers.
@@ -188,12 +189,17 @@ export const saveProfileDetails = async (
     }
 };
 
+/**
+ * Finished means answered, not just dismissed.
+ *
+ * Onboarding could once be skipped, which stamped `completedAt` over an empty
+ * profile. Checking the required answers as well sends those accounts back to
+ * fill in what is missing — the form opens with whatever they did answer — and
+ * keeps a profile edited down to blanks from passing for a finished one.
+ */
 export const hasCompletedOnboarding = async (userId: string): Promise<boolean> => {
     const profile = await getProfile(userId);
-    return profile?.completedAt != null;
-};
+    if (profile?.completedAt == null) return false;
 
-/** Records that onboarding was dismissed, so it is not shown again. */
-export const skipOnboarding = async (userId: string): Promise<void> => {
-    await upsertProfile(userId, { completedAt: new Date() });
+    return isProfileComplete(await readProfileDetails(userId));
 };

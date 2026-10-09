@@ -107,7 +107,9 @@ const WorkoutDay: FC<{ dayOffset: number; workouts: AiPlanWorkout[] }> = ({
             {workouts.map((workout, workoutIndex) => (
                 <VStack key={`${workout.name}-${workoutIndex}`} style={styles.day}>
                     <Text fontSize="sm" fontWeight="semibold">
-                        {workout.name}
+                        {workout.type === 'active_rest'
+                            ? t('syn.plan.activeRestName', { name: workout.name })
+                            : workout.name}
                     </Text>
 
                     {workout.exercises.map((exercise, exerciseIndex) => (

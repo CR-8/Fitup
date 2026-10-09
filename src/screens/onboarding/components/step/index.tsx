@@ -119,7 +119,6 @@ interface StepProps {
     children: ReactNode;
     onNext: () => void;
     onBack?: () => void;
-    onSkip?: () => void;
     nextLabel: string;
     isSubmitting?: boolean;
 }
@@ -144,7 +143,6 @@ export const OnboardingStep: FC<StepProps> = ({
     children,
     onNext,
     onBack,
-    onSkip,
     nextLabel,
     isSubmitting = false,
 }) => {
@@ -208,27 +206,16 @@ export const OnboardingStep: FC<StepProps> = ({
                     spinnerColor={theme.solid.primaryTypography}
                 />
 
-                <HStack style={styles.secondaryRow}>
-                    {onBack ? (
+                {/* No skip: every step has an answer sign-up cannot finish without. */}
+                {onBack ? (
+                    <HStack style={styles.secondaryRow}>
                         <Pressable style={styles.linkButton} onPress={onBack}>
                             <Text fontSize="sm" style={styles.muted}>
                                 {t('onboarding.back', { ns: 'screens' })}
                             </Text>
                         </Pressable>
-                    ) : (
-                        <Box />
-                    )}
-
-                    {onSkip ? (
-                        <Pressable style={styles.linkButton} onPress={onSkip}>
-                            <Text fontSize="sm" style={styles.muted}>
-                                {t('onboarding.skip', { ns: 'screens' })}
-                            </Text>
-                        </Pressable>
-                    ) : (
-                        <Box />
-                    )}
-                </HStack>
+                    </HStack>
+                ) : null}
             </VStack>
         </KeyboardAwareScrollView>
     );

@@ -1,4 +1,16 @@
-import { eq, and, desc, inArray, or, exists, like, sql, type SQL } from 'drizzle-orm';
+import {
+    eq,
+    and,
+    desc,
+    inArray,
+    isNotNull,
+    ne,
+    or,
+    exists,
+    like,
+    sql,
+    type SQL,
+} from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -23,6 +35,7 @@ import { reportError } from '@/services/error-reporting';
 import { FITUP_EXERCISES_USER_ID, isFitupExerciseUserId } from '@/constants/fitup';
 import { expandMuscleValues } from '@/constants/muscles';
 import { clampExerciseSetReps } from '@/constants/exercise-set';
+import { buildPersonalRecords, type PersonalRecord } from '@/helpers/personal-records';
 
 import { withSync, withSyncDelete, handleCrudError } from '../shared';
 import { queueSyncOperation } from '../sync';
@@ -700,6 +713,49 @@ export const getExerciseHistory = async (
         return historyItems;
     } catch (error) {
         reportError(error, 'Failed to load exercise history:');
+        return [];
+    }
+};
+
+/**
+ * The best set this user has logged for every exercise they have trained.
+ *
+ * One read of every completed working set, ranked in memory by
+ * `buildPersonalRecords`: what counts as "best" depends on each exercise's
+ * tracking (load, reps, time or distance), which is far clearer as one shared
+ * function than as a SQL expression per tracking type.
+ */
+export const getPersonalRecords = async (userId: string): Promise<PersonalRecord[]> => {
+    try {
+        const rows = await db
+            .select({
+                set: exerciseSet,
+                exercise,
+                workoutCompletedAt: workout.completedAt,
+            })
+            .from(exerciseSet)
+            .innerJoin(workoutExercise, eq(workoutExercise.id, exerciseSet.workoutExerciseId))
+            .innerJoin(workout, eq(workout.id, workoutExercise.workoutId))
+            .innerJoin(exercise, eq(exercise.id, workoutExercise.exerciseId))
+            .where(
+                and(
+                    eq(workout.userId, userId),
+                    eq(workout.status, 'completed'),
+                    isNotNull(workout.completedAt),
+                    isNotNull(exerciseSet.completedAt),
+                    ne(exerciseSet.type, 'warmup'),
+                ),
+            );
+
+        return buildPersonalRecords(
+            rows.map((row) => ({
+                set: row.set,
+                exercise: row.exercise,
+                workoutCompletedAt: new Date(row.workoutCompletedAt!),
+            })),
+        );
+    } catch (error) {
+        reportError(error, 'Failed to load personal records:');
         return [];
     }
 };

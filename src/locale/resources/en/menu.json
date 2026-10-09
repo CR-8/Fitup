@@ -3,18 +3,12 @@
         "title": "Home"
     },
     "results": {
-        "title": "Results"
+        "title": "Monthly Tracker"
     },
     "syn": {
-        "title": "Syn"
-    },
-    "exercises": {
-        "title": "Exercises"
+        "title": "AI Plan"
     },
     "settings": {
         "title": "Settings"
-    },
-    "workouts": {
-        "title": "Workout"
     }
 }

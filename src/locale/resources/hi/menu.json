@@ -3,18 +3,12 @@
         "title": "होम"
     },
     "results": {
-        "title": "परिणाम"
+        "title": "मासिक ट्रैकर"
     },
     "syn": {
-        "title": "सिन"
-    },
-    "exercises": {
-        "title": "एक्सरसाइज"
+        "title": "AI प्लान"
     },
     "settings": {
         "title": "सेटिंग्स"
-    },
-    "workouts": {
-        "title": "वर्कआउट"
     }
 }

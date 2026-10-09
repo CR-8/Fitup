@@ -18,6 +18,7 @@ import { resolveFitnessLevel } from '@/helpers/fitness-level';
 import { ActivitySummary } from './components/activity-summary';
 import { FitnessLevelCard } from './components/fitness-level';
 import { MonthStats } from './components/month';
+import { PersonalRecords } from './components/personal-records';
 import { Scale } from './components/scale';
 import { StrengthStats } from './components/strength';
 
@@ -187,12 +188,14 @@ const ResultsScreen = () => {
             {Platform.OS === 'android' && (
                 <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
             )}
+            {/* The Monthly Tracker leads with the two things it is for: which
+                days were trained this month, and the best set on record for
+                each exercise. Totals and trends follow. */}
+            <MonthStats />
+            <PersonalRecords />
             <StatBlocks blocks={heroBlocks} inset={false} />
-            {/* The design board's reading order: totals, the month's training
-                time, then muscular load — before the calendar and the rest. */}
             <ActivitySummary onScrubbingChange={setIsChartScrubbing} />
             <StrengthStats />
-            <MonthStats />
             <FitnessLevelCard level={fitnessLevel} />
             <Scale />
             <VStack style={styles.fieldContainer}>

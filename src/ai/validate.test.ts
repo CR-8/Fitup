@@ -404,3 +404,33 @@ describe('validatePlanPayload', () => {
         expect(() => validatePlanPayload([1, 2], 'workout', candidates)).toThrow(AiError);
     });
 });
+
+describe('session type', () => {
+    const session = (type?: unknown) => ({
+        name: 'Session',
+        dayOffset: 1,
+        ...(type === undefined ? {} : { type }),
+        exercises: [{ exerciseId: 'exerciseBravo00000001', sets: 1, reps: 10 }],
+    });
+
+    test('active rest is kept, so the weekly tracker can count it', () => {
+        const { payload } = validatePlanPayload(
+            workoutPlan({ workouts: [session('active_rest')] }),
+            'workout',
+            candidates,
+        );
+
+        expect(payload.workouts[0].type).toBe('active_rest');
+    });
+
+    // Plans from before the field existed, and anything unrecognised.
+    test.each([[undefined], ['training'], ['recovery'], [42]])('%p is read as training', (type) => {
+        const { payload } = validatePlanPayload(
+            workoutPlan({ workouts: [session(type)] }),
+            'workout',
+            candidates,
+        );
+
+        expect(payload.workouts[0].type).toBe('training');
+    });
+});

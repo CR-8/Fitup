@@ -5,11 +5,13 @@ import {
     createWorkoutExercise,
     createWorkoutGroup,
     deleteWorkout,
+    getWorkoutById,
 } from '@/crud/workout';
 import { createExerciseSet } from '@/crud/exercise';
-import { markPlanApplied } from '@/crud/ai';
+import { getAppliedPlans, markPlanApplied } from '@/crud/ai';
 import { createMealItems, deleteMealsForPlan, getOrCreateMeal, toDateKey } from '@/crud/nutrition';
 import { reportError } from '@/services/error-reporting';
+import { schedulablePlanWorkouts } from '@/helpers/ai-plan';
 import type { AiPlanPayload, AiPlanWorkout } from '@/types/ai';
 
 /**
@@ -142,12 +144,12 @@ export const applyPlanToSchedule = async (
     let mealsCreated = 0;
 
     try {
-        for (const planWorkout of payload.workouts) {
-            if (planWorkout.exercises.length === 0) {
-                skipped += 1;
-                continue;
-            }
+        // The same list `planWorkoutTypes` reads the created ids back against,
+        // so the order here is load-bearing.
+        const schedulable = schedulablePlanWorkouts(payload);
+        skipped = payload.workouts.length - schedulable.length;
 
+        for (const planWorkout of schedulable) {
             workoutIds.push(await applyWorkout(planWorkout, userId, startDate));
         }
 
@@ -180,8 +182,30 @@ export const applyPlanToSchedule = async (
 };
 
 /**
- * Undo: removes everything a plan created — scheduled workouts and logged meals
- * alike — leaving hand-entered records and completed history untouched.
+ * Deletes the plan workouts in `workoutIds` that have not been touched yet:
+ * still `planned`, and (when `from` is given) scheduled on or after it.
+ *
+ * Anything started or completed is training history and stays, which is the
+ * guarantee both callers below make to the user.
+ */
+const deleteUntouchedWorkouts = async (workoutIds: string[], from?: Date): Promise<void> => {
+    for (const workoutId of workoutIds) {
+        try {
+            const row = await getWorkoutById(workoutId);
+            if (!row || row.status !== 'planned') continue;
+            if (from && row.startAt && new Date(row.startAt).getTime() < from.getTime()) continue;
+
+            await deleteWorkout(workoutId);
+        } catch (error) {
+            reportError(error, 'Failed to remove a workout created by an AI plan');
+        }
+    }
+};
+
+/**
+ * Undo: removes everything a plan created that has not been trained yet —
+ * upcoming workouts and the meals it logged — leaving hand-entered records and
+ * completed or started sessions untouched.
  */
 export const revertAppliedPlan = async (workoutIds: string[], planId?: string): Promise<void> => {
     if (planId) {
@@ -192,11 +216,36 @@ export const revertAppliedPlan = async (workoutIds: string[], planId?: string): 
         }
     }
 
-    for (const workoutId of workoutIds) {
-        try {
-            await deleteWorkout(workoutId);
-        } catch (error) {
-            reportError(error, 'Failed to revert an applied AI plan workout');
+    await deleteUntouchedWorkouts(workoutIds);
+};
+
+/**
+ * Puts a plan on the schedule, in place of the one before it.
+ *
+ * A new training plan replaces the old one rather than stacking on top of it:
+ * the previous plans' sessions that are still to come (planned, today or later)
+ * are removed first, so the week shows one plan, not two. What was already
+ * trained stays, and so do missed sessions from earlier days — they are the
+ * record of the old plan. A plan with no training in it (a food chart) leaves
+ * the training schedule alone.
+ *
+ * Used both when a generated plan is applied straight away and when the user
+ * adds a draft from its card, so the two can never schedule differently.
+ */
+export const commitPlan = async (
+    planId: string,
+    payload: AiPlanPayload,
+    userId: string,
+    now: Date = new Date(),
+): Promise<ApplyPlanResult> => {
+    if (schedulablePlanWorkouts(payload).length > 0) {
+        const today = dayjs(now).startOf('day').toDate();
+        const previous = (await getAppliedPlans(userId)).filter((plan) => plan.id !== planId);
+
+        for (const plan of previous) {
+            await deleteUntouchedWorkouts(plan.appliedWorkoutIds ?? [], today);
         }
     }
+
+    return applyPlanToSchedule(planId, payload, userId, now);
 };

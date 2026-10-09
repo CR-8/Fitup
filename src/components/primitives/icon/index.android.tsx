@@ -28,6 +28,7 @@ import {
     Megaphone,
     MessageCircle,
     Minus,
+    Moon,
     Pause,
     Play,
     Plus,
@@ -50,6 +51,7 @@ import {
     UtensilsCrossed,
     Volume1,
     Volume2,
+    Footprints,
     X,
 } from 'lucide-react-native';
 
@@ -85,6 +87,7 @@ const icons: Record<IconName, LucideIcon> = {
     megaphone: Megaphone,
     message: MessageCircle,
     minus: Minus,
+    moon: Moon,
     pause: Pause,
     person: User,
     'person-circle': CircleUser,
@@ -108,6 +111,7 @@ const icons: Record<IconName, LucideIcon> = {
     utensils: UtensilsCrossed,
     'volume-high': Volume2,
     'volume-low': Volume1,
+    walk: Footprints,
     x: X,
 };
 

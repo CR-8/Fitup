@@ -7,7 +7,8 @@ import { isReportableAiError, requestCompletion } from '@/api/ai';
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
 import { extractJsonObject, parseAssessment } from '@/ai/validate';
-import { applyPlanToSchedule, revertAppliedPlan } from '@/ai/apply-plan';
+import { detectPlanRequest } from '@/ai/intent';
+import { commitPlan, revertAppliedPlan } from '@/ai/apply-plan';
 import {
     buildChatHistory,
     buildRequestContext,
@@ -248,6 +249,10 @@ export const useAiChat = (conversationId: string | undefined) => {
         queryClient.invalidateQueries({ queryKey: [MESSAGES_KEY, conversationId] });
         queryClient.invalidateQueries({ queryKey: [PLANS_KEY] });
         queryClient.invalidateQueries({ queryKey: [QUOTA_KEY, user?.id] });
+        // A generated plan is applied as it arrives, so the schedule and the
+        // running plan — what the weekly tracker draws from — move with it.
+        queryClient.invalidateQueries({ queryKey: ['workouts'] });
+        queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user?.id] });
     }, [conversationId, queryClient, user?.id]);
 
     const { mutateAsync: sendMessage } = useMutation({
@@ -337,6 +342,12 @@ export const useAiChat = (conversationId: string | undefined) => {
             const priorIntakeTurns = recentMessages.filter((message) => message.isIntake).length;
             const forceReady = priorIntakeTurns >= INTAKE_QUESTION_LIMIT;
 
+            // What the user is training on now, so "make it harder" changes
+            // that plan instead of inventing an unrelated one. A food chart
+            // never needs it.
+            const currentPlan =
+                kind === 'nutrition' ? null : ((await getActivePlan(user.id))?.payload ?? null);
+
             /**
              * One attempt at the requested horizon, then a shorter one if the reply
              * ran out of room. A truncated plan cannot be salvaged — the JSON is cut
@@ -352,6 +363,7 @@ export const useAiChat = (conversationId: string | undefined) => {
                         days,
                         priorHistory,
                         forceReady,
+                        currentPlan,
                     ),
                     json: true,
                 });
@@ -413,6 +425,20 @@ export const useAiChat = (conversationId: string | undefined) => {
                     payload,
                     modelId: result.model,
                 });
+
+                // Straight onto the schedule: the weekly tracker on Home is meant
+                // to show the new week the moment the plan exists, not after a
+                // second confirmation. The card in the thread offers Undo. If
+                // writing it fails, the plan stays a draft the card can still add.
+                try {
+                    const applied = await commitPlan(plan.id, payload, user.id);
+                    track('ai:plan_applied', {
+                        kind,
+                        workouts: applied.workoutIds.length,
+                    });
+                } catch (error) {
+                    reportError(error, 'Failed to apply a generated plan automatically');
+                }
 
                 await createMessage({
                     conversationId,
@@ -477,6 +503,8 @@ export const useSynActions = () => {
     const { t } = useTranslation('screens');
     const { conversation, isLoading } = useAiConversation();
     const quota = useAiQuota();
+    const messages = useAiMessages(conversation?.id);
+    const { activePlan } = useActivePlan();
 
     // Safe to mount in several places at once: the pending flags come from
     // `useIsMutating` over a shared key, not from this instance's own mutation,
@@ -501,11 +529,37 @@ export const useSynActions = () => {
         [exhausted, generatePlan, quota.limit, t],
     );
 
+    /**
+     * Whatever the user typed, sent where it belongs.
+     *
+     * - A reply to Syn's question is the rest of the request it asked about,
+     *   so it goes back to generation — the plan the user was waiting for —
+     *   rather than to chat, which used to answer it and stop there.
+     * - A plan request in the user's own words ("4 day split pls", "make it
+     *   harder") generates, as the buttons do. See `detectPlanRequest`.
+     * - Everything else is conversation.
+     *
+     * When the month's plans are spent, `generate` says so and the message
+     * still reaches chat, so what was typed is never just dropped.
+     */
     const send = useCallback(
         (prompt: string) => {
+            const last = messages[messages.length - 1];
+
+            if (last?.role === 'assistant' && last.isIntake) {
+                const asked = [...messages].reverse().find((message) => message.role === 'user');
+                const kind = detectPlanRequest(asked?.content ?? '')?.kind ?? 'workout';
+
+                if (generate(kind, prompt)) return;
+            } else {
+                const request = detectPlanRequest(prompt, { hasActivePlan: !!activePlan });
+
+                if (request && generate(request.kind, prompt)) return;
+            }
+
             sendMessage(prompt).catch(() => undefined);
         },
-        [sendMessage],
+        [activePlan, generate, messages, sendMessage],
     );
 
     return {
@@ -530,7 +584,7 @@ export const useApplyAiPlan = () => {
         mutationFn: async (plan: AiPlanSelect) => {
             if (!user?.id) return null;
 
-            const result = await applyPlanToSchedule(plan.id, plan.payload, user.id);
+            const result = await commitPlan(plan.id, plan.payload, user.id);
             track('ai:plan_applied', { kind: plan.kind, workouts: result.workoutIds.length });
 
             return result;

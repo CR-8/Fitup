@@ -3,7 +3,6 @@ import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import dayjs from 'dayjs';
 
 import { useWorkouts, useWorkoutsOverviewMeta } from '@/hooks/use-workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
@@ -15,11 +14,12 @@ import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
 import Spinner from '@/components/feedback/spinner';
-import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
+import { useEditor } from '@/hooks/use-editor';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 import { Greeting, WorkoutCard } from './components';
 import { AiPlanCard } from './components/ai-plan';
-import { ActivePlanCard } from './components/active-plan';
+import { WeeklyTracker } from './components/weekly-tracker';
 import { UpNext } from './components/up-next';
 import { resolveUpNext } from './components/up-next/resolve';
 import { NutritionCard } from './components/nutrition';
@@ -27,16 +27,21 @@ import { useAppliedPlans } from '@/hooks/use-ai';
 import { summarisePlans } from '@/helpers/ai-plan';
 
 /**
- * The daily command center, laid out after the design board.
+ * Home: the week first.
  *
- * Top to bottom it answers, in order: who you are, what to do right now, how
- * you're doing, what you've eaten today, and what you did last. The AI plan cards
- * follow — kept below the board's layout rather than dropped, because Syn's plans
- * are the one feature that has no other home here. `NutritionCard` is the way
- * into `/diet`: the tab bar has no Nutrition slot.
+ * Top to bottom: a greeting, the weekly tracker (this week day by day, and the
+ * workouts / rest / active-rest rings), today's workout when there is one to
+ * start or resume, the AI plan card in the middle of the screen, the day's food,
+ * and the last few sessions.
+ *
+ * Building a workout by hand is still here but no longer the headline: with
+ * nothing scheduled, the big "plan a workout" card gave way to the tracker and
+ * the AI card, and a quiet link under the AI card does the same job. The
+ * Workout and Exercises tabs are gone — the tracker's days open their workouts,
+ * and the Monthly Tracker holds the calendar and history.
  */
 
-/** Home is a glance at recent training, not the archive — that's the Workout tab. */
+/** Home is a glance at recent training, not the archive — that's the Monthly Tracker. */
 const RECENT_LIMIT = 3;
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -90,6 +95,21 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingHorizontal: theme.space(4),
         gap: theme.space(2),
     },
+    buildOwn: {
+        alignSelf: 'center',
+        paddingVertical: theme.space(1),
+        paddingHorizontal: theme.space(4),
+        marginTop: -theme.space(2),
+    },
+    buildOwnText: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+        textAlign: 'center',
+    },
+    buildOwnLink: {
+        color: theme.colors.primary,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
 }));
 
 const HomeScreen: FC = () => {
@@ -102,22 +122,21 @@ const HomeScreen: FC = () => {
     const { plans, isLoading: isPlanLoading } = useAppliedPlans();
     const { elapsedFormated } = useRunningWorkoutTicker();
 
-    const { inProgressWorkouts, plannedWorkouts, recentWorkouts, monthCount } = useMemo(() => {
+    const { navigate } = useEditor();
+    const { track } = useAnalytics();
+
+    const { inProgressWorkouts, plannedWorkouts, recentWorkouts } = useMemo(() => {
         const list = workouts ?? [];
         const completed = list
             .filter((workout) => workout.status === 'completed' && workout.completedAt)
             .sort(
                 (a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime(),
             );
-        const monthStart = dayjs().startOf('month');
 
         return {
             inProgressWorkouts: getInProgressWorkouts(list),
             plannedWorkouts: getPlannedWorkouts(list),
             recentWorkouts: completed.slice(0, RECENT_LIMIT),
-            monthCount: completed.filter(
-                (workout) => !dayjs(workout.completedAt).isBefore(monthStart),
-            ).length,
         };
     }, [workouts]);
 
@@ -128,27 +147,14 @@ const HomeScreen: FC = () => {
 
     const streak = useMemo(() => computeStreakDays(workouts ?? []), [workouts]);
 
-    // A plan stays on Home while it is running; once its sessions are done or its
-    // time is up, the generate card comes back and says how many are behind you.
+    // The running plan drives the tracker's targets; once its sessions are done
+    // or its time is up, the AI card says how many are behind you.
     const planSummary = useMemo(() => summarisePlans(plans, workouts ?? []), [plans, workouts]);
 
-    const tiles = useMemo<StatBlock[]>(
-        () => [
-            {
-                key: 'streak',
-                icon: 'flame',
-                value: String(streak),
-                label: t('home.tiles.streak', { ns: 'screens' }),
-            },
-            {
-                key: 'month',
-                icon: 'bar-chart',
-                value: String(monthCount),
-                label: t('home.tiles.month', { ns: 'screens' }),
-            },
-        ],
-        [monthCount, streak, t],
-    );
+    const handleBuildOwn = useCallback(() => {
+        track('workout:create_requested', { surface: 'home_up_next' });
+        navigate({ type: 'workout__create' });
+    }, [navigate, track]);
 
     const handleWorkoutPress = useCallback((workoutId: string) => {
         router.navigate(`/workout/${workoutId}`);
@@ -171,21 +177,49 @@ const HomeScreen: FC = () => {
             >
                 <Greeting />
 
-                <UpNext
-                    state={upNext}
-                    overviewMeta={
-                        upNext.kind === 'create'
-                            ? undefined
-                            : workoutsOverviewMeta[upNext.workout.id]
-                    }
-                    elapsedFormatted={
-                        upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
-                            ? elapsedFormated
-                            : null
-                    }
+                <WeeklyTracker
+                    workouts={workouts}
+                    plans={plans}
+                    currentPlan={planSummary.current}
+                    streak={streak}
                 />
 
-                <StatBlocks blocks={tiles} variant="split" />
+                {/* Only when there is something to start or resume. With nothing
+                    scheduled, the AI card below is the way forward. */}
+                {upNext.kind === 'create' ? null : (
+                    <UpNext
+                        state={upNext}
+                        overviewMeta={workoutsOverviewMeta[upNext.workout.id]}
+                        elapsedFormatted={
+                            upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
+                                ? elapsedFormated
+                                : null
+                        }
+                    />
+                )}
+
+                {/* Neither while plans load, so the wrong copy never flashes. */}
+                {isPlanLoading ? null : (
+                    <AiPlanCard
+                        finishedPlans={planSummary.finished}
+                        hasActivePlan={!!planSummary.current}
+                    />
+                )}
+
+                {upNext.kind === 'create' ? (
+                    <Pressable
+                        style={styles.buildOwn}
+                        onPress={handleBuildOwn}
+                        accessibilityRole="button"
+                    >
+                        <Text style={styles.buildOwnText}>
+                            {t('home.buildOwn.prompt', { ns: 'screens' })}{' '}
+                            <Text style={[styles.buildOwnText, styles.buildOwnLink]}>
+                                {t('home.buildOwn.action', { ns: 'screens' })}
+                            </Text>
+                        </Text>
+                    </Pressable>
+                ) : null}
 
                 <NutritionCard />
 
@@ -196,7 +230,7 @@ const HomeScreen: FC = () => {
                                 {t('home.recentActivity', { ns: 'screens' })}
                             </Text>
                             <Pressable
-                                onPress={() => router.navigate('/workouts')}
+                                onPress={() => router.navigate('/results')}
                                 accessibilityRole="button"
                             >
                                 <Text style={styles.sectionLink}>
@@ -217,15 +251,6 @@ const HomeScreen: FC = () => {
                         </VStack>
                     </VStack>
                 ) : null}
-
-                {/* One or the other: with a plan running, offering to generate a new
-                one competes with the plan itself. Neither while it loads, so the
-                wrong card never flashes. */}
-                {isPlanLoading ? null : planSummary.current ? (
-                    <ActivePlanCard workouts={workouts} streak={streak} />
-                ) : (
-                    <AiPlanCard finishedPlans={planSummary.finished} />
-                )}
             </ScrollView>
             {Platform.OS === 'android' && <Box style={styles.statusBarScrim} />}
         </Box>

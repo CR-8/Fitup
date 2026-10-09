@@ -1,24 +1,26 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { FC, useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 
+import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { Buttons } from '@/components/forms/fields/buttons';
 import { useUser } from '@/hooks/use-user';
-import { saveOnboardingAnswers, skipOnboarding } from '@/crud/onboarding';
+import { readProfileDetails, saveOnboardingAnswers, type ProfileDetails } from '@/crud/onboarding';
 import { GUIDELINE_SESSIONS_PER_WEEK, MEDIAN_AGE_YEARS, worldAverages } from '@/constants/averages';
 import { queryClient } from '@/queries';
 import { reportError } from '@/services/error-reporting';
+import { ageToBirthday, birthdayToAge } from '@/helpers/profile';
 
 import { OnboardingStep } from './components/step';
-import { profileSchema, type ProfileFormData } from './schema';
+import { profileResolver, type ProfileFormData, type ProfileFormValues } from './schema';
 import type { IconName } from '@/components/primitives/icon';
 
 const styles = StyleSheet.create((theme) => ({
@@ -31,47 +33,46 @@ const styles = StyleSheet.create((theme) => ({
             default: theme.colors.neutral[400],
         }),
     },
+    loading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 }));
 
-type OnboardingForm = ProfileFormData;
+type OnboardingForm = ProfileFormValues;
 
 /**
- * What the form starts as.
+ * What the form starts as: whatever the profile already holds, and nothing else.
  *
- * Split deliberately, because "sensible default" and "sensible hint" are not the
- * same thing here — a default is saved, a hint is not:
+ * Every required answer starts blank rather than at a "sensible middle". A
+ * preselected goal or training place could be tapped straight past, which is
+ * the same as skipping it — and sign-up is not allowed to finish with a
+ * question nobody answered (see `REQUIRED_PROFILE_FIELDS`).
  *
- *   - `goal`, `activityLevel` and `sessionsPerWeek` are plain profile settings
- *     with a defensible middle, and they are what the plan generator reads. A
- *     user who taps straight through now arrives with a usable profile instead
- *     of three nulls.
- *   - `bodyWeightKg` and `heightCm` are NOT defaulted. They are written as
- *     `measurement` rows, which are a time series, so a number nobody typed
- *     would show up on the weight chart as a real weigh-in.
- *   - `age` is NOT defaulted either. It is saved as a birthday, and the birthday
- *     is what heart-rate zones are derived from — a guessed age silently
- *     produces wrong zones, which is worse than having none.
- *   - `biologicalSex` and `somatotype` are self-descriptions. There is no
- *     neutral value to pick on someone's behalf.
+ * The profile is read first because this screen is not only for new accounts.
+ * The first-launch gate also sends back anyone whose profile is missing a
+ * required answer — accounts from when onboarding could be skipped, mostly — and
+ * they should only have to fill in the gaps. Body weight and height may already
+ * be there from a health-platform import.
  *
- * Passing this object also stops every field starting as `undefined`, which is
- * what left the inputs switching from uncontrolled to controlled on first edit.
+ * Hints are still placeholders, never values: weight and height are written as
+ * `measurement` rows, so a number nobody typed would show up on the weight chart
+ * as a real weigh-in, and a guessed age silently produces wrong heart-rate zones.
  */
-const DEFAULT_VALUES: OnboardingForm = {
-    displayName: null,
-    age: null,
-    biologicalSex: null,
-    bodyWeightKg: null,
-    heightCm: null,
-    targetWeightKg: null,
-    goal: 'maintain',
-    somatotype: null,
-    activityLevel: 'moderate',
-    sessionsPerWeek: GUIDELINE_SESSIONS_PER_WEEK,
-    // Gym preserves prior behaviour (no equipment filtering) for anyone who
-    // taps straight through — home is an active, narrowing choice.
-    trainingEnvironment: 'gym',
-};
+const toFormValues = (details: ProfileDetails | undefined): OnboardingForm => ({
+    displayName: details?.displayName ?? null,
+    age: birthdayToAge(details?.birthday ?? null),
+    biologicalSex: details?.biologicalSex ?? null,
+    bodyWeightKg: details?.bodyWeightKg ?? null,
+    heightCm: details?.heightCm ?? null,
+    targetWeightKg: details?.targetWeightKg ?? null,
+    goal: details?.goal ?? null,
+    somatotype: details?.somatotype ?? null,
+    activityLevel: details?.activityLevel ?? null,
+    sessionsPerWeek: details?.sessionsPerWeek ?? null,
+    trainingEnvironment: details?.trainingEnvironment ?? null,
+});
 
 /**
  * Which step each field is asked on.
@@ -90,28 +91,29 @@ const STEP_FIELDS: readonly (keyof OnboardingForm)[][] = [
 
 const STEP_COUNT = STEP_FIELDS.length;
 
-/** Age is friendlier to answer than a date, so it is converted on save. */
-const ageToBirthday = (age: number | null | undefined): Date | null => {
-    if (typeof age !== 'number' || !Number.isFinite(age)) return null;
+interface OnboardingFormProps {
+    userId: string | undefined;
+    initialValues: OnboardingForm;
+}
 
-    const birthday = new Date();
-    birthday.setFullYear(birthday.getFullYear() - Math.round(age));
-
-    return birthday;
-};
-
-const OnboardingScreen = () => {
+/**
+ * Split from the screen so the fields mount with the stored answers already in
+ * hand — `BaseInput` reads its value once, on mount. See the same split in
+ * Settings → Profile.
+ */
+const AboutYouForm: FC<OnboardingFormProps> = ({ userId, initialValues }) => {
     const { t } = useTranslation(['screens', 'common']);
-    const { user } = useUser();
     const [stepIndex, setStepIndex] = useState(0);
 
     const {
         control,
         handleSubmit,
+        trigger,
         formState: { errors, isSubmitting },
-    } = useForm<OnboardingForm>({
-        resolver: zodResolver(profileSchema),
-        defaultValues: DEFAULT_VALUES,
+    } = useForm<OnboardingForm, unknown, ProfileFormData>({
+        resolver: profileResolver,
+        defaultValues: initialValues,
+        mode: 'onTouched',
     });
 
     /**
@@ -154,25 +156,23 @@ const OnboardingScreen = () => {
         router.replace('/');
     }, []);
 
-    const userId = user?.id;
-
     const onSubmit = handleSubmit(
         async (values) => {
             if (!userId) return finish();
 
             try {
                 await saveOnboardingAnswers(userId, {
-                    displayName: values.displayName ?? null,
+                    displayName: values.displayName,
                     birthday: ageToBirthday(values.age),
-                    biologicalSex: values.biologicalSex ?? null,
-                    bodyWeightKg: values.bodyWeightKg ?? null,
-                    heightCm: values.heightCm ?? null,
+                    biologicalSex: values.biologicalSex,
+                    bodyWeightKg: values.bodyWeightKg,
+                    heightCm: values.heightCm,
                     targetWeightKg: values.targetWeightKg ?? null,
-                    goal: values.goal ?? null,
+                    goal: values.goal,
                     somatotype: values.somatotype ?? null,
-                    activityLevel: values.activityLevel ?? null,
-                    sessionsPerWeek: values.sessionsPerWeek ?? null,
-                    trainingEnvironment: values.trainingEnvironment ?? null,
+                    activityLevel: values.activityLevel,
+                    sessionsPerWeek: values.sessionsPerWeek,
+                    trainingEnvironment: values.trainingEnvironment,
                 });
 
                 finish();
@@ -192,23 +192,22 @@ const OnboardingScreen = () => {
         },
     );
 
-    const handleSkip = useCallback(() => {
-        if (!userId) return finish();
-
-        // Skipping still records completion, so the questions are not asked again.
-        skipOnboarding(userId)
-            .catch((error) => reportError(error, 'Failed to skip onboarding'))
-            .finally(finish);
-    }, [finish, userId]);
-
-    const goNext = useCallback(() => {
+    /**
+     * There is no way past a step with a required answer missing — no skip
+     * link and no tapping through. Validating here, a step at a time, puts the
+     * message under the field that needs it while it is still on screen,
+     * rather than collecting every complaint at the final Save.
+     */
+    const goNext = useCallback(async () => {
         if (stepIndex < STEP_COUNT - 1) {
-            setStepIndex((index) => index + 1);
+            const valid = await trigger(STEP_FIELDS[stepIndex]);
+
+            if (valid) setStepIndex((index) => index + 1);
             return;
         }
 
         onSubmit();
-    }, [onSubmit, stepIndex]);
+    }, [onSubmit, stepIndex, trigger]);
 
     const goBack = useCallback(() => setStepIndex((index) => Math.max(0, index - 1)), []);
 
@@ -294,7 +293,10 @@ const OnboardingScreen = () => {
 
                         <VStack style={styles.fieldContainer}>
                             <Label field>
-                                {t('onboarding.fields.somatotype', { ns: 'screens' })}
+                                {t('onboarding.optional', {
+                                    ns: 'screens',
+                                    label: t('onboarding.fields.somatotype', { ns: 'screens' }),
+                                })}
                             </Label>
                             <Buttons
                                 control={control}
@@ -332,7 +334,10 @@ const OnboardingScreen = () => {
 
                         <VStack style={styles.fieldContainer}>
                             <Label field>
-                                {t('onboarding.fields.targetWeight', { ns: 'screens' })}
+                                {t('onboarding.optional', {
+                                    ns: 'screens',
+                                    label: t('onboarding.fields.targetWeight', { ns: 'screens' }),
+                                })}
                             </Label>
                             <Input
                                 control={control}
@@ -420,7 +425,6 @@ const OnboardingScreen = () => {
             icon={step.icon}
             onNext={goNext}
             onBack={stepIndex > 0 ? goBack : undefined}
-            onSkip={handleSkip}
             isSubmitting={isSubmitting}
             nextLabel={
                 isLast
@@ -431,6 +435,32 @@ const OnboardingScreen = () => {
             {step.content}
         </OnboardingStep>
     );
+};
+
+/**
+ * The last step of signing up, and the screen the first-launch gate sends
+ * anyone back to whose profile is missing a required answer.
+ */
+const OnboardingScreen = () => {
+    const { user } = useUser();
+    const { theme } = useUnistyles();
+    const userId = user?.id;
+
+    const { data: details, isLoading } = useQuery({
+        queryKey: ['onboarding', 'details', userId],
+        queryFn: () => readProfileDetails(userId!),
+        enabled: !!userId,
+    });
+
+    if (userId && isLoading) {
+        return (
+            <Box style={styles.loading}>
+                <ActivityIndicator color={theme.colors.primary} />
+            </Box>
+        );
+    }
+
+    return <AboutYouForm userId={userId} initialValues={toFormValues(details)} />;
 };
 
 export default OnboardingScreen;

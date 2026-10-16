@@ -45,18 +45,23 @@ export type ButtonProps = {
     prefix?: ReactNode;
     suffix?: ReactNode;
 } & ButtonAccessibilityProps &
-    UnistylesVariants<typeof styles>;
+    Omit<UnistylesVariants<typeof styles>, 'type'> & {
+        type?: 'default' | 'outline' | 'primary' | 'link';
+    };
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     container: {
         variants: {
             type: {
+                // The secondary action: an outline, so the screen's one filled
+                // button stays the only thing that shouts.
                 default: {
                     justifyContent: 'center',
                     alignItems: 'center',
                     width: '100%',
-                    backgroundColor:
-                        rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
                     borderRadius: theme.radius.full,
                 },
                 // The one filled coral button. `brand[600]`, not `brand[500]`:
@@ -103,10 +108,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         variants: {
             type: {
                 default: {
-                    color:
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50],
+                    color: theme.colors.typography,
                 },
                 primary: {
                     color: theme.colors.primaryTypography,
@@ -183,22 +185,18 @@ const Button: FC<ButtonProps> = ({
     spinnerColor,
     prefix,
     suffix,
-    type,
+    type: requestedType,
     size,
     ...accessibility
 }) => {
-    styles.useVariants({ type, size });
-    const { theme, rt } = useUnistyles();
+    // `outline` is the same look as `default`, named for the call sites that want to say so.
+    const type = requestedType === 'outline' ? 'default' : requestedType;
+    // The `default` variant is the one applied when none is named.
+    styles.useVariants({ type: type === 'default' ? undefined : type, size });
+    const { theme } = useUnistyles();
 
     // The title's own colour, per `styles.title`, so the icon matches it.
-    const iconColor =
-        type === 'primary'
-            ? theme.colors.primaryTypography
-            : type === 'link'
-              ? theme.colors.typography
-              : rt.themeName === 'dark'
-                ? theme.colors.neutral[950]
-                : theme.colors.neutral[50];
+    const iconColor = type === 'primary' ? theme.colors.primaryTypography : theme.colors.typography;
 
     return (
         <Pressable

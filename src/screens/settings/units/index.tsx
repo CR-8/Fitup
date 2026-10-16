@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -66,8 +65,8 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     headerContainer: {
         padding: theme.space(5),
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         gap: theme.space(5),
     },
@@ -78,19 +77,16 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(5),
     },
     description: {
-        fontSize: theme.fontSize.lg.fontSize,
-        color: theme.colors.typography,
-        opacity: 0.6,
+        ...theme.fontSize.default,
+        color: theme.colors.mutedTypography,
     },
     iconContainer: {
         height: theme.space(15),
         width: theme.space(15),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Platform.select({
-            ios: theme.colors.primary,
-            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-        }),
+        // The accent on both platforms, as the redesign's setting glyphs.
+        backgroundColor: theme.colors.brand[600],
         borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         marginBottom: theme.space(2),
@@ -103,7 +99,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 const UnitsScreen = () => {
     const { user, updateUser } = useUser();
     const { t } = useTranslation(['common', 'screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
 
     const {
         control,
@@ -217,17 +213,7 @@ const UnitsScreen = () => {
             <VStack style={styles.headerContainer}>
                 <VStack style={styles.headerTitleContainer}>
                     <Box style={styles.iconContainer}>
-                        <Icon
-                            name="language"
-                            size={theme.space(8)}
-                            color={Platform.select({
-                                ios: theme.colors.primaryTypography,
-                                default:
-                                    rt.themeName === 'dark'
-                                        ? theme.colors.neutral[950]
-                                        : theme.colors.white,
-                            })}
-                        />
+                        <Icon name="language" size={theme.space(8)} color={theme.colors.white} />
                     </Box>
                     <Box>
                         <Title type="h3">{t('units.title', { ns: 'screens' })}</Title>

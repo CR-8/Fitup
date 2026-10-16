@@ -53,8 +53,9 @@ const styles = StyleSheet.create((theme) => ({
         }),
     },
     panel: {
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+        // A card on both platforms (`inset` was flush on Android).
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
@@ -89,7 +90,7 @@ type NewPasswordForm = z.infer<typeof schema>;
 
 const NewPasswordScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const { signOut } = useAccount();
     const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
@@ -183,17 +184,13 @@ const NewPasswordScreen = () => {
                 </VStack>
 
                 <Button
-                    size="sm"
+                    type="primary"
                     title={t('newPassword.action', { ns: 'screens' })}
                     loading={pending}
                     disabled={pending}
                     onPress={onSubmit}
                     // Android draws its own spinner; iOS keeps the system one.
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
+                    spinnerColor={theme.solid.primaryTypography}
                 />
 
                 {isRecovery ? (

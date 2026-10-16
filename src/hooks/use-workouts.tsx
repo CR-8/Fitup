@@ -20,6 +20,7 @@ import {
     deleteWorkout,
     startWorkout,
     completeWorkout,
+    type CompleteWorkoutAt,
     duplicateWorkout,
     createWorkoutExercise,
     updateWorkoutExercise,
@@ -44,6 +45,7 @@ import {
 } from '@/crud/workout';
 import { startOfWeekMs } from '@/helpers/workouts';
 import { useUser } from './use-user';
+import { logWeeklyMilestoneIfReached } from '@/services/notification-events';
 import { useAnalytics } from './use-analytics';
 import {
     getAnalyticsErrorType,
@@ -373,6 +375,7 @@ export const useCompleteWorkout = () => {
             completionSource: WorkoutCompletionSource;
             watchUsed: boolean;
             liveActivityUsed: boolean;
+            completeAt?: CompleteWorkoutAt;
         }) => {
             const existing = completingWorkoutPromises.get(input.workoutId);
             if (existing) {
@@ -380,9 +383,11 @@ export const useCompleteWorkout = () => {
                 return { ...result, didComplete: false, exerciseLibrary: null };
             }
 
-            const promise = completeWorkout(input.workoutId).finally(() => {
-                completingWorkoutPromises.delete(input.workoutId);
-            });
+            const promise = completeWorkout(input.workoutId, { at: input.completeAt }).finally(
+                () => {
+                    completingWorkoutPromises.delete(input.workoutId);
+                },
+            );
             completingWorkoutPromises.set(input.workoutId, promise);
             const result = await promise;
             const exerciseLibrary = result.didComplete ? await getExerciseLibrarySnapshot() : null;
@@ -398,6 +403,7 @@ export const useCompleteWorkout = () => {
             invalidateWorkoutSetDerivedQueries(queryClient);
 
             if (!result.didComplete) return;
+            if (data.userId) void logWeeklyMilestoneIfReached(data.userId);
             const diagnosticProperties = {
                 ...getWorkoutProgressProperties(
                     result.exerciseCount,

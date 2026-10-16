@@ -68,6 +68,9 @@ export const user = sqliteTable('user', {
     accountEmail: text('account_email'),
     accountProvider: text('account_provider', { enum: ['google', 'apple', 'email'] }),
     activityLevel: text('activity_level', { enum: ['sedentary', 'active', 'trained'] }),
+    /** Daily water goal and the size of one glass, in ml. Null means the app's default. */
+    waterTargetMl: integer('water_target_ml'),
+    waterGlassMl: integer('water_glass_ml'),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
         .notNull()
         .default(sql`(strftime('%s','now') * 1000)`),

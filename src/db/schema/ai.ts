@@ -122,7 +122,7 @@ export const aiProfile = sqliteTable('ai_profile', {
     sessionsPerWeek: integer('sessions_per_week'),
     sessionMinutes: integer('session_minutes'),
     dietaryPattern: text('dietary_pattern', {
-        enum: ['omnivore', 'vegetarian', 'vegan', 'pescatarian', 'halal', 'kosher'],
+        enum: ['omnivore', 'vegetarian', 'eggetarian', 'vegan', 'pescatarian', 'halal', 'kosher'],
     }),
     allergens: text('allergens', { mode: 'json' }).$type<string[]>(),
     conditions: text('conditions', { mode: 'json' }).$type<string[]>(),

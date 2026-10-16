@@ -1,129 +1,106 @@
 import { FC, useCallback, useMemo } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
+import dayjs from 'dayjs';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
+import { Icon } from '@/components/primitives/icon';
+import { Button } from '@/components/buttons/base';
 import { useStartWorkout, type WorkoutOverviewMeta } from '@/hooks/use-workouts';
 import { useEditor } from '@/hooks/use-editor';
+import { useAiAvailable } from '@/hooks/use-ai';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { reportError } from '@/services/error-reporting';
+import { formatWorkoutDuration } from '@/helpers/times';
 
 import { resolveUpNext, type UpNextState } from './resolve';
-import { Icon } from '@/components/primitives/icon';
 
 /**
- * The one thing to do next, and a button that does it.
+ * The hero card: the one thing to do now, and the one filled button on the
+ * screen that does it. Photography belongs here and nowhere else in a list.
  *
- * Before this, starting a workout meant either a `+` in the navigation bar or
- * tapping through to a workout's detail screen and finding the control there.
- * Neither reads as "begin" on a screen someone opened in order to begin.
- *
- * The three states are a priority order, not a mode: a running workout outranks
- * a planned one, and a planned one outranks the invitation to create.
+ * `PLACEHOLDER_PHOTO` stands in until the team supplies licensed imagery; swap
+ * the file, not the code.
  */
+const PLACEHOLDER_PHOTO = require('../../../../../assets/images/placeholders/hero-gym.jpg');
+
+/** Roughly nine minutes an exercise, rounded to five: sets and rest are not loaded here. */
+// ponytail: estimate from exercise count; sum sets * (work + rest) if it proves too rough.
+const estimateMinutes = (exercisesCount: number): number =>
+    Math.max(5, Math.round((exercisesCount * 9) / 5) * 5);
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(4),
     },
-    // Slightly more generous than its siblings on this screen — it is the
-    // answer to "what do I do now", so it earns a touch more room than the
-    // cards around it rather than matching them exactly.
-    card: (isResume: boolean) => ({
-        backgroundColor: isResume ? theme.colors.primary : theme.colors.foreground,
-        borderRadius: theme.radius['3xl'],
+    card: {
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous' as const,
-        padding: theme.space(5),
-        gap: theme.space(4),
+        borderWidth: 1,
+        borderColor: 'rgba(255, 59, 79, 0.45)',
+        backgroundColor: theme.colors.foreground,
         overflow: 'hidden' as const,
-        // Android keeps the design board's coral-edged card.
-        ...Platform.select({
-            ios: {},
-            default: {
-                borderWidth: 1,
-                borderColor: isResume ? theme.colors.primary : 'rgba(255, 69, 58, 0.35)',
-            },
-        }),
-    }),
-    glow: {
+    },
+    photo: {
         position: 'absolute',
         top: 0,
         right: 0,
         bottom: 0,
         left: 0,
     },
-    badge: (isResume: boolean) => ({
-        height: theme.space(12),
-        width: theme.space(12),
-        borderRadius: theme.radius['2xl'],
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        backgroundColor: isResume ? 'rgba(255, 255, 255, 0.2)' : theme.colors.primarySoft,
-    }),
-    eyebrow: (isResume: boolean) => ({
-        ...theme.typography.eyebrow,
-        color: isResume ? theme.colors.primaryTypography : theme.colors.mutedTypography,
-        opacity: isResume ? 0.9 : 1,
-    }),
-    title: (isResume: boolean) => ({
-        ...theme.fontSize['2xl'],
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: isResume ? theme.colors.primaryTypography : theme.colors.typography,
-    }),
-    meta: (isResume: boolean) => ({
-        ...theme.fontSize.sm,
-        color: isResume ? theme.colors.primaryTypography : theme.colors.mutedTypography,
-        opacity: isResume ? 0.85 : 1,
-    }),
-    action: (isResume: boolean) => ({
-        alignSelf: 'stretch' as const,
-        justifyContent: 'center' as const,
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        gap: theme.space(2),
-        paddingVertical: theme.space(2.5),
-        paddingHorizontal: theme.space(5),
-        borderRadius: theme.radius.full,
-        // Android darkens the coral a step so the white label clears 4.5:1.
-        backgroundColor: isResume
-            ? theme.colors.primaryTypography
-            : Platform.select({ ios: theme.colors.primary, default: theme.colors.brand[600] }),
-    }),
-    // Resume inverts the pill onto the card's tint colour (darker still on
-    // Android: `brand[700]` on white is 5.84:1).
-    actionText: (isResume: boolean) => ({
-        ...theme.fontSize.default,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: isResume
-            ? Platform.select({ ios: theme.colors.primary, default: theme.colors.brand[700] })
-            : theme.colors.primaryTypography,
-    }),
-    header: {
-        flex: 1,
-        gap: theme.space(0.5),
+    scrim: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+    },
+    content: {
+        padding: theme.space(4),
+        gap: theme.space(3),
     },
     eyebrowRow: {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: theme.space(2),
     },
-    timer: {
-        ...theme.fontSize.sm,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.primaryTypography,
-        fontVariant: ['tabular-nums' as const],
+    eyebrow: {
+        ...theme.typography.eyebrow,
+        color: theme.colors.mutedTypography,
     },
-    row: {
+    timer: {
+        ...theme.fontSize.lg,
+        color: theme.colors.typography,
+        ...theme.typography.metric,
+    },
+    title: {
+        ...theme.fontSize.xl,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    muscles: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
+    metaRow: {
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
+        gap: theme.space(4),
+    },
+    metaItem: {
+        alignItems: 'center',
+        gap: theme.space(1.5),
+    },
+    meta: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -132,55 +109,92 @@ interface UpNextProps {
     overviewMeta?: WorkoutOverviewMeta;
     /** Live elapsed time, when the card is showing a running workout. */
     elapsedFormatted: string | null;
+    /** "Push A · Week 2" for the session the card is about, when it has a week. */
+    displayName?: string;
 }
 
 export { resolveUpNext };
 export type { UpNextState };
 
-export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted }) => {
-    const { t } = useTranslation(['screens', 'common']);
+export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted, displayName }) => {
+    const { t, i18n } = useTranslation(['screens', 'common']);
     const { theme } = useUnistyles();
     const { navigate } = useEditor();
     const { track } = useAnalytics();
     const { mutateAsync: startWorkout, isPending } = useStartWorkout();
+    // With no plan yet and Syn available, the first step is a plan from Syn;
+    // planning a workout by hand stays one tap away.
+    const coachFirst = useAiAvailable() && state.kind === 'create';
 
-    const isResume = state.kind === 'resume';
+    const workout = state.kind === 'create' ? null : state.workout;
 
-    const subtitle = useMemo(() => {
-        if (state.kind === 'create') return t('home.upNext.createHint', { ns: 'screens' });
+    const title = useMemo(() => {
+        if (state.kind === 'create') return t('home.upNext.createTitle', { ns: 'screens' });
+        if (state.kind === 'rest') return t('home.upNext.restTitle', { ns: 'screens' });
 
-        const parts: string[] = [];
+        return displayName ?? state.workout.name;
+    }, [displayName, state, t]);
 
-        if (overviewMeta?.exercisesCount) {
-            parts.push(
-                t('home.upNext.exerciseCount', {
-                    ns: 'screens',
-                    count: overviewMeta.exercisesCount,
-                }),
-            );
+    const muscles = useMemo(
+        () =>
+            (overviewMeta?.sortedPrimaryMuscleGroups ?? [])
+                .slice(0, 3)
+                .map((muscle) => t(`muscleGroup.${muscle}`, { ns: 'common', defaultValue: muscle }))
+                .join(' · '),
+        [overviewMeta, t],
+    );
+
+    // What sits under the title: the next session on a rest day, the logged time
+    // on a finished one, the plan's shape otherwise.
+    const detail = useMemo(() => {
+        if (state.kind === 'create') {
+            return t(coachFirst ? 'home.upNext.coachHint' : 'home.upNext.createHint', {
+                ns: 'screens',
+            });
         }
 
-        const muscles = (overviewMeta?.sortedPrimaryMuscleGroups ?? [])
-            .slice(0, 2)
-            .map((muscle) => t(`muscleGroup.${muscle}`, { ns: 'common', defaultValue: muscle }));
+        if (state.kind === 'rest') {
+            return t('home.upNext.restHint', {
+                ns: 'screens',
+                name: displayName ?? state.workout.name,
+                day: state.workout.startAt
+                    ? dayjs(state.workout.startAt).locale(i18n.language).format('ddd D MMM')
+                    : '',
+            });
+        }
 
-        if (muscles.length > 0) parts.push(muscles.join(', '));
+        return muscles;
+    }, [coachFirst, displayName, i18n.language, muscles, state, t]);
 
-        return parts.join(' · ');
-    }, [overviewMeta, state.kind, t]);
+    const exercisesCount = overviewMeta?.exercisesCount ?? 0;
+    const showStats = (state.kind === 'start' || state.kind === 'resume') && exercisesCount > 0;
+    const doneDuration =
+        state.kind === 'done' && state.workout.duration
+            ? formatWorkoutDuration(state.workout.duration)
+            : null;
+
+    const createWorkout = useCallback(() => {
+        track('workout:create_requested', { surface: 'home_up_next' });
+        navigate({ type: 'workout__create' });
+    }, [navigate, track]);
 
     const handlePress = useCallback(async () => {
         if (state.kind === 'create') {
-            track('workout:create_requested', { surface: 'home_up_next' });
-            navigate({ type: 'workout__create' });
+            if (coachFirst) router.navigate('/syn');
+            else createWorkout();
 
             return;
         }
 
-        // Already running: nothing to start, just go back into it — on the
-        // timer, which is the screen for a workout that is under way. The
-        // timer's own minimize control goes to `/workout/<id>`, so the logging
-        // UI stays one tap away in the other direction.
+        if (state.kind === 'done' || state.kind === 'rest') {
+            router.navigate(`/workout/${state.workout.id}`);
+
+            return;
+        }
+
+        // Already running: nothing to start, just go back into it, on the timer,
+        // the screen for a workout that is under way. Its minimize control goes
+        // to `/workout/<id>`, so the logging UI stays one tap away.
         if (state.kind === 'resume') {
             router.navigate('/timer');
 
@@ -188,107 +202,130 @@ export const UpNext: FC<UpNextProps> = ({ state, overviewMeta, elapsedFormatted 
         }
 
         try {
-            // `planned` rather than a surface of its own: the event's `source`
-            // records what kind of start this is, and this is still a planned
-            // workout being started. Where the tap happened is a different axis.
             await startWorkout({ workoutId: state.workout.id, source: 'planned' });
-            // Both start and resume land on the timer. It is the execution
-            // surface for a session that is under way — one screenful of what
-            // to do now and the controls for it — and the logging UI is one tap
-            // away behind its minimize control.
             router.navigate('/timer');
         } catch (error) {
             reportError(error, 'Failed to start a workout from the home card');
             Alert.alert(t('home.upNext.startFailed', { ns: 'screens' }));
         }
-    }, [navigate, startWorkout, state, t, track]);
+    }, [coachFirst, createWorkout, startWorkout, state, t]);
 
-    const actionLabel = t(`home.upNext.action.${state.kind}`, { ns: 'screens' });
+    const actionLabel = t(
+        coachFirst ? 'home.upNext.action.coach' : `home.upNext.action.${state.kind}`,
+        {
+            ns: 'screens',
+        },
+    );
+    // Only a session that can be started or resumed earns the filled button. A
+    // finished day or a rest day offers a quiet outline instead.
+    const primary = state.kind === 'start' || state.kind === 'resume' || state.kind === 'create';
 
     return (
         <Box style={styles.container}>
-            <Pressable
-                style={styles.card(isResume)}
-                onPress={handlePress}
-                disabled={isPending}
-                accessibilityRole="button"
-                accessibilityLabel={actionLabel}
-            >
-                {Platform.OS === 'android' && !isResume ? (
-                    <LinearGradient
-                        colors={theme.gradients.glow as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.glow}
-                    />
-                ) : null}
+            <VStack style={styles.card}>
+                <Image
+                    source={PLACEHOLDER_PHOTO}
+                    style={styles.photo}
+                    contentFit="cover"
+                    accessibilityIgnoresInvertColors
+                />
+                <LinearGradient
+                    colors={['rgba(8, 9, 11, 0.5)', 'rgba(8, 9, 11, 0.95)']}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.scrim}
+                />
 
-                <HStack style={styles.row}>
-                    <Box style={styles.badge(isResume)}>
-                        <Icon
-                            name="dumbbell"
-                            size={theme.space(6)}
-                            color={isResume ? theme.colors.primaryTypography : theme.colors.primary}
-                        />
-                    </Box>
-
-                    <VStack style={styles.header}>
-                        <HStack style={styles.eyebrowRow}>
-                            <Text style={styles.eyebrow(isResume)}>
-                                {t(`home.upNext.eyebrow.${state.kind}`, { ns: 'screens' })}
-                            </Text>
-                            {isResume && elapsedFormatted ? (
-                                <Text style={styles.timer}>{elapsedFormatted}</Text>
-                            ) : null}
-                        </HStack>
-                        <Text style={styles.title(isResume)} numberOfLines={2}>
-                            {state.kind === 'create'
-                                ? t('home.upNext.createTitle', { ns: 'screens' })
-                                : state.workout.name}
+                <VStack style={styles.content}>
+                    <HStack style={styles.eyebrowRow}>
+                        <Text style={styles.eyebrow}>
+                            {t(`home.upNext.eyebrow.${state.kind}`, { ns: 'screens' })}
                         </Text>
-                    </VStack>
+                        {state.kind === 'resume' && elapsedFormatted ? (
+                            <Text style={styles.timer}>{elapsedFormatted}</Text>
+                        ) : null}
+                    </HStack>
 
-                    {/* Resume has its own button below; the chevron would say it twice. */}
-                    {isResume ? null : (
-                        <Icon
-                            name="chevron-right"
-                            size={theme.space(5)}
-                            color={theme.colors.mutedTypography}
-                        />
-                    )}
-                </HStack>
+                    <Pressable
+                        disabled={!workout}
+                        onPress={() => workout && router.navigate(`/workout/${workout.id}`)}
+                        accessibilityRole="button"
+                        accessibilityLabel={title}
+                    >
+                        <VStack style={{ gap: theme.space(1) }}>
+                            <Text style={styles.title} numberOfLines={2}>
+                                {state.kind === 'done'
+                                    ? (displayName ?? state.workout.name)
+                                    : title}
+                            </Text>
+                            {detail ? (
+                                <Text style={styles.muscles} numberOfLines={1}>
+                                    {detail}
+                                </Text>
+                            ) : null}
+                        </VStack>
+                    </Pressable>
 
-                {subtitle ? (
-                    <Text style={styles.meta(isResume)} numberOfLines={1}>
-                        {subtitle}
-                    </Text>
-                ) : null}
+                    {showStats || doneDuration ? (
+                        <HStack style={styles.metaRow}>
+                            {showStats ? (
+                                <>
+                                    <HStack style={styles.metaItem}>
+                                        <Icon
+                                            name="dumbbell"
+                                            size={theme.space(4)}
+                                            color={theme.colors.mutedTypography}
+                                        />
+                                        <Text style={styles.meta}>
+                                            {t('home.upNext.exerciseCount', {
+                                                ns: 'screens',
+                                                count: exercisesCount,
+                                            })}
+                                        </Text>
+                                    </HStack>
+                                    <HStack style={styles.metaItem}>
+                                        <Icon
+                                            name="clock"
+                                            size={theme.space(4)}
+                                            color={theme.colors.mutedTypography}
+                                        />
+                                        <Text style={styles.meta}>
+                                            {t('home.upNext.minutes', {
+                                                ns: 'screens',
+                                                count: estimateMinutes(exercisesCount),
+                                            })}
+                                        </Text>
+                                    </HStack>
+                                </>
+                            ) : (
+                                <HStack style={styles.metaItem}>
+                                    <Icon
+                                        name="clock"
+                                        size={theme.space(4)}
+                                        color={theme.colors.mutedTypography}
+                                    />
+                                    <Text style={styles.meta}>{doneDuration}</Text>
+                                </HStack>
+                            )}
+                        </HStack>
+                    ) : null}
 
-                <Box style={styles.action(isResume)}>
-                    {state.kind === 'create' ? (
-                        <Icon
-                            name="plus"
-                            size={theme.space(4.5)}
-                            color={theme.colors.primaryTypography}
+                    <Button
+                        type={primary ? 'primary' : 'outline'}
+                        title={actionLabel}
+                        loading={isPending}
+                        onPress={() => void handlePress()}
+                        accessibilityLabel={actionLabel}
+                    />
+                    {coachFirst ? (
+                        <Button
+                            type="link"
+                            title={t('home.upNext.action.create', { ns: 'screens' })}
+                            onPress={createWorkout}
                         />
                     ) : null}
-                    <Text style={styles.actionText(isResume)}>{actionLabel}</Text>
-                    {state.kind === 'create' ? null : (
-                        <Icon
-                            name="arrow-right"
-                            size={theme.space(4.5)}
-                            color={
-                                isResume
-                                    ? Platform.select({
-                                          ios: theme.colors.primary,
-                                          default: theme.colors.brand[700],
-                                      })
-                                    : theme.colors.primaryTypography
-                            }
-                        />
-                    )}
-                </Box>
-            </Pressable>
+                </VStack>
+            </VStack>
         </Box>
     );
 };

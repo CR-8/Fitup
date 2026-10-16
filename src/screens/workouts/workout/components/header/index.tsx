@@ -2,7 +2,7 @@ import { FC, useMemo } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
-import { Title } from '@/components/typography/title';
+import { SessionHero } from '../hero';
 import { Box } from '@/components/primitives/box';
 import { useLocalSearchParams } from 'expo-router';
 import { useWorkout } from '@/hooks/use-workouts';
@@ -15,7 +15,6 @@ import { Stack } from '@/navigators/stack';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
-        paddingHorizontal: theme.space(4),
         paddingTop: theme.space(2),
         paddingBottom: theme.space(5),
         gap: theme.space(3),
@@ -23,6 +22,7 @@ const styles = StyleSheet.create((theme) => ({
     environmentToggle: {
         alignSelf: 'flex-start',
         minWidth: theme.space(40),
+        marginHorizontal: theme.space(4),
     },
 }));
 
@@ -66,7 +66,7 @@ export const Header: FC = () => {
             {/* The session's state — its running clock, or planned / done — is
                 the navigation title; the workout's name leads the page. */}
             <Stack.Screen options={{ title: title ?? '' }} />
-            <Title type="h2">{workout?.name}</Title>
+            {workout ? <SessionHero workoutId={workout.id} name={workout.name} /> : null}
             <SegmentedControl
                 style={styles.environmentToggle}
                 values={environmentChoices.map((choice) => choice.title)}

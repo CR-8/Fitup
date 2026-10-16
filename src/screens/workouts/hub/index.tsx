@@ -1,13 +1,19 @@
-import { FC, useCallback, useMemo } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 import { useWorkouts, useWorkoutsOverviewMeta } from '@/hooks/use-workouts';
 import { useEditor } from '@/hooks/use-editor';
 import { useUser } from '@/hooks/use-user';
 import { useAnalytics } from '@/hooks/use-analytics';
-import { getPlannedWorkouts, groupWorkoutsByWeek, getInProgressWorkouts } from '@/helpers/workouts';
+import {
+    getInProgressWorkouts,
+    getMissedWorkouts,
+    getPlannedWorkouts,
+    groupWorkoutsByWeek,
+} from '@/helpers/workouts';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Box } from '@/components/primitives/box';
@@ -15,10 +21,19 @@ import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import Spinner from '@/components/feedback/spinner';
 
+import type { WorkoutSelect } from '@/db/schema';
 import { Workouts } from '@/screens/home/components';
-import { resolveUpNext } from '@/screens/home/components/up-next/resolve';
-import { UpNext } from '@/screens/home/components/up-next';
-import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
+import { WeekStrip } from './components/week-strip';
+
+/** The day a session belongs to on the strip, as a local-midnight timestamp. */
+const dayOf = (workout: WorkoutSelect): number | null => {
+    const at =
+        workout.status === 'completed'
+            ? workout.completedAt
+            : (workout.startAt ?? workout.startedAt);
+
+    return at ? dayjs(at).startOf('day').valueOf() : null;
+};
 
 /**
  * The workout tab.
@@ -42,8 +57,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         justifyContent: 'center',
     },
     headerContent: {
-        gap: theme.space(5),
-        paddingBottom: theme.space(5),
+        gap: theme.space(4),
+        paddingBottom: theme.space(4),
+    },
+    dayEmpty: {
+        ...theme.fontSize.sm,
+        paddingHorizontal: theme.space(4),
+        color: theme.colors.mutedTypography,
     },
     titleBlock: {
         paddingHorizontal: theme.space(4),
@@ -95,61 +115,69 @@ const WorkoutHubScreen: FC = () => {
     const { data: workouts, isLoading } = useWorkouts();
     const workoutIds = useMemo(() => (workouts ?? []).map((workout) => workout.id), [workouts]);
     const { data: workoutsOverviewMeta = {} } = useWorkoutsOverviewMeta(workoutIds);
-    const { runningWorkout } = useRunningWorkoutStatic();
-    const { elapsedFormated } = useRunningWorkoutTicker();
+
+    // The reference's day strip: choosing a day shows just that day's sessions.
+    const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
     const handleCreateWorkout = useCallback(() => {
         track('workout:create_requested', { surface: 'workout_tab' });
         navigate({ type: 'workout__create' });
     }, [navigate, track]);
 
-    const { inProgressWorkouts, plannedWorkouts, completedGroups, hasWorkouts } = useMemo(() => {
+    const {
+        inProgressWorkouts,
+        plannedWorkouts,
+        missedWorkouts,
+        completedGroups,
+        hasWorkouts,
+        dayIsEmpty,
+    } = useMemo(() => {
         const workoutsList = workouts ?? [];
-        const inProgress = getInProgressWorkouts(workoutsList);
-        const planned = getPlannedWorkouts(workoutsList);
-        const completed = groupWorkoutsByWeek(workoutsList, i18n.language, firstWeekday);
+        const onDay = (workout: WorkoutSelect) =>
+            selectedDay === null || dayOf(workout) === selectedDay;
+        const inProgress = getInProgressWorkouts(workoutsList).filter(onDay);
+        const planned = getPlannedWorkouts(workoutsList).filter(onDay);
+        const missed = getMissedWorkouts(workoutsList).filter(onDay);
+        const completed = groupWorkoutsByWeek(workoutsList, i18n.language, firstWeekday)
+            .map((group) => ({ ...group, workouts: group.workouts.filter(onDay) }))
+            .filter((group) => group.workouts.length > 0);
+        const any =
+            inProgress.length > 0 ||
+            planned.length > 0 ||
+            missed.length > 0 ||
+            completed.length > 0;
 
         return {
             inProgressWorkouts: inProgress,
             plannedWorkouts: planned,
+            missedWorkouts: missed,
             completedGroups: completed,
-            hasWorkouts: inProgress.length > 0 || planned.length > 0 || completed.length > 0,
+            hasWorkouts: any || (selectedDay !== null && workoutsList.length > 0),
+            dayIsEmpty: selectedDay !== null && !any,
         };
-    }, [workouts, i18n.language, firstWeekday]);
-
-    const upNext = useMemo(
-        () => resolveUpNext(inProgressWorkouts, plannedWorkouts),
-        [inProgressWorkouts, plannedWorkouts],
-    );
+    }, [workouts, i18n.language, firstWeekday, selectedDay]);
 
     const header = useMemo(
         () => (
             <VStack style={styles.headerContent}>
-                <VStack style={styles.titleBlock}>
-                    {/* iOS shows the title in the native large title. */}
-                    {Platform.OS === 'android' && (
-                        <Title type="h1">{t('workoutHub.title', { ns: 'screens' })}</Title>
-                    )}
-                    <Text style={styles.subtitle}>
-                        {t('workoutHub.subtitle', { ns: 'screens' })}
-                    </Text>
-                </VStack>
-                <UpNext
-                    state={upNext}
-                    overviewMeta={
-                        upNext.kind === 'create'
-                            ? undefined
-                            : workoutsOverviewMeta[upNext.workout.id]
-                    }
-                    elapsedFormatted={
-                        upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
-                            ? elapsedFormated
-                            : null
-                    }
+                <WeekStrip
+                    workouts={workouts ?? []}
+                    overviewMeta={workoutsOverviewMeta}
+                    firstWeekday={firstWeekday}
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
                 />
+                {dayIsEmpty ? (
+                    <Text style={styles.dayEmpty}>
+                        {t('workoutHub.dayEmpty', {
+                            ns: 'screens',
+                            day: dayjs(selectedDay!).locale(i18n.language).format('dddd D MMM'),
+                        })}
+                    </Text>
+                ) : null}
             </VStack>
         ),
-        [elapsedFormated, runningWorkout?.id, t, upNext, workoutsOverviewMeta],
+        [dayIsEmpty, firstWeekday, i18n.language, selectedDay, t, workouts, workoutsOverviewMeta],
     );
 
     if (isLoading || !workouts) {
@@ -163,11 +191,6 @@ const WorkoutHubScreen: FC = () => {
     if (!hasWorkouts) {
         return (
             <VStack style={styles.empty}>
-                {Platform.OS === 'android' && (
-                    <VStack style={styles.titleBlock}>
-                        <Title type="h1">{t('workoutHub.title', { ns: 'screens' })}</Title>
-                    </VStack>
-                )}
                 <VStack style={styles.emptyBody}>
                     <Title type="h3">{t('workoutHub.empty.title', { ns: 'screens' })}</Title>
                     <Text style={styles.emptyText}>
@@ -189,9 +212,9 @@ const WorkoutHubScreen: FC = () => {
             <Workouts
                 inProgressWorkouts={inProgressWorkouts}
                 plannedWorkouts={plannedWorkouts}
+                missedWorkouts={missedWorkouts}
                 completedGroups={completedGroups}
                 workoutsOverviewMeta={workoutsOverviewMeta}
-                upNext={upNext}
                 header={header}
             />
         </Box>

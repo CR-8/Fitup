@@ -116,3 +116,41 @@ export const summarisePlans = (
 
     return { current, finished };
 };
+
+const startOfDay = (value: Date | number): number => {
+    const date = new Date(value);
+    date.setHours(0, 0, 0, 0);
+
+    return date.getTime();
+};
+
+/**
+ * Which week of its plan each applied workout sits in (1-based), keyed by
+ * workout id. Computed, never stored in the name: "Push A" stays "Push A" and
+ * the screens add "· Week 2". A plan starts on its earliest scheduled session.
+ * Where applied plans overlap, the newest one names the week.
+ */
+export const getPlanWeekByWorkoutId = (
+    plans: AiPlanSelect[],
+    workouts: WorkoutSelect[],
+): Map<string, number> => {
+    const byId = new Map(workouts.map((workout) => [workout.id, workout]));
+    const weeks = new Map<string, number>();
+
+    // `plans` is newest first, so walk it backwards and let newer plans overwrite.
+    for (const plan of [...plans].reverse()) {
+        const rows = (plan.appliedWorkoutIds ?? [])
+            .map((id) => byId.get(id))
+            .filter((row): row is WorkoutSelect => !!row && !!row.startAt);
+        if (rows.length === 0) continue;
+
+        const planStart = Math.min(...rows.map((row) => startOfDay(row.startAt!)));
+
+        for (const row of rows) {
+            const days = Math.round((startOfDay(row.startAt!) - planStart) / DAY_MS);
+            weeks.set(row.id, Math.floor(days / 7) + 1);
+        }
+    }
+
+    return weeks;
+};

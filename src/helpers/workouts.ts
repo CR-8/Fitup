@@ -1,5 +1,6 @@
 import { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { useWorkoutWithDetails } from '@/hooks/use-workouts';
+import i18n from '@/locale/i18n';
 import { formatClockSecondsCompact } from './times';
 
 export interface WorkoutGroup {
@@ -49,10 +50,57 @@ export const groupWorkoutsByWeek = (
     return groups;
 };
 
-export const getPlannedWorkouts = (workouts: WorkoutSelect[]): WorkoutSelect[] => {
+const startOfDayMs = (now: Date): number => {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+
+    return d.getTime();
+};
+
+/**
+ * Planned workouts still ahead of us: scheduled today or later, or not scheduled
+ * at all. Soonest first, unscheduled last, `createdAt` as the tiebreaker.
+ *
+ * Anything scheduled before today is "missed", not planned — see
+ * `getMissedWorkouts`. Keeping them out of this list is what stops Home offering
+ * last week's session as today's.
+ */
+export const getPlannedWorkouts = (
+    workouts: WorkoutSelect[],
+    now: Date = new Date(),
+): WorkoutSelect[] => {
+    const today = startOfDayMs(now);
+
     return workouts
-        .filter((workout) => workout.status === 'planned')
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .filter(
+            (workout) =>
+                workout.status === 'planned' &&
+                (!workout.startAt || new Date(workout.startAt).getTime() >= today),
+        )
+        .sort((a, b) => {
+            const aStart = a.startAt ? new Date(a.startAt).getTime() : Infinity;
+            const bStart = b.startAt ? new Date(b.startAt).getTime() : Infinity;
+            if (aStart !== bStart) return aStart < bStart ? -1 : 1;
+
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+};
+
+/** Planned workouts whose day has passed without being started. Newest first. */
+export const getMissedWorkouts = (
+    workouts: WorkoutSelect[],
+    now: Date = new Date(),
+): WorkoutSelect[] => {
+    const today = startOfDayMs(now);
+
+    return workouts
+        .filter(
+            (workout) =>
+                workout.status === 'planned' &&
+                !!workout.startAt &&
+                new Date(workout.startAt).getTime() < today,
+        )
+        .sort((a, b) => new Date(b.startAt!).getTime() - new Date(a.startAt!).getTime());
 };
 
 export const getInProgressWorkouts = (workouts: WorkoutSelect[]): WorkoutSelect[] => {
@@ -238,6 +286,56 @@ export const computeStreakDays = (workouts: WorkoutSelect[], now: Date = new Dat
 
     return streak;
 };
+
+/**
+ * Consecutive weeks, ending with the current one, in which at least
+ * `targetPerWeek` workouts were completed.
+ *
+ * A weekly bar rather than a daily chain, so a rest day costs nothing. The
+ * current week counts once it is met and is otherwise skipped, not fatal: a
+ * streak should not read as broken on Wednesday of a week still in progress.
+ */
+export const computeWeeklyStreak = (
+    workouts: WorkoutSelect[],
+    targetPerWeek: number,
+    now: Date = new Date(),
+    firstWeekday: number = 2,
+): number => {
+    const target = Math.max(1, targetPerWeek);
+    const perWeek = new Map<number, number>();
+
+    for (const workout of workouts) {
+        if (workout.status !== 'completed' || !workout.completedAt) continue;
+
+        const week = startOfWeekMs(firstWeekday, new Date(workout.completedAt));
+        perWeek.set(week, (perWeek.get(week) ?? 0) + 1);
+    }
+
+    const cursor = new Date(startOfWeekMs(firstWeekday, now));
+    const met = () => (perWeek.get(cursor.getTime()) ?? 0) >= target;
+
+    let streak = 0;
+    if (met()) streak += 1;
+    cursor.setDate(cursor.getDate() - 7);
+
+    while (met()) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 7);
+    }
+
+    return streak;
+};
+
+/** Sessions completed in the current week, for `formatWeekProgress`. */
+export const countThisWeek = (
+    workouts: WorkoutSelect[],
+    firstWeekday: number = 2,
+    now: Date = new Date(),
+): number => summariseWeek(workouts, firstWeekday, now).sessions;
+
+/** "1 of 4 this week". The one wording Today and Progress both use. */
+export const formatWeekProgress = (done: number, target: number): string =>
+    i18n.t('home.weekProgress', { ns: 'screens', done, target });
 
 const formatWeekRange = (start: Date, end: Date, locale: string): string => {
     const startMonth = start.toLocaleDateString(locale, { month: 'long' });

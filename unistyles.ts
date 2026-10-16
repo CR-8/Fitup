@@ -1,5 +1,4 @@
-import { storage } from '@/storage';
-import { Appearance, Platform, PlatformColor, type ColorValue } from 'react-native';
+import { Appearance, Platform, type ColorValue } from 'react-native';
 import { StyleSheet, UnistylesRuntime } from 'react-native-unistyles';
 
 const FONT_SIZE_BASE = 16;
@@ -22,8 +21,9 @@ const common = {
         full: 9999,
     },
     fontSize: {
+        // Nothing in the app is set under 12pt, so the two smallest steps share it.
         '2xs': {
-            fontSize: FONT_SIZE_BASE * 0.625,
+            fontSize: FONT_SIZE_BASE * 0.75,
             lineHeight: FONT_SIZE_BASE * 1,
         },
         xs: {
@@ -80,18 +80,20 @@ const common = {
         },
     } as const,
     typography: {
-        // The eyebrow label, declared once. It was being re-derived in 11
-        // files with three different letter-spacings for the same element.
+        // The eyebrow label, declared once. Sentence case at 12/16 with no
+        // tracking: nothing in the app is set smaller than 12pt.
         eyebrow: {
-            fontSize: FONT_SIZE_BASE * 0.625,
-            lineHeight: FONT_SIZE_BASE * 1,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase' as const,
+            fontSize: 12,
+            lineHeight: 16,
             fontWeight: 600 as const,
         },
-        // Any figure that changes in place — timers, weights, reps, volume —
-        // so a running clock doesn't jitter and stat columns line up.
+        // Any figure that changes in place (timers, weights, reps, volume),
+        // set in Barlow Condensed SemiBold with tabular figures, so a running
+        // clock does not jitter and stat columns line up. The face is bundled
+        // by the expo-font plugin in app.config.js.
         metric: {
+            fontFamily: 'BarlowCondensed-SemiBold',
+            fontWeight: 600 as const,
             fontVariant: ['tabular-nums' as const],
         },
     },
@@ -142,55 +144,60 @@ const func = {
 };
 
 /**
- * FitSyn's palette, taken from the design's own stylesheet rather than sampled
- * by eye.
+ * FitSyn's palette, from the approved v2 design.
  *
- * The ramps matter as much as the semantic tokens below them: around 150 places
- * in the app reach for `neutral[n]` or `brand[n]` directly, and re-deriving the
- * ramps is what moves those with everything else instead of leaving Tailwind
- * greys and cyan scattered through the screens.
+ * Around 150 places reach for `neutral[n]` or `brand[n]` directly, so the ramps
+ * are rebuilt rather than the call sites: 950 is the dark page, 900 the card,
+ * 800 raised surfaces and inputs, 700 the line; 400 is the secondary text
+ * (7.3:1 on the card) and 50 the light page.
  */
 export const colors = {
     white: '#FFFFFF',
     black: '#000000',
 
-    /**
-     * Rebuilt around the design's surfaces, so the steps the app already uses
-     * land on real FitSyn colours: 50 and 950 are the two page grounds, 900 the
-     * dark card, 200 the light border, 400 and 500 the muted text.
-     */
+    // The redesign brief's surfaces: #08090B page, #14161A card, #1B1E23
+    // raised, #9A9FA8 secondary text, #F5F6F7 primary text.
     neutral: {
-        50: '#f4f4f6',
-        100: '#ebebef',
-        200: '#e0e0e6',
-        300: '#c9c9d2',
-        400: '#8e8ea0',
-        500: '#6c6c78',
-        600: '#55555f',
-        700: '#34343c',
-        800: '#292930',
-        900: '#1e1e22',
-        925: '#141417',
-        950: '#0b0b0c',
+        50: '#f5f6f7',
+        100: '#eceef1',
+        200: '#dfe1e6',
+        300: '#c6c9cf',
+        400: '#9a9fa8',
+        500: '#6f747d',
+        600: '#4b5059',
+        700: '#262a31',
+        800: '#1b1e23',
+        900: '#14161a',
+        925: '#0e1013',
+        950: '#08090b',
     },
 
     /**
-     * The brand ramp keeps its name and shape and changes hue — it was cyan.
-     * Every place already reaching for `brand` becomes the coral accent without
-     * being touched.
+     * 500 is the brand: logo, selected states, rings, checks, the active tab.
+     * 600 is the filled primary button's ground, because white on 500 is only
+     * 3.9:1 and on 600 it is 4.8:1.
      */
     brand: {
-        50: '#fff1ef',
-        100: '#ffe7e4',
-        200: '#ffcdc7',
-        300: '#ffa99f',
-        400: '#ff8a7f',
-        500: '#ff453a',
-        600: '#e0342a',
-        700: '#c02a21',
-        800: '#8f1f19',
-        900: '#5e1410',
-        950: '#2f0a08',
+        50: '#fff1f3',
+        100: '#ffe0e4',
+        200: '#ffc2ca',
+        300: '#ff96a2',
+        400: '#ff6676',
+        500: '#ff3b4f',
+        600: '#e0263b',
+        700: '#b81a2d',
+        800: '#8a1221',
+        900: '#5c0c16',
+        950: '#2e050b',
+    },
+
+    /** Tiny dots and tags in Plan and Progress only. */
+    training: {
+        push: '#e5383b',
+        pull: '#2f6fed',
+        legs: '#f2c230',
+        core: '#2fbf71',
+        mobility: '#dadad5',
     },
 
     /**
@@ -230,96 +237,49 @@ export const colors = {
 type Scheme = 'light' | 'dark';
 
 /**
- * The app's vocabulary (`foreground` is a card, `typography` is text). iOS maps
- * it onto UIKit's semantic colours, which follow the appearance by themselves;
- * Android (and web) keep FitSyn's own palette, as before the native UI.
+ * The app's vocabulary (`foreground` is a card, `typography` is text), as one
+ * palette for both platforms: the approved design draws its own surfaces rather
+ * than the system's. Native controls and bars still follow the OS appearance,
+ * which `Appearance.setColorScheme` below keeps in step with the chosen theme.
  */
 const semantic = (scheme: Scheme): SemanticColors => {
     const dark = scheme === 'dark';
-
-    if (Platform.OS === 'ios')
-        return {
-            background: PlatformColor('systemGroupedBackground'),
-            foreground: PlatformColor('secondarySystemGroupedBackground'),
-            inset: PlatformColor('secondarySystemGroupedBackground'),
-            elevated: PlatformColor('tertiarySystemGroupedBackground'),
-            typography: PlatformColor('label'),
-            mutedTypography: PlatformColor('secondaryLabel'),
-            border: PlatformColor('separator'),
-            input: PlatformColor('tertiarySystemFill'),
-            primary: colors.brand[500],
-            primaryTypography: colors.white,
-            primarySoft: 'rgba(255, 69, 58, 0.16)',
-            accent: PlatformColor('label'),
-            accentTypography: PlatformColor('systemBackground'),
-            success: PlatformColor('systemGreen'),
-            destructive: PlatformColor('systemRed'),
-        };
+    const ios = Platform.OS === 'ios';
 
     return {
         background: dark ? colors.neutral[950] : colors.neutral[50],
         foreground: dark ? colors.neutral[900] : colors.white,
-        inset: dark ? colors.neutral[950] : colors.neutral[50],
+        // A section set into the page: a raised card on iOS, flush on Android,
+        // as the pre-native design drew it.
+        inset: ios
+            ? dark
+                ? colors.neutral[900]
+                : colors.white
+            : dark
+              ? colors.neutral[950]
+              : colors.neutral[50],
         elevated: dark ? colors.neutral[800] : colors.neutral[100],
-        typography: dark ? colors.neutral[50] : colors.neutral[900],
-        mutedTypography: dark ? colors.neutral[400] : colors.neutral[500],
-        border: dark ? '#2c2c33' : colors.neutral[200],
-        input: dark ? colors.neutral[700] : '#d5d5dd',
+        typography: dark ? colors.neutral[50] : colors.neutral[950],
+        mutedTypography: dark ? colors.neutral[400] : colors.neutral[600],
+        // A hairline you notice only when you look for it, as the brief asks.
+        border: dark ? '#23262c' : colors.neutral[200],
+        input: dark ? colors.neutral[800] : colors.neutral[100],
         primary: colors.brand[500],
         primaryTypography: colors.white,
-        primarySoft: dark ? 'rgba(255, 69, 58, 0.16)' : colors.brand[100],
-        accent: dark ? '#ff7a6e' : colors.neutral[900],
+        primarySoft: dark ? 'rgba(255, 59, 79, 0.16)' : colors.brand[100],
+        accent: dark ? colors.brand[400] : colors.neutral[950],
         accentTypography: dark ? colors.neutral[950] : colors.neutral[50],
-        success: dark ? '#35c47f' : '#1f9d63',
-        destructive: dark ? '#ff5a4e' : '#e0342a',
+        success: colors.training.core,
+        destructive: dark ? colors.brand[400] : colors.brand[600],
+        // Water only. Blue so it never reads as the brand red or as a training
+        // ring; text-safe on the card in both schemes.
+        hydration: dark ? '#4aa8ff' : '#1d6fd6',
+        hydrationSoft: dark ? 'rgba(74, 168, 255, 0.18)' : '#e3f0ff',
     };
 };
 
-/**
- * The same tokens as plain colour strings, for consumers that cannot take a
- * PlatformColor — chart and SVG libraries, gradients, Reanimated. On iOS these
- * are the published values of the UIKit colours above; Android's are already
- * strings.
- */
-const IOS_SOLID: Record<Scheme, SolidColors> = {
-    light: {
-        background: '#f2f2f7',
-        foreground: '#ffffff',
-        inset: '#ffffff',
-        elevated: '#ffffff',
-        typography: '#000000',
-        mutedTypography: 'rgba(60, 60, 67, 0.6)',
-        border: 'rgba(60, 60, 67, 0.29)',
-        input: 'rgba(118, 118, 128, 0.12)',
-        primary: colors.brand[500],
-        primaryTypography: colors.white,
-        primarySoft: 'rgba(255, 69, 58, 0.16)',
-        accent: '#000000',
-        accentTypography: '#ffffff',
-        success: '#34c759',
-        destructive: '#ff3b30',
-    },
-    dark: {
-        background: '#000000',
-        foreground: '#1c1c1e',
-        inset: '#1c1c1e',
-        elevated: '#2c2c2e',
-        typography: '#ffffff',
-        mutedTypography: 'rgba(235, 235, 245, 0.6)',
-        border: 'rgba(84, 84, 88, 0.65)',
-        input: 'rgba(118, 118, 128, 0.24)',
-        primary: colors.brand[500],
-        primaryTypography: colors.white,
-        primarySoft: 'rgba(255, 69, 58, 0.16)',
-        accent: '#ffffff',
-        accentTypography: '#000000',
-        success: '#30d158',
-        destructive: '#ff453a',
-    },
-};
-
-const solid = (scheme: Scheme): SolidColors =>
-    Platform.OS === 'ios' ? IOS_SOLID[scheme] : (semantic(scheme) as SolidColors);
+/** Plain colour strings, for chart and SVG libraries, gradients and Reanimated. */
+const solid = (scheme: Scheme): SolidColors => semantic(scheme) as SolidColors;
 
 type SolidColors = Record<keyof SemanticColors, string>;
 
@@ -342,24 +302,26 @@ type SemanticColors = Record<
     | 'accent'
     | 'accentTypography'
     | 'success'
-    | 'destructive',
+    | 'destructive'
+    | 'hydration'
+    | 'hydrationSoft',
     ColorValue
 >;
 
 /** Android's pre-native surfaces paint with these; iOS draws flat system surfaces. */
 const GRADIENTS = {
     light: {
-        brand: ['#ff6a55', '#ff2d20'],
-        ink: ['#1e1e22', '#3a3a44'],
-        surface: ['#ffffff', '#f7f7f9'],
+        brand: ['#ff5d69', '#fa2736'],
+        ink: ['#16181c', '#2a2d33'],
+        surface: ['#ffffff', '#f5f6f8'],
         /** Stands in for the design's radial bloom; see `glow` in the theme. */
-        glow: ['rgba(255, 69, 58, 0.14)', 'rgba(255, 69, 58, 0)'],
+        glow: ['rgba(250, 39, 54, 0.14)', 'rgba(250, 39, 54, 0)'],
     },
     dark: {
-        brand: ['#ff6a55', '#e0342a'],
-        ink: ['#1e1e22', '#0b0b0c'],
-        surface: ['#1e1e22', '#17171a'],
-        glow: ['rgba(255, 69, 58, 0.20)', 'rgba(255, 69, 58, 0)'],
+        brand: ['#ff6676', '#e0263b'],
+        ink: ['#14161a', '#08090b'],
+        surface: ['#1b1e23', '#14161a'],
+        glow: ['rgba(255, 59, 79, 0.20)', 'rgba(255, 59, 79, 0)'],
     },
 } as const;
 
@@ -394,7 +356,7 @@ export const lightTheme = {
     },
     solid: solid('light'),
     gradients: GRADIENTS.light,
-    shadows: shadows('#1e1e22', 0.14, 0.18, 0.45),
+    shadows: shadows('#16181c', 0.14, 0.18, 0.45),
     ...common,
     ...func,
 } as const;
@@ -432,19 +394,15 @@ declare module 'react-native-unistyles' {
     export interface UnistylesBreakpoints extends AppBreakpoints {}
 }
 
-// A stored Light or Dark pins the theme; anything else (Auto, or nothing yet)
-// follows the system. `applyTheme` in `use-user` keeps this in step afterwards.
-const storedTheme = storage.getString('user.theme');
-const pinnedTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : undefined;
+// The redesign is dark only, as the reference is. The light theme stays
+// defined (and a stored choice stays stored) so it can come back, but neither
+// is applied: `applyTheme` in `use-user` pins dark as well.
 
-// iOS: native bars, menus and PlatformColors follow the OS appearance, so the
-// override goes there too.
-if (pinnedTheme && Platform.OS === 'ios') {
-    Appearance.setColorScheme(pinnedTheme);
-}
+// Native bars, menus and controls follow the OS appearance, so it is pinned too.
+Appearance.setColorScheme?.('dark');
 
 StyleSheet.configure({
-    settings: pinnedTheme ? { initialTheme: pinnedTheme } : { adaptiveThemes: true },
+    settings: { initialTheme: 'dark' },
     themes: {
         light: lightTheme,
         dark: darkTheme,

@@ -55,6 +55,8 @@ jest.mock('@tanstack/react-query', () => ({
 
 jest.mock('@/constants/auth', () => ({ isAuthConfigured: () => true }));
 jest.mock('@/crud/onboarding', () => ({ hasCompletedOnboarding: async () => mockOnboarded }));
+// Welcome has been seen: these cases are about sign-in and onboarding, not the first-launch screen.
+jest.mock('@/helpers/welcome', () => ({ hasSeenWelcome: () => true }));
 jest.mock('@/services/password-recovery', () => ({
     isPasswordRecoveryPending: () => mockRecoveryPending,
 }));

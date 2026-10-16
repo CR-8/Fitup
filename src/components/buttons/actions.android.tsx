@@ -1,4 +1,5 @@
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import { Ellipsis } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
@@ -23,9 +24,14 @@ const styles = StyleSheet.create((theme) => ({
 
 const ActionsButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonProps) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation(['common']);
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            onPress={onPressHandler}
+            accessibilityRole="button"
+            accessibilityLabel={t('more', { ns: 'common' })}
+        >
             <Box style={styles.container(backgroundColor)}>
                 <Ellipsis size={theme.space(7)} color={iconColor || theme.colors.typography} />
             </Box>

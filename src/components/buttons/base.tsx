@@ -11,7 +11,7 @@ import { Button as UIButton, Icon as UIIcon, Row, Text as UIText } from '@expo/u
 import { useUnistyles } from 'react-native-unistyles';
 
 import { Host } from '@/components/native/host';
-import { fullWidthButton, fullWidthLabel } from '@/components/native/modifiers';
+import { fullWidthButton, fullWidthLabel, primaryButtonTint } from '@/components/native/modifiers';
 import { icons, type IconName } from '@/theme/icons';
 
 /**
@@ -19,7 +19,7 @@ import { icons, type IconName } from '@/theme/icons';
  * `base.android.tsx`, which takes the same props.)
  *
  * - `primary` is the prominent, tinted action (filled).
- * - `default` is the secondary action (bordered / outlined).
+ * - `default` and `outline` are the secondary action (bordered / outlined).
  * - `link` is a plain text button.
  *
  * `primary` and `default` stretch to the width they are given. `containerStyle`
@@ -29,7 +29,7 @@ export type ButtonProps = {
     title?: string;
     /** Shown before the title, the two centred together. */
     icon?: IconName;
-    type?: 'default' | 'primary' | 'link';
+    type?: 'default' | 'outline' | 'primary' | 'link';
     size?: 'sm' | 'default' | 'lg';
     disabled?: boolean;
     loading?: boolean;
@@ -44,7 +44,12 @@ export type ButtonProps = {
     testID?: string;
 };
 
-const VARIANTS = { primary: 'filled', default: 'outlined', link: 'text' } as const;
+const VARIANTS = {
+    primary: 'filled',
+    default: 'outlined',
+    outline: 'outlined',
+    link: 'text',
+} as const;
 
 const Button: FC<ButtonProps> = ({
     title,
@@ -98,7 +103,13 @@ const Button: FC<ButtonProps> = ({
                     onPress={onPress}
                     disabled={disabled}
                     testID={testID}
-                    modifiers={stretch ? fullWidthButton : undefined}
+                    modifiers={
+                        stretch
+                            ? type === 'primary'
+                                ? [...fullWidthButton, ...primaryButtonTint]
+                                : fullWidthButton
+                            : undefined
+                    }
                 >
                     {label}
                 </UIButton>

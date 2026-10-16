@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
@@ -25,9 +26,14 @@ const styles = StyleSheet.create((theme) => ({
 
 const CollapseButton: FC<CollapseButtonProps> = ({ onPressHandler }) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation(['common']);
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            onPress={onPressHandler}
+            accessibilityRole="button"
+            accessibilityLabel={t('collapse', { ns: 'common' })}
+        >
             <Box style={styles.container}>
                 <ChevronDown
                     style={styles.icon}

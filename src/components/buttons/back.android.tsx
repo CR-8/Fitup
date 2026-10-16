@@ -1,4 +1,5 @@
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
@@ -26,9 +27,14 @@ const styles = StyleSheet.create((theme) => ({
 
 const BackButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonProps) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation(['common']);
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            onPress={onPressHandler}
+            accessibilityRole="button"
+            accessibilityLabel={t('back', { ns: 'common' })}
+        >
             <Box style={styles.container(backgroundColor)}>
                 <ChevronLeft
                     style={styles.icon}

@@ -1,5 +1,4 @@
 import { FC } from 'react';
-import { Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { HStack } from '@/components/primitives/hstack';
@@ -10,7 +9,7 @@ import type { AiMessageSelect, AiPlanSelect } from '@/db/schema';
 import { PlanCard } from '../plan-card';
 import { SynAvatar } from '../avatar';
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     row: {
         width: '100%',
     },
@@ -34,20 +33,18 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingVertical: theme.space(3),
     },
     // The user's own turn uses the app's primary fill, the same treatment as its
-    // primary buttons, so the thread reads with the rest of the interface.
-    // Android keeps the pre-native inverted (ink) bubble.
+    // primary buttons, on both platforms.
     userBubble: {
-        backgroundColor: Platform.select({
-            ios: theme.colors.primary,
-            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-        }),
+        backgroundColor: theme.colors.brand[600],
         borderBottomRightRadius: theme.radius.sm,
     },
     userText: {
-        color: Platform.select({
-            ios: theme.colors.primaryTypography,
-            default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
-        }),
+        ...theme.fontSize.default,
+        color: theme.colors.white,
+    },
+    assistantText: {
+        ...theme.fontSize.default,
+        color: theme.colors.typography,
     },
     // A raised surface: on the page colour, as it was, the reply had no bubble
     // at all on the black ground.
@@ -58,7 +55,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderBottomLeftRadius: theme.radius.sm,
     },
     errorText: {
+        ...theme.fontSize.default,
         color: theme.colors.destructive,
+    },
+    errorBubble: {
+        borderLeftWidth: 3,
+        borderLeftColor: theme.colors.destructive,
     },
     planWrapper: {
         width: '100%',
@@ -85,9 +87,7 @@ export const Message: FC<MessageProps> = ({ message, plan }) => {
         return (
             <VStack style={[styles.row, styles.userRow]}>
                 <VStack style={[styles.bubble, styles.userBubble]}>
-                    <Text fontSize="sm" style={styles.userText}>
-                        {message.content}
-                    </Text>
+                    <Text style={styles.userText}>{message.content}</Text>
                 </VStack>
             </VStack>
         );
@@ -97,8 +97,14 @@ export const Message: FC<MessageProps> = ({ message, plan }) => {
         <VStack style={[styles.row, styles.assistantRow]}>
             <HStack style={styles.assistantLine}>
                 <SynAvatar />
-                <VStack style={[styles.bubble, styles.assistantBubble]}>
-                    <Text fontSize="sm" style={message.errorCode ? styles.errorText : undefined}>
+                <VStack
+                    style={[
+                        styles.bubble,
+                        styles.assistantBubble,
+                        message.errorCode ? styles.errorBubble : null,
+                    ]}
+                >
+                    <Text style={message.errorCode ? styles.errorText : styles.assistantText}>
                         {message.content}
                     </Text>
                 </VStack>

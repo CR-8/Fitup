@@ -14,6 +14,7 @@ import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
 import { Buttons } from '@/components/forms/fields/buttons';
+import { Card, CardTitle } from '@/components/layout/card';
 import { useUser } from '@/hooks/use-user';
 import { useAccount } from '@/hooks/use-account';
 import { readProfileDetails, saveProfileDetails, type ProfileDetails } from '@/crud/onboarding';
@@ -50,8 +51,8 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
     },
     panel: {
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(5),
@@ -344,6 +345,14 @@ const ProfileFormFields: FC<ProfileFormProps> = ({ userId, details }) => {
                     />
                 </VStack>
             </VStack>
+
+            <Card
+                style={styles.panel}
+                onPress={() => router.navigate('/settings/diet' as never)}
+                accessibilityLabel={t('settings.items.diet.title', { ns: 'screens' })}
+            >
+                <CardTitle title={t('settings.items.diet.title', { ns: 'screens' })} chevron />
+            </Card>
 
             <Button
                 title={t('settings.profile.save', { ns: 'screens' })}

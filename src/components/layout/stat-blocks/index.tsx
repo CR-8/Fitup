@@ -65,20 +65,24 @@ const styles = StyleSheet.create((theme) => ({
     splitRow: {
         gap: theme.space(3),
     },
+    // The reference summary's tile: the label first, the figure under it,
+    // both on the leading edge.
     splitBlock: {
         flex: 1,
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: theme.space(0.5),
         backgroundColor: theme.colors.foreground,
         borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,
         paddingVertical: theme.space(3.5),
-        paddingHorizontal: theme.space(2),
+        paddingHorizontal: theme.space(3.5),
     },
     value: {
-        ...theme.fontSize.xl,
-        fontWeight: theme.fontWeight.bold.fontWeight,
+        // Barlow Condensed runs narrow; 28 gives it the weight of a 22pt text face.
+        fontSize: 28,
+        lineHeight: 32,
         color: theme.colors.typography,
         ...theme.typography.metric,
     },
@@ -93,7 +97,7 @@ const styles = StyleSheet.create((theme) => ({
     splitLabel: {
         ...theme.typography.eyebrow,
         color: theme.colors.mutedTypography,
-        textAlign: 'center',
+        textAlign: 'left',
     },
     iconBlock: {
         flexDirection: 'row',
@@ -145,6 +149,11 @@ export const StatBlocks: FC<{
                                 />
                             ) : null}
                             <VStack style={block.icon ? styles.iconText : undefined}>
+                                {isSplit ? (
+                                    <Text style={styles.splitLabel} numberOfLines={2}>
+                                        {block.label}
+                                    </Text>
+                                ) : null}
                                 <Text
                                     style={[
                                         styles.value,
@@ -155,15 +164,14 @@ export const StatBlocks: FC<{
                                 >
                                     {block.value}
                                 </Text>
-                                <Text
-                                    style={[
-                                        isSplit ? styles.splitLabel : styles.label,
-                                        block.icon && styles.iconLabel,
-                                    ]}
-                                    numberOfLines={2}
-                                >
-                                    {block.label}
-                                </Text>
+                                {isSplit ? null : (
+                                    <Text
+                                        style={[styles.label, block.icon && styles.iconLabel]}
+                                        numberOfLines={2}
+                                    >
+                                        {block.label}
+                                    </Text>
+                                )}
                             </VStack>
                         </VStack>
                     </Fragment>

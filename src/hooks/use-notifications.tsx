@@ -27,6 +27,7 @@ import Constants from 'expo-constants';
 import { useShallow } from 'zustand/react/shallow';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { getNotificationNavigation } from '@/helpers/notification-navigation';
+import { logReceivedNotification } from '@/services/notification-events';
 import { registerPushToken } from '@/services/push-registration';
 import { useAnalytics } from './use-analytics';
 
@@ -121,6 +122,7 @@ const useNotificationsProvider = () => {
     const { track } = useAnalytics();
     const pathname = usePathname();
     const pathnameRef = useRef(pathname);
+    const userIdRef = useRef(user?.id);
     const lastHandledNotificationResponseKeyRef = useRef<string | null>(null);
 
     const isAppInBackground = appState === 'background' || appState === 'inactive';
@@ -128,6 +130,10 @@ const useNotificationsProvider = () => {
     useEffect(() => {
         pathnameRef.current = pathname;
     }, [pathname]);
+
+    useEffect(() => {
+        userIdRef.current = user?.id;
+    }, [user?.id]);
 
     const { permissions, setPermissions } = usePermissionsStore(
         useShallow((state) => ({
@@ -453,6 +459,7 @@ const useNotificationsProvider = () => {
 
     useEffect(() => {
         let subscription: Notifications.EventSubscription | null = null;
+        let receivedSubscription: Notifications.EventSubscription | null = null;
 
         const setupNotificationObserver = async () => {
             try {
@@ -467,6 +474,14 @@ const useNotificationsProvider = () => {
                     const responseKey = `${notification.request.identifier}:${notification.date}:${response.actionIdentifier}`;
                     if (lastHandledNotificationResponseKeyRef.current === responseKey) return;
                     lastHandledNotificationResponseKeyRef.current = responseKey;
+
+                    // Seen in the background, so tapping it is the first the app knows.
+                    if (userIdRef.current) {
+                        void logReceivedNotification(
+                            userIdRef.current,
+                            notification.request.content,
+                        );
+                    }
 
                     const url = notification.request.content.data?.url;
                     if (typeof url === 'string') {
@@ -497,6 +512,17 @@ const useNotificationsProvider = () => {
                 subscription = Notifications.addNotificationResponseReceivedListener((response) => {
                     redirect(response);
                 });
+                // Shown while the app is open: the Notifications list gets it too.
+                receivedSubscription = Notifications.addNotificationReceivedListener(
+                    (notification) => {
+                        if (userIdRef.current) {
+                            void logReceivedNotification(
+                                userIdRef.current,
+                                notification.request.content,
+                            );
+                        }
+                    },
+                );
             } catch (error) {
                 reportError(error, 'Failed to set up notification observer:');
             }
@@ -504,7 +530,10 @@ const useNotificationsProvider = () => {
 
         runInBackground(setupNotificationObserver, 'Failed to initialize notification observer:');
 
-        return () => subscription?.remove();
+        return () => {
+            subscription?.remove();
+            receivedSubscription?.remove();
+        };
     }, []);
 
     const requestPermissions = useCallback(() => {

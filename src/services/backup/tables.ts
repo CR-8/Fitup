@@ -150,6 +150,9 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             // Superseded by `ai_profile.activityLevel`, which is the one the
             // onboarding flow and the assistant both read.
             'activityLevel',
+            // Hydration settings, as device-local as the water log they size.
+            'waterTargetMl',
+            'waterGlassMl',
         ],
     },
     {

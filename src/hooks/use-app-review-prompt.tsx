@@ -19,11 +19,20 @@ const getPromptAnalyticsProperties = (
     eligibleWorkoutCount: prompt.eligibleWorkoutCount,
 });
 
+/**
+ * The custom rating page (`/review`) is unhooked in the redesign: it stays in
+ * the project, but nothing opens it. The store's own review prompt is still
+ * offered from You. Flip this to bring the page back.
+ */
+const REVIEW_PAGE_ENABLED = false;
+
 export const usePostWorkoutAppReviewPrompt = () => {
     const { track } = useAnalytics();
 
     return useCallback(
         async (completedWorkout: WorkoutSelect, completionSource: AppReviewCompletionSource) => {
+            if (!REVIEW_PAGE_ENABLED) return;
+
             const result = await resolvePostWorkoutAppReviewPromptResult({
                 workout: completedWorkout,
                 completionSource,

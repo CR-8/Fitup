@@ -6,6 +6,7 @@ import {
     ArrowUp,
     BarChart3,
     Bell,
+    CalendarDays,
     Check,
     ChevronDown,
     ChevronLeft,
@@ -13,12 +14,16 @@ import {
     ChevronsUp,
     ChevronsUpDown,
     ChevronUp,
+    Circle,
+    CircleCheck,
     CircleUser,
     Clock,
+    Droplet,
     Dumbbell,
     Ellipsis,
     Flame,
     Heart,
+    House,
     KeyRound,
     Languages,
     ListFilter,
@@ -63,7 +68,11 @@ const icons: Record<IconName, LucideIcon> = {
     'arrow-up': ArrowUp,
     'bar-chart': BarChart3,
     bell: Bell,
+    apple: Apple,
+    calendar: CalendarDays,
     check: Check,
+    'check-circle': CircleCheck,
+    circle: Circle,
     'chevron-down': ChevronDown,
     'chevron-left': ChevronLeft,
     'chevron-right': ChevronRight,
@@ -71,6 +80,7 @@ const icons: Record<IconName, LucideIcon> = {
     'chevrons-up': ChevronsUp,
     'chevrons-up-down': ChevronsUpDown,
     clock: Clock,
+    droplet: Droplet,
     dumbbell: Dumbbell,
     ellipsis: Ellipsis,
     filter: ListFilter,
@@ -94,8 +104,8 @@ const icons: Record<IconName, LucideIcon> = {
     salad: Salad,
     scale: Scale,
     settings: Settings,
-    'skip-forward': SkipForward,
     sparkles: Sparkles,
+    'skip-forward': SkipForward,
     star: Star,
     stop: Square,
     appearance: SunMoon,
@@ -103,6 +113,7 @@ const icons: Record<IconName, LucideIcon> = {
     timer: Timer,
     trash: Trash2,
     'trending-up': TrendingUp,
+    home: House,
     trophy: Trophy,
     undo: Undo2,
     utensils: UtensilsCrossed,
@@ -112,7 +123,14 @@ const icons: Record<IconName, LucideIcon> = {
 };
 
 /** Glyphs that are solid on iOS (`*.fill` symbols) are filled here too. */
-const FILLED = new Set<IconName>(['heart-fill', 'pause', 'play', 'stop', 'skip-forward']);
+const FILLED = new Set<IconName>([
+    'droplet',
+    'heart-fill',
+    'pause',
+    'play',
+    'stop',
+    'skip-forward',
+]);
 
 export const Icon: FC<IconProps> = ({ name, size = 20, color, style }) => {
     const { theme } = useUnistyles();

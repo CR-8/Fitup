@@ -4,6 +4,25 @@
 // `eas build` unable to find the project at all.
 const easProjectId = process.env.APP_EAS_PROJECT_ID || '91cedf58-1db7-4972-813a-eca58acc014e';
 
+// A store build must never carry an AI provider key: anything in EXPO_PUBLIC_* is
+// readable from the binary. Production talks to the `syn-complete` proxy, which
+// holds the key as a server secret and enforces the monthly quota. Failing here,
+// at config time, is cheaper than discovering a leaked key after release.
+const isProductionBuild =
+    process.env.APP_VARIANT === 'production' || process.env.EAS_BUILD_PROFILE === 'production';
+
+if (isProductionBuild) {
+    if (process.env.EXPO_PUBLIC_AI_API_KEY) {
+        throw new Error(
+            'EXPO_PUBLIC_AI_API_KEY is set in a production build. Remove it: production uses ' +
+                'EXPO_PUBLIC_AI_TRANSPORT=proxy and the provider key lives in the syn-complete function.',
+        );
+    }
+    if (process.env.EXPO_PUBLIC_AI_TRANSPORT === 'direct') {
+        throw new Error('EXPO_PUBLIC_AI_TRANSPORT=direct is not allowed in a production build.');
+    }
+}
+
 module.exports = {
     name: process.env.APP_NAME || 'FitSyn',
     version: process.env.APP_VERSION || '1.0',
@@ -17,7 +36,8 @@ module.exports = {
     // src/services/account.ts reads this list and takes the first entry, so new
     // links use `fitsyn` while the old ones still land.
     scheme: ['fitsyn', 'fitup'],
-    userInterfaceStyle: 'automatic',
+    // Dark only, as the redesign is; see unistyles.ts.
+    userInterfaceStyle: 'dark',
     newArchEnabled: true,
     experiments: {
         typedRoutes: true,
@@ -33,7 +53,7 @@ module.exports = {
                 process.env.APP_VARIANT === 'development'
                     ? './assets/images/adaptive-icon-dev.png'
                     : './assets/images/adaptive-icon.png',
-            backgroundColor: '#0b0b0c',
+            backgroundColor: '#0c0e11',
         },
         permissions: [
             'android.permission.health.WRITE_EXERCISE',
@@ -55,6 +75,8 @@ module.exports = {
         bundleIdentifier: process.env.APP_BUNDLE_IDENTIFIER || '',
         appStoreUrl: process.env.APP_STORE_URL,
         supportsTablet: false,
+        // Sign in with Apple, offered first on iOS beside Google.
+        usesAppleSignIn: true,
         config: {
             usesNonExemptEncryption: false,
         },
@@ -186,6 +208,15 @@ module.exports = {
         'expo-audio',
         'expo-asset',
         'expo-mail-composer',
+        'expo-apple-authentication',
+        [
+            'expo-image-picker',
+            {
+                // Feedback can attach a screenshot the person chooses; nothing is read otherwise.
+                photosPermission:
+                    'Choose a screenshot to attach to your feedback. FitSyn only reads the image you pick.',
+            },
+        ],
         'expo-image',
         'expo-sharing',
         'expo-status-bar',
@@ -254,9 +285,13 @@ module.exports = {
             },
         ],
         [
-            // Android's typefaces (the pre-native UI); iOS uses the system font.
+            // Android's typefaces (the pre-native UI); iOS uses the system font
+            // for text. Barlow Condensed SemiBold sets the big numerals on both.
             'expo-font',
             {
+                ios: {
+                    fonts: ['./assets/fonts/BarlowCondensed-SemiBold.ttf'],
+                },
                 android: {
                     fonts: [
                         './assets/fonts/DMSans-Regular.ttf',
@@ -266,6 +301,7 @@ module.exports = {
                         './assets/fonts/SpaceGrotesk-Medium.ttf',
                         './assets/fonts/SpaceGrotesk-SemiBold.ttf',
                         './assets/fonts/SpaceGrotesk-Bold.ttf',
+                        './assets/fonts/BarlowCondensed-SemiBold.ttf',
                     ],
                 },
             },
@@ -278,12 +314,12 @@ module.exports = {
                 resizeMode: 'contain',
                 // The system grounds, so launch matches the appearance the app
                 // opens in.
-                backgroundColor: '#f2f2f7',
-                dark: { backgroundColor: '#000000' },
+                backgroundColor: '#08090b',
+                dark: { backgroundColor: '#08090b' },
                 // Android opens on the pre-native UI's ground.
                 android: {
-                    backgroundColor: '#0b0b0c',
-                    dark: { backgroundColor: '#0b0b0c' },
+                    backgroundColor: '#0c0e11',
+                    dark: { backgroundColor: '#0c0e11' },
                 },
             },
         ],

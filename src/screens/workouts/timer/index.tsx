@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Platform, ScrollView } from 'react-native';
-import Reanimated, { ZoomIn } from 'react-native-reanimated';
+import Reanimated, { ZoomIn, useReducedMotion } from 'react-native-reanimated';
 
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
@@ -15,7 +15,8 @@ import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { NumericStepperField } from '@/components/primitives/numeric-stepper-field';
-import { StatBlocks } from '@/components/layout/stat-blocks';
+import { MetricTiles } from '@/components/layout/metric-tiles';
+import { ProgressBar } from '@/components/feedback/progress-bar';
 import {
     useCompleteExerciseSet,
     useUpdateExerciseSet,
@@ -46,6 +47,8 @@ import { useAiProfile } from '@/hooks/use-ai';
 import { SegmentedControl } from '@expo/ui/community/segmented-control';
 import { BaseButtons } from '@/components/forms/fields/base/buttons';
 import { Icon } from '@/components/primitives/icon';
+
+import { RestRing } from './components/rest-ring';
 
 const styles = StyleSheet.create((theme, rt) => ({
     /**
@@ -80,6 +83,43 @@ const styles = StyleSheet.create((theme, rt) => ({
     headerEnd: {
         alignItems: 'center',
         gap: theme.space(2),
+    },
+    /** The session clock, centred in the top bar as the reference player's title. */
+    headerClock: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    headerClockValue: {
+        fontSize: 20,
+        lineHeight: 24,
+        color: theme.colors.typography,
+        ...theme.typography.metric,
+    },
+    headerClockLabel: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
+    },
+    setEyebrow: {
+        ...theme.typography.eyebrow,
+        textTransform: 'uppercase',
+        color: theme.colors.primary,
+        marginBottom: theme.space(1),
+    },
+    exerciseTitle: {
+        fontSize: 30,
+        lineHeight: 36,
+    },
+    /** The whole session's sets, as the reference player's scrubber. */
+    progress: {
+        gap: theme.space(1.5),
+    },
+    progressLabels: {
+        justifyContent: 'space-between',
+    },
+    progressLabel: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
+        ...theme.typography.metric,
     },
     iconButton: {
         width: theme.space(10),
@@ -129,7 +169,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     metaRow: {
         color: theme.colors.mutedTypography,
-        fontVariant: ['tabular-nums'],
+        ...theme.typography.metric,
+    },
+    lastTime: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+        marginTop: theme.space(0.5),
     },
     // Text, not a pill — it sits for a few seconds next to the line it
     // follows and then is gone, so it reads as a passing note rather than a
@@ -184,7 +229,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     timerValue: {
         fontSize: theme.fontSize['4xl'].fontSize * 1.6,
         lineHeight: theme.fontSize['4xl'].lineHeight * 1.6,
-        fontVariant: ['tabular-nums'],
+        ...theme.typography.metric,
     },
     timerValuePaused: {
         opacity: 0.55,
@@ -269,7 +314,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     checkValue: {
         ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
-        fontVariant: ['tabular-nums'],
+        ...theme.typography.metric,
     },
     // Ending early is reachable, not advertised: a quiet link, not a second
     // coral control competing with the set.
@@ -342,6 +387,8 @@ type Phase = 'work' | 'rest' | 'paused' | 'between' | 'complete';
 const TimerScreen: FC = () => {
     const { t } = useTranslation(['screens', 'common']);
     const { theme } = useUnistyles();
+    // The check marks pop in; with Reduce Motion on, they simply appear.
+    const reduceMotion = useReducedMotion();
     const navigation = useNavigation();
     const route = useRoute();
 
@@ -480,6 +527,28 @@ const TimerScreen: FC = () => {
 
         return best > 0 ? best : null;
     }, [currentExercise, displayWeightUnits, exerciseHistory, runningWorkout?.id]);
+
+    // What this exercise looked like the last time it was trained: the heaviest
+    // working set of the most recent other session, in the same format as the
+    // set list.
+    const lastTime = useMemo(() => {
+        if (!currentExercise) return null;
+
+        const previous = exerciseHistory
+            .filter((item) => item.workout.id !== runningWorkout?.id && item.workout.completedAt)
+            .sort(
+                (a, b) =>
+                    new Date(b.workout.completedAt!).getTime() -
+                    new Date(a.workout.completedAt!).getTime(),
+            )[0];
+        if (!previous) return null;
+
+        const top = previous.sets
+            .filter((set) => !isWarmupSetType(set.type) && set.reps != null && set.reps > 0)
+            .sort((a, b) => (b.weight ?? 0) * (b.reps ?? 0) - (a.weight ?? 0) * (a.reps ?? 0))[0];
+
+        return top ? formatSet(currentExercise, top) || null : null;
+    }, [currentExercise, exerciseHistory, runningWorkout?.id]);
 
     // A real personal best, surfaced briefly and then gone — not a badge that
     // sits on screen, just a moment of "that one counted" while it's true.
@@ -762,6 +831,24 @@ const TimerScreen: FC = () => {
         workoutDetails,
     ]);
 
+    // ±15 s moves the rest's planned length, and with it when it ends; the
+    // provider's notification and Live Activity follow the set like any rest.
+    const handleAdjustRest = useCallback(
+        (deltaSeconds: number) => {
+            const restingSet = runningWorkoutRestingSet;
+            if (!restingSet) return;
+
+            runAction(async () => {
+                const planned = getRestSecondsPlanned(restingSet);
+                await updateSet({
+                    id: restingSet.id,
+                    updates: { restTime: Math.max(0, planned + deltaSeconds) },
+                });
+            }, 'Failed to adjust rest from the timer screen:');
+        },
+        [runAction, runningWorkoutRestingSet, updateSet],
+    );
+
     const nextSetId = nextEntry?.set.id;
 
     const handleStartNext = useCallback(() => {
@@ -854,8 +941,11 @@ const TimerScreen: FC = () => {
             <VStack style={styles.container}>
                 <HStack style={styles.headerRow}>{minimizeButton}</HStack>
 
-                <VStack style={styles.completeBody}>
-                    <Reanimated.View entering={ZoomIn.springify()} style={styles.completeBadge}>
+                <VStack style={styles.completeBody} accessibilityLiveRegion="polite">
+                    <Reanimated.View
+                        entering={reduceMotion ? undefined : ZoomIn.springify()}
+                        style={styles.completeBadge}
+                    >
                         <Icon name="check" size={theme.space(10)} color={onCoral} />
                     </Reanimated.View>
                     <Title type="h2">{t('timer.completedTitle', { ns: 'screens' })}</Title>
@@ -863,29 +953,34 @@ const TimerScreen: FC = () => {
                         {runningWorkout.name}
                     </Text>
                     <Box style={styles.completeSummary}>
-                        <StatBlocks
-                            inset={false}
-                            blocks={[
+                        <MetricTiles
+                            tiles={[
+                                {
+                                    key: 'time',
+                                    title: t('timer.summary.time', { ns: 'screens' }),
+                                    caption: runningWorkout.name,
+                                    value: elapsedFormated,
+                                    color: theme.colors.primary,
+                                },
                                 {
                                     key: 'sets',
-                                    value: String(setCount),
-                                    label: t('timer.summary.sets', {
+                                    title: t('timer.summary.sets', {
                                         ns: 'screens',
                                         count: setCount,
                                     }),
-                                },
-                                {
-                                    key: 'time',
-                                    value: elapsedFormated,
-                                    label: t('timer.summary.time', { ns: 'screens' }),
+                                    caption: t('timer.summary.logged', { ns: 'screens' }),
+                                    value: String(setCount),
+                                    color: theme.colors.success,
                                 },
                                 {
                                     key: 'exercises',
-                                    value: String(exerciseCount),
-                                    label: t('timer.summary.exercises', {
+                                    title: t('timer.summary.exercises', {
                                         ns: 'screens',
                                         count: exerciseCount,
                                     }),
+                                    caption: t('timer.summary.logged', { ns: 'screens' }),
+                                    value: String(exerciseCount),
+                                    color: theme.colors.amber[400],
                                 },
                             ]}
                         />
@@ -911,6 +1006,11 @@ const TimerScreen: FC = () => {
 
     const isWorking = !!runningWorkoutActiveSet && !runningWorkoutRestingSet;
     const focusSets = focusItem?.sets ?? [];
+    const focusSetIndex = focusSets.findIndex((set) => set.id === focusSetId);
+
+    // Every set in the session, for the progress bar along the bottom.
+    const allSets = workoutDetails?.exercises.flatMap((entry) => entry.sets) ?? [];
+    const doneSets = allSets.filter((set) => set.completedAt).length;
 
     const completeSetButton = (
         <Button
@@ -929,6 +1029,17 @@ const TimerScreen: FC = () => {
             <VStack style={styles.top}>
                 <HStack style={styles.headerRow}>
                     {minimizeButton}
+
+                    <VStack
+                        style={styles.headerClock}
+                        accessible
+                        accessibilityLabel={`${t('timer.summary.time', { ns: 'screens' })} ${elapsedFormated}`}
+                    >
+                        <Text style={styles.headerClockValue}>{elapsedFormated}</Text>
+                        <Text style={styles.headerClockLabel} numberOfLines={1}>
+                            {runningWorkout.name}
+                        </Text>
+                    </VStack>
 
                     <HStack style={styles.headerEnd}>
                         <Box
@@ -981,12 +1092,31 @@ const TimerScreen: FC = () => {
                 </HStack>
 
                 <VStack>
-                    <Title type="h2" numberOfLines={1}>
+                    {focusSetIndex >= 0 ? (
+                        <Text style={styles.setEyebrow}>
+                            {t('timer.setOf', {
+                                ns: 'screens',
+                                number: focusSetIndex + 1,
+                                count: focusSets.length,
+                            })}
+                        </Text>
+                    ) : null}
+                    <Title
+                        type="h2"
+                        style={styles.exerciseTitle}
+                        numberOfLines={2}
+                        accessibilityRole="header"
+                    >
                         {focusExercise ? exerciseDisplayName(focusExercise) : ' '}
                     </Title>
                     <Text fontSize="sm" style={styles.metaRow}>
                         {metaLine}
                     </Text>
+                    {lastTime && phase !== 'rest' ? (
+                        <Text style={styles.lastTime}>
+                            {t('timer.lastTime', { ns: 'screens', value: lastTime })}
+                        </Text>
+                    ) : null}
                     {personalBestLabel ? (
                         <Text style={styles.personalBest}>
                             {t('timer.newBest', { ns: 'screens', value: personalBestLabel })}
@@ -1026,7 +1156,7 @@ const TimerScreen: FC = () => {
                     ) : null}
                 </VStack>
 
-                {gifUrl ? (
+                {gifUrl && !runningWorkoutRestingSet ? (
                     <Box style={styles.mediaPanel}>
                         <ExpoImage
                             source={{ uri: gifUrl }}
@@ -1042,7 +1172,15 @@ const TimerScreen: FC = () => {
                 {/* Rest, and timed sets: the clock is the point. A weight/reps
                     set keeps its clock in the pill and gives the room to the
                     steppers instead. */}
-                {readout && !clockInPill ? (
+                {runningWorkoutRestingSet && readout ? (
+                    <RestRing
+                        value={readout.value}
+                        elapsedFraction={readout.fraction ?? 0}
+                        paused={paused}
+                        disabled={controlsDisabled}
+                        onAdjust={handleAdjustRest}
+                    />
+                ) : readout && !clockInPill ? (
                     <VStack style={styles.timerPanel}>
                         <Title
                             type="h1"
@@ -1151,7 +1289,7 @@ const TimerScreen: FC = () => {
                                 <HStack key={set.id} style={styles.checkRow(current)}>
                                     {set.completedAt ? (
                                         <Reanimated.View
-                                            entering={ZoomIn.springify()}
+                                            entering={reduceMotion ? undefined : ZoomIn.springify()}
                                             style={styles.checkMark}
                                         >
                                             <Icon
@@ -1177,6 +1315,31 @@ const TimerScreen: FC = () => {
                             );
                         })}
                     </ScrollView>
+                ) : null}
+
+                {allSets.length > 0 ? (
+                    <VStack style={styles.progress}>
+                        <ProgressBar
+                            value={doneSets / allSets.length}
+                            height={4}
+                            accessibilityLabel={t('timer.progress', {
+                                ns: 'screens',
+                                done: doneSets,
+                                count: allSets.length,
+                            })}
+                        />
+                        <HStack style={styles.progressLabels}>
+                            <Text style={styles.progressLabel}>
+                                {t('timer.progressDone', { ns: 'screens', count: doneSets })}
+                            </Text>
+                            <Text style={styles.progressLabel}>
+                                {t('timer.progressLeft', {
+                                    ns: 'screens',
+                                    count: allSets.length - doneSets,
+                                })}
+                            </Text>
+                        </HStack>
+                    </VStack>
                 ) : null}
 
                 <Button

@@ -28,16 +28,16 @@ const styles = StyleSheet.create((theme) => ({
     card: {
         flex: 1,
     },
+    // The reference's detail grid: a short label over a large figure.
     value: {
+        fontSize: 26,
+        lineHeight: 30,
         color: theme.colors.typography,
-        fontSize: theme.fontSize.default.fontSize,
-        fontWeight: theme.fontWeight.bold.fontWeight,
+        ...theme.typography.metric,
     },
     label: {
-        color: theme.colors.typography,
-        opacity: 0.55,
-        fontSize: theme.fontSize.xs.fontSize,
-        lineHeight: theme.fontSize.xs.lineHeight,
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -61,9 +61,14 @@ export const MetricGrid: FC<MetricGridProps> = ({ metrics, columns = 2, style })
             {rows.map((row, rowIndex) => (
                 <HStack key={`metric-grid-row-${rowIndex}`} style={styles.row}>
                     {row.map((metric) => (
-                        <VStack key={metric.key} style={styles.card}>
-                            <Text style={styles.value}>{metric.value}</Text>
+                        <VStack
+                            key={metric.key}
+                            style={styles.card}
+                            accessible
+                            accessibilityLabel={`${metric.label}, ${metric.value}`}
+                        >
                             <Text style={styles.label}>{metric.label}</Text>
+                            <Text style={styles.value}>{metric.value}</Text>
                         </VStack>
                     ))}
                     {row.length < columns &&

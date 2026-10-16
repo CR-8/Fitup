@@ -41,6 +41,9 @@ export const AUTH_CONFIG = {
     /** Google is offered when a client id is configured for the platform. */
     googleEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_GOOGLE_ENABLED, true),
 
+    /** Sign in with Apple is offered on iOS when this is on and accounts are configured. */
+    appleEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_APPLE_ENABLED, true),
+
     emailEnabled: readBoolean(process.env.EXPO_PUBLIC_AUTH_EMAIL_ENABLED, true),
 } as const;
 

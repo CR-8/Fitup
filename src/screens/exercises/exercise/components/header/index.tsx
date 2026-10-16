@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
@@ -26,17 +25,16 @@ interface HeaderProps {
     exercise: ExerciseSelect;
 }
 
-const styles = StyleSheet.create((theme, rt) => ({
+/**
+ * The exercise's head, laid out as the reference's workout page: the name and
+ * favourite on the page itself, the animation on its own white plate (the
+ * source GIFs are drawn on white, and the licence notice goes under them), then
+ * what it tracks and the muscles it works as quiet chips.
+ */
+const styles = StyleSheet.create((theme) => ({
     wrapper: {
         paddingHorizontal: theme.space(4),
-    },
-    container: {
-        padding: theme.space(5),
-        backgroundColor: theme.colors.white,
-        borderRadius: theme.radius['4xl'],
-        borderColor: theme.colors.border,
-        borderWidth: rt.themeName === 'dark' ? 0 : StyleSheet.hairlineWidth,
-        gap: theme.space(5),
+        gap: theme.space(4),
     },
     titleRow: {
         alignItems: 'flex-start',
@@ -44,10 +42,14 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     title: {
         flex: 1,
-        color: Platform.select({
-            ios: theme.colors.typography,
-            default: theme.colors.neutral[950],
-        }),
+        color: theme.colors.typography,
+    },
+    plate: {
+        padding: theme.space(4),
+        backgroundColor: theme.colors.white,
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
+        gap: theme.space(2),
     },
     // Centred over the frozen frame while paused. Dark and translucent because
     // the animations sit on their own white ground.
@@ -73,35 +75,25 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     muscleGroupValueContainer: {
         paddingHorizontal: theme.space(3),
-        paddingVertical: theme.space(0.5),
-        backgroundColor: Platform.select({
-            ios: theme.colors.elevated,
-            default: theme.colors.neutral[950],
-        }),
-        borderRadius: theme.radius['full'],
+        paddingVertical: theme.space(1),
+        backgroundColor: theme.colors.elevated,
+        borderRadius: theme.radius.full,
     },
     muscleGroupValue: {
-        color: Platform.select({ ios: theme.colors.typography, default: theme.colors.white }),
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
-        fontWeight: theme.fontWeight.default.fontWeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     exerciseTrackingGroupValue: {
-        color: Platform.select({
-            ios: theme.colors.typography,
-            default: theme.colors.neutral[950],
-        }),
-        fontSize: theme.fontSize.sm.fontSize,
-        fontWeight: theme.fontWeight.default.fontWeight,
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
     gifImage: {
         width: '100%',
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
-        color: Platform.select({
-            ios: theme.colors.mutedTypography,
-            default: theme.colors.neutral[500],
-        }),
+        color: theme.colors.neutral[500],
         textAlign: 'center',
     },
 }));
@@ -129,15 +121,15 @@ export const Header = ({ exercise }: HeaderProps) => {
     }, [exercise.gifFilename]);
 
     return (
-        <Box style={styles.wrapper}>
-            <VStack style={styles.container}>
-                <HStack style={styles.titleRow}>
-                    <Title type="h3" style={styles.title}>
-                        {exerciseDisplayName(exercise)}
-                    </Title>
-                    <FavoriteButton exerciseId={exercise.id} size={theme.space(6)} />
-                </HStack>
-                {gifUrl && (
+        <VStack style={styles.wrapper}>
+            <HStack style={styles.titleRow}>
+                <Title type="h1" style={styles.title} accessibilityRole="header">
+                    {exerciseDisplayName(exercise)}
+                </Title>
+                <FavoriteButton exerciseId={exercise.id} size={theme.space(6)} />
+            </HStack>
+            {gifUrl ? (
+                <VStack style={styles.plate}>
                     <Pressable
                         onPress={togglePlayback}
                         animateOnPress={false}
@@ -169,37 +161,35 @@ export const Header = ({ exercise }: HeaderProps) => {
                             </Reanimated.View>
                         ) : null}
                     </Pressable>
-                )}
-                {gifUrl && (
                     <Text fontSize="2xs" style={styles.attribution}>
                         {EXERCISE_MEDIA_ATTRIBUTION}
                     </Text>
-                )}
-                {(exercise.tracking || primaryMuscleGroups.length > 0) && (
-                    <VStack style={styles.infoContainer}>
-                        {exercise.tracking && (
-                            <Box>
-                                <Text style={styles.exerciseTrackingGroupValue}>
-                                    {exercise.tracking
-                                        .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
-                                        .join(' + ')}
-                                </Text>
-                            </Box>
-                        )}
-                        {primaryMuscleGroups.length > 0 && (
-                            <HStack style={styles.muscleGroupsContainer}>
-                                {primaryMuscleGroups.map((muscleGroup) => (
-                                    <Box key={muscleGroup} style={styles.muscleGroupValueContainer}>
-                                        <Text style={styles.muscleGroupValue}>
-                                            {t(`muscleGroup.${muscleGroup}`, { ns: 'common' })}
-                                        </Text>
-                                    </Box>
-                                ))}
-                            </HStack>
-                        )}
-                    </VStack>
-                )}
-            </VStack>
-        </Box>
+                </VStack>
+            ) : null}
+            {(exercise.tracking || primaryMuscleGroups.length > 0) && (
+                <VStack style={styles.infoContainer}>
+                    {exercise.tracking && (
+                        <Box>
+                            <Text style={styles.exerciseTrackingGroupValue}>
+                                {exercise.tracking
+                                    .map((v) => t(`exerciseTracking.${v}`, { ns: 'common' }))
+                                    .join(' + ')}
+                            </Text>
+                        </Box>
+                    )}
+                    {primaryMuscleGroups.length > 0 && (
+                        <HStack style={styles.muscleGroupsContainer}>
+                            {primaryMuscleGroups.map((muscleGroup) => (
+                                <Box key={muscleGroup} style={styles.muscleGroupValueContainer}>
+                                    <Text style={styles.muscleGroupValue}>
+                                        {t(`muscleGroup.${muscleGroup}`, { ns: 'common' })}
+                                    </Text>
+                                </Box>
+                            ))}
+                        </HStack>
+                    )}
+                </VStack>
+            )}
+        </VStack>
     );
 };

@@ -11,6 +11,8 @@ import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { useAccount } from '@/hooks/use-account';
 import { reportError } from '@/services/error-reporting';
+import { deleteAccount } from '@/services/account-deletion';
+import { Pressable } from '@/components/primitives/pressable';
 
 /**
  * The account's only entry point.
@@ -36,8 +38,8 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(5),
     },
     panel: {
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),
@@ -59,6 +61,16 @@ const styles = StyleSheet.create((theme) => ({
     },
     secondaryButtonText: {
         color: theme.colors.typography,
+    },
+    danger: {
+        minHeight: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dangerText: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.destructive,
     },
 }));
 
@@ -105,6 +117,33 @@ const AccountScreen = () => {
             ],
         );
     }, [signOut, t]);
+
+    // Two steps, because it cannot be undone: a plain statement of what goes,
+    // then the action named for what it does.
+    const handleDeleteAccount = useCallback(() => {
+        Alert.alert(
+            t('settings.account.delete.confirmTitle', { ns: 'screens' }),
+            t('settings.account.delete.confirmBody', { ns: 'screens' }),
+            [
+                { text: t('settings.account.signedIn.cancel', { ns: 'screens' }), style: 'cancel' },
+                {
+                    text: t('settings.account.delete.action', { ns: 'screens' }),
+                    style: 'destructive',
+                    onPress: () => {
+                        setPending(true);
+
+                        deleteAccount()
+                            .then(() => router.replace('/welcome' as never))
+                            .catch((error) => {
+                                reportError(error, 'Failed to delete the account');
+                                Alert.alert(t('settings.account.delete.failed', { ns: 'screens' }));
+                                setPending(false);
+                            });
+                    },
+                },
+            ],
+        );
+    }, [t]);
 
     const handleChangePassword = useCallback(() => {
         router.navigate(`/auth/new-password?returnTo=${encodeURIComponent(RETURN_TO)}`);
@@ -165,6 +204,17 @@ const AccountScreen = () => {
                             disabled={pending}
                             onPress={handleSignOut}
                         />
+
+                        <Pressable
+                            style={styles.danger}
+                            disabled={pending}
+                            onPress={handleDeleteAccount}
+                            accessibilityRole="button"
+                        >
+                            <Text style={styles.dangerText}>
+                                {t('settings.account.delete.title', { ns: 'screens' })}
+                            </Text>
+                        </Pressable>
                     </>
                 ) : (
                     <>

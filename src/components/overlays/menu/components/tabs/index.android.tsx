@@ -7,8 +7,8 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import {
     LucideIcon,
     House,
-    Dumbbell,
-    CircleGauge,
+    CalendarDays,
+    CircleUserRound,
     ChartNoAxesColumn,
     MessageCircle,
 } from 'lucide-react-native';
@@ -100,9 +100,8 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
-        // Home, Exercises, Workout, Results, Syn — in the order the product
-        // is used. Each tab is a route group, so `screen` is the group's name. Settings left the bar because it is configuration rather
-        // than a daily destination; it is reached from the home header.
+        // Today, Plan, Coach, Progress, You. Each tab is a route group, so
+        // `screen` is the group's name.
         const items = [
             {
                 screen: '(home)',
@@ -111,16 +110,16 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 icon: House,
             },
             {
-                screen: '(exercises)',
-                href: '/exercises',
-                title: 'exercises.title',
-                icon: CircleGauge,
-            },
-            {
                 screen: '(workouts)',
                 href: '/workouts',
                 title: 'workouts.title',
-                icon: Dumbbell,
+                icon: CalendarDays,
+            },
+            {
+                screen: '(syn)',
+                href: '/syn',
+                title: 'syn.title',
+                icon: MessageCircle,
             },
             {
                 screen: '(results)',
@@ -129,10 +128,10 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 icon: ChartNoAxesColumn,
             },
             {
-                screen: '(syn)',
-                href: '/syn',
-                title: 'syn.title',
-                icon: MessageCircle,
+                screen: '(you)',
+                href: '/you',
+                title: 'you.title',
+                icon: CircleUserRound,
             },
         ];
 

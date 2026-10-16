@@ -10,6 +10,7 @@ import { Host } from '@/components/native/host';
 import { SettingsRow } from '@/components/native/settings-row';
 import type { IconName } from '@/components/primitives/icon';
 import { isAuthConfigured } from '@/constants/auth';
+import { useAccount } from '@/hooks/use-account';
 import { useUser } from '@/hooks/use-user';
 import { localeNames, normalizeLanguage } from '@/locale/constants';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
@@ -22,6 +23,7 @@ type Row = { icon: IconName; title: string; value?: string; onPress: () => void 
 
 const SettingsScreen = () => {
     const { user } = useUser();
+    const { session } = useAccount();
     const { resetWatchSync } = useRunningWorkoutStatic();
     const { t } = useTranslation(['common', 'screens']);
     const { track } = useAnalytics();
@@ -108,7 +110,10 @@ const SettingsScreen = () => {
     const settings: Row[] = [
         {
             icon: 'person-circle',
-            title: t('settings.items.profile.title', { ns: 'screens' }),
+            // The profile row doubles as the screen's header: who is signed in.
+            title:
+                user?.displayName?.trim() || t('settings.items.profile.title', { ns: 'screens' }),
+            value: session?.user.email ?? undefined,
             onPress: () => router.navigate('/settings/profile'),
         },
         // Hidden entirely in a build shipped without accounts, where the row
@@ -122,6 +127,31 @@ const SettingsScreen = () => {
                   },
               ] satisfies Row[])
             : []),
+    ];
+
+    // Grouped as the reference's Account page. Theme, date and time, and
+    // heart-rate zones are no longer listed (dark only; the other two run on
+    // their defaults); their screens stay in `src/routes/settings`.
+    const goals: Row[] = [
+        {
+            icon: 'droplet',
+            title: t('settings.items.water.title', { ns: 'screens' }),
+            onPress: () => router.navigate('/hydration' as never),
+        },
+        {
+            icon: 'sparkles',
+            title: t('settings.items.planBuilds.title', { ns: 'screens' }),
+            onPress: () => router.navigate('/quota' as never),
+        },
+        {
+            icon: 'ruler',
+            title: t('settings.items.units.title', { ns: 'screens' }),
+            value: [user?.weightUnits, user?.measurementUnits].filter(Boolean).join(', '),
+            onPress: () => router.navigate('/settings/units'),
+        },
+    ];
+
+    const preferences: Row[] = [
         {
             icon: 'bell',
             title: t('settings.items.notifications.title', { ns: 'screens' }),
@@ -133,38 +163,15 @@ const SettingsScreen = () => {
             onPress: () => router.navigate('/settings/autolock'),
         },
         {
-            icon: 'appearance',
-            title: t('settings.items.theme.title', { ns: 'screens' }),
-            // Unset means the first-launch default, which follows the system.
-            value: t(`settings.items.theme.${user?.theme ?? 'auto'}`, { ns: 'screens' }),
-            onPress: () => router.navigate('/settings/theme'),
-        },
-        {
             icon: 'volume-high',
             title: t('settings.items.sound.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/sound'),
-        },
-        {
-            icon: 'clock',
-            title: t('settings.items.dateTime.title', { ns: 'screens' }),
-            onPress: () => router.navigate('/settings/datetime'),
-        },
-        {
-            icon: 'ruler',
-            title: t('settings.items.units.title', { ns: 'screens' }),
-            value: [user?.weightUnits, user?.measurementUnits].filter(Boolean).join(', '),
-            onPress: () => router.navigate('/settings/units'),
         },
         {
             icon: 'language',
             title: t('settings.items.language.title', { ns: 'screens' }),
             value: localeNames[normalizeLanguage(user?.lng)],
             onPress: () => router.navigate('/settings/language'),
-        },
-        {
-            icon: 'heart',
-            title: t('settings.items.heartRate.title', { ns: 'screens' }),
-            onPress: () => router.navigate('/settings/heartrate' as any),
         },
     ];
 
@@ -187,15 +194,15 @@ const SettingsScreen = () => {
                     body: `\n\n---\n${t('code', { ns: 'common' })}: ${user?.id}`,
                 }),
         },
+    ];
+
+    // In-app: it has its own mail fallback, so it is offered even where the mail
+    // composer is not available.
+    const feedback: Row[] = [
         {
             icon: 'mail',
             title: t('settings.help.items.sendFeedback.title', { ns: 'screens' }),
-            onPress: () =>
-                handleComposeEmail({
-                    subject: t('feedback', { ns: 'common' }),
-                    recipients: [SUPPORT_EMAIL],
-                    body: `\n\n---\n${t('code', { ns: 'common' })}: ${user?.id}`,
-                }),
+            onPress: () => router.navigate('/settings/feedback' as never),
         },
     ];
 
@@ -228,16 +235,21 @@ const SettingsScreen = () => {
         <Host style={{ flex: 1 }}>
             <FieldGroup>
                 <FieldGroup.Section>{section(settings, true)}</FieldGroup.Section>
+                <FieldGroup.Section title={t('settings.sections.goals', { ns: 'screens' })}>
+                    {section(goals, true)}
+                </FieldGroup.Section>
+                <FieldGroup.Section title={t('settings.sections.preferences', { ns: 'screens' })}>
+                    {section(preferences, true)}
+                </FieldGroup.Section>
                 {Platform.OS === 'ios' && (
                     <FieldGroup.Section title={t('settings.watch.title', { ns: 'screens' })}>
                         {section(watch, false)}
                     </FieldGroup.Section>
                 )}
-                {isMailAvailable && (
-                    <FieldGroup.Section title={t('settings.help.title', { ns: 'screens' })}>
-                        {section(help, false)}
-                    </FieldGroup.Section>
-                )}
+                <FieldGroup.Section title={t('settings.help.title', { ns: 'screens' })}>
+                    {section(feedback, true)}
+                    {isMailAvailable ? section(help, false) : null}
+                </FieldGroup.Section>
                 <FieldGroup.Section title={t('settings.supportFitup.title', { ns: 'screens' })}>
                     {section(supportFitup, false)}
                     <FieldGroup.SectionFooter>

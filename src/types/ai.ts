@@ -181,6 +181,12 @@ export type AiFailureCode =
     | 'RATE_LIMIT'
     | 'AUTH'
     | 'QUOTA'
+    /** The plan broke a safety limit (e.g. a food chart under the calorie floor) and was discarded. */
+    | 'UNSAFE_PLAN'
+    /** Proxy mode and nobody is signed in. */
+    | 'SIGN_IN'
+    /** The server says this person has used all their plan builds this month. */
+    | 'USER_QUOTA'
     | 'INVALID_RESPONSE'
     /** The reply hit the token ceiling and was cut off mid-structure. */
     | 'TRUNCATED'

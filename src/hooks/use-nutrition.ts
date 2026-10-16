@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
     countDayItems,
@@ -33,6 +33,44 @@ export const useMealsForDate = (date: string) => {
     });
 
     return { meals: data as MealWithItems[], isLoading };
+};
+
+export interface DayMealsSummary {
+    meals: number;
+    calories: number;
+}
+
+/**
+ * How many meals are planned on each of the given days, and their calories, for
+ * Plan's day-by-day list. One cached query per day, sharing the key (and so the
+ * invalidation) of `useMealsForDate`.
+ */
+export const useMealSummaries = (dates: string[]): Record<string, DayMealsSummary> => {
+    const { user } = useUser();
+
+    const results = useQueries({
+        queries: dates.map((date) => ({
+            queryKey: [MEALS_KEY, user?.id, date],
+            queryFn: () => getMealsForDate(user!.id, date),
+            enabled: !!user?.id,
+        })),
+    });
+
+    // A handful of days, summed from cached rows: cheaper than keeping a memo honest.
+    const summaries: Record<string, DayMealsSummary> = {};
+
+    dates.forEach((date, index) => {
+        const meals = (results[index]?.data ?? []) as MealWithItems[];
+        const withItems = meals.filter((entry) => entry.items.length > 0);
+        if (withItems.length > 0) {
+            summaries[date] = {
+                meals: withItems.length,
+                calories: sumPlanned(withItems).calories,
+            };
+        }
+    });
+
+    return summaries;
 };
 
 export interface DayProgress {

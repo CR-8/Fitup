@@ -1,15 +1,18 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, type ListRenderItem } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
-import { Box } from '@/components/primitives/box';
-import { Icon, type IconName } from '@/components/primitives/icon';
 import { AuthHero } from '@/screens/auth/components/hero';
+import { Button } from '@/components/buttons/base';
+import { AI_CONFIG } from '@/constants/ai';
+import { useAccount } from '@/hooks/use-account';
+import { router } from 'expo-router';
 import type { AiMessageSelect } from '@/db/schema';
 import {
     useAiAvailable,
@@ -18,12 +21,12 @@ import {
     useClearAiConversation,
     useSynActions,
 } from '@/hooks/use-ai';
-import { useUser } from '@/hooks/use-user';
 
 import { Composer } from './components/composer';
 import { Pending } from './components/pending';
 import { Message } from './components/message';
 import { SynFrame, UnavailableFrame } from './components/frame';
+import { CoachHub } from './components/hub';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -49,72 +52,35 @@ const styles = StyleSheet.create((theme) => ({
         flexGrow: 1,
         justifyContent: 'center',
     },
-    /**
-     * What the screen shows before anyone has typed: the auth screens' hero —
-     * who is talking — over one card of what can be asked. Every row runs
-     * something that already exists.
-     */
-    intro: {
-        gap: theme.space(6),
-        paddingVertical: theme.space(4),
+    chips: {
+        flexWrap: 'wrap',
+        gap: theme.space(2),
     },
-    // Grouped like the sign-in panel: one card, rows divided by hairlines.
-    actions: {
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['4xl'],
-        borderCurve: 'continuous',
-        paddingHorizontal: theme.space(4),
-    },
-    actionRow: {
-        alignItems: 'center',
-        gap: theme.space(3),
-        paddingVertical: theme.space(3.5),
-    },
-    actionIcon: {
-        height: theme.space(9),
-        width: theme.space(9),
-        borderRadius: theme.radius.full,
-        alignItems: 'center',
+    // Outlined, never filled: the screen's one filled button is the proposal's.
+    chip: {
+        minHeight: 40,
         justifyContent: 'center',
-        backgroundColor: theme.colors.primarySoft,
+        paddingHorizontal: theme.space(4),
+        borderRadius: theme.radius.full,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
-    actionText: {
-        flex: 1,
-        gap: theme.space(0.5),
-    },
-    actionLabel: {
-        ...theme.fontSize.default,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
+    chipText: {
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.medium.fontWeight,
         color: theme.colors.typography,
-    },
-    actionHint: {
-        ...theme.fontSize.xs,
-        color: theme.colors.mutedTypography,
-    },
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        marginLeft: theme.space(12),
-        backgroundColor: theme.colors.border,
     },
     disabled: {
         opacity: 0.5,
     },
-    // The monthly allowance, said where it is spent: under the hero, and at the
-    // head of the suggestion row once a conversation is going.
-    quota: (exhausted: boolean) => ({
-        alignSelf: 'center',
-        alignItems: 'center',
-        gap: theme.space(1.5),
-        paddingHorizontal: theme.space(3),
-        paddingVertical: theme.space(1.5),
-        borderRadius: theme.radius.full,
-        backgroundColor: exhausted ? theme.colors.elevated : theme.colors.primarySoft,
-    }),
-    quotaText: (exhausted: boolean) => ({
+    quota: {
         ...theme.fontSize.xs,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: exhausted ? theme.colors.mutedTypography : theme.colors.primary,
-    }),
+        textAlign: 'center',
+        color: theme.colors.mutedTypography,
+    },
+    threadFooter: {
+        gap: theme.space(2),
+    },
     suggestionsScroll: {
         flexGrow: 0,
     },
@@ -123,37 +89,13 @@ const styles = StyleSheet.create((theme) => ({
         paddingBottom: theme.space(1),
         gap: theme.space(2),
     },
-    suggestion: {
-        paddingHorizontal: theme.space(4),
-        paddingVertical: theme.space(2),
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.foreground,
-    },
-    panel: {
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['4xl'],
-        borderCurve: 'continuous',
-        padding: theme.space(5),
-    },
 }));
 
-const QuotaChip = ({ remaining, limit }: { remaining: number; limit: number }) => {
-    const { t } = useTranslation('screens');
-    const { theme } = useUnistyles();
-    const exhausted = remaining <= 0;
-
-    return (
-        <HStack style={styles.quota(exhausted)}>
-            <Icon
-                name="sparkles"
-                size={theme.space(3.5)}
-                color={exhausted ? theme.colors.mutedTypography : theme.colors.primary}
-            />
-            <Text style={styles.quotaText(exhausted)}>
-                {t('syn.quota.remaining', { remaining, limit })}
-            </Text>
-        </HStack>
-    );
+type Starter = {
+    key: string;
+    label: string;
+    run: () => void;
+    spendsQuota: boolean;
 };
 
 const SynScreen = () => {
@@ -161,14 +103,11 @@ const SynScreen = () => {
     const { theme } = useUnistyles();
     const listRef = useRef<FlatList<AiMessageSelect>>(null);
 
-    const { user } = useUser();
-    const name = user?.displayName?.trim();
-
     const available = useAiAvailable();
+    const { isSignedIn } = useAccount();
     // One hook, because Home can start a generation too and the thread has to
     // show it. See `useSynActions`.
-    const { conversation, isLoading, generate, send, quota, exhausted, isGenerating, isBusy } =
-        useSynActions();
+    const { conversation, isLoading, send, quota, isGenerating, isBusy } = useSynActions();
     const messages = useAiMessages(conversation?.id);
     const plans = useAiPlans(messages);
     const { mutateAsync: clearConversation } = useClearAiConversation();
@@ -186,17 +125,11 @@ const SynScreen = () => {
 
     const handleSend = send;
 
-    const handleGenerate = useCallback(
-        (kind: 'workout' | 'nutrition') => {
-            generate(
-                kind,
-                kind === 'workout'
-                    ? t('syn.actions.workoutIntent')
-                    : t('syn.actions.nutritionIntent'),
-            );
-        },
-        [generate, t],
-    );
+    // Building a plan always goes through the form, which shows what it is
+    // based on and what it costs before anything is spent.
+    const openForm = useCallback((kind: 'workout' | 'nutrition') => {
+        router.navigate({ pathname: '/coach/new', params: { kind } } as never);
+    }, []);
 
     const handleClear = useCallback(() => {
         if (!conversationId) return;
@@ -221,120 +154,87 @@ const SynScreen = () => {
     );
 
     /**
-     * Four ways in, each bound to something the app can already do.
-     *
-     * The first two call `generatePlan`, which is what the suggestion pills
-     * have always done. The second two send a prompt through the same
-     * `sendMessage` the composer uses — so they are the user typing a good
-     * question, not a scripted answer. Nothing here fakes a reply.
+     * Four ways in, each bound to something the app can already do. The first
+     * two open the plan-build form; the other two send a prompt through the same
+     * `sendMessage` the composer uses, so they are the user typing a good
+     * question. Nothing here fakes a reply.
      */
-    const quickActions = useMemo(() => {
-        const actions: {
-            key: string;
-            icon: IconName;
-            label: string;
-            hint: string;
-            run: () => void;
-            spendsQuota: boolean;
-        }[] = [
+    const starters = useMemo<Starter[]>(
+        () => [
             {
-                key: 'workout',
-                icon: 'dumbbell',
-                label: t('syn.actions.workout'),
-                hint: t('syn.actions.workoutHint'),
-                run: () => handleGenerate('workout'),
+                key: 'week',
+                label: t('syn.starters.week'),
+                run: () => openForm('workout'),
                 spendsQuota: true,
             },
             {
-                key: 'nutrition',
-                icon: 'salad',
-                label: t('syn.actions.nutrition'),
-                hint: t('syn.actions.nutritionHint'),
-                run: () => handleGenerate('nutrition'),
+                key: 'food',
+                label: t('syn.starters.food'),
+                run: () => openForm('nutrition'),
                 spendsQuota: true,
             },
             {
-                key: 'explain',
-                icon: 'sparkles',
-                label: t('syn.actions.explain'),
-                hint: t('syn.actions.explainHint'),
-                run: () => handleSend(t('syn.actions.explainIntent')),
+                key: 'form',
+                label: t('syn.starters.form'),
+                run: () => handleSend(t('syn.starters.formIntent')),
                 spendsQuota: false,
             },
             {
                 key: 'progress',
-                icon: 'trending-up',
-                label: t('syn.actions.progress'),
-                hint: t('syn.actions.progressHint'),
+                label: t('syn.starters.progress'),
                 run: () => handleSend(t('syn.actions.progressIntent')),
                 spendsQuota: false,
             },
-        ];
+        ],
+        [handleSend, openForm, t],
+    );
 
-        return actions;
-    }, [handleGenerate, handleSend, t]);
+    // "N plan builds left · resets 1 Nov": the month count is computed from the
+    // plans on this device, so the reset is the first of next month.
+    const quotaLine = t('syn.quota.builds', {
+        count: quota.remaining,
+        date: dayjs().add(1, 'month').startOf('month').format('D MMM'),
+    });
 
-    const listEmpty = useMemo(
-        () => (
-            <VStack style={styles.intro}>
-                <AuthHero
-                    icon="sparkles"
-                    eyebrow={t('syn.eyebrow')}
-                    // The name is optional — onboarding can be skipped — so this
-                    // has to read as a sentence without it.
-                    title={
-                        name ? t('syn.intro.greeting', { name }) : t('syn.intro.greetingFallback')
-                    }
-                    subtitle={t('syn.intro.body')}
-                >
-                    <QuotaChip remaining={quota.remaining} limit={quota.limit} />
-                </AuthHero>
+    const chip = (starter: Starter) => {
+        // A used-up month still opens the form, which says so and links to the
+        // allowance; a disabled chip would not say why.
+        const disabled = isBusy;
 
-                <VStack style={styles.actions}>
-                    {quickActions.map((action, index) => {
-                        // Left enabled with no plans left: generating then says
-                        // why, which a dead row would not.
-                        const disabled = isBusy;
+        return (
+            <Pressable
+                key={starter.key}
+                style={[styles.chip, disabled && styles.disabled]}
+                onPress={starter.run}
+                disabled={disabled}
+                accessibilityRole="button"
+                accessibilityState={{ disabled }}
+            >
+                <Text style={styles.chipText}>{starter.label}</Text>
+            </Pressable>
+        );
+    };
 
-                        return (
-                            <Fragment key={action.key}>
-                                {index > 0 ? <Box style={styles.divider} /> : null}
-                                <Pressable
-                                    onPress={action.run}
-                                    disabled={disabled}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={action.label}
-                                    accessibilityHint={action.hint}
-                                    accessibilityState={{ disabled }}
-                                >
-                                    <HStack style={[styles.actionRow, disabled && styles.disabled]}>
-                                        <Box style={styles.actionIcon}>
-                                            <Icon
-                                                name={action.icon}
-                                                size={theme.space(4.5)}
-                                                color={theme.colors.primary}
-                                            />
-                                        </Box>
-                                        <VStack style={styles.actionText}>
-                                            <Text style={styles.actionLabel}>{action.label}</Text>
-                                            <Text style={styles.actionHint} numberOfLines={2}>
-                                                {action.hint}
-                                            </Text>
-                                        </VStack>
-                                        <Icon
-                                            name="chevron-right"
-                                            size={theme.space(4.5)}
-                                            color={theme.colors.mutedTypography}
-                                        />
-                                    </HStack>
-                                </Pressable>
-                            </Fragment>
-                        );
-                    })}
-                </VStack>
-            </VStack>
-        ),
-        [isBusy, name, quickActions, quota.limit, quota.remaining, t, theme],
+    const chips = [
+        ...starters.map(chip),
+        chip({
+            key: 'plans',
+            label: t('coach.plans.title'),
+            run: () => router.navigate('/coach/plans' as never),
+            spendsQuota: false,
+        }),
+    ];
+
+    // The hub offers the two builds as large choices, so only the free
+    // questions are chips there.
+    const listEmpty = (
+        <CoachHub
+            freeChips={
+                <HStack style={styles.chips}>
+                    {starters.filter((starter) => !starter.spendsQuota).map(chip)}
+                </HStack>
+            }
+        />
     );
 
     // A build with no AI host configured shows why rather than failing on every turn.
@@ -343,11 +243,34 @@ const SynScreen = () => {
             <UnavailableFrame>
                 <VStack style={styles.centered}>
                     <AuthHero
-                        icon="sparkles"
+                        icon="syn"
                         eyebrow={t('syn.eyebrow')}
                         title={t('syn.unavailable.title')}
                         subtitle={t('syn.unavailable.message')}
                     />
+                </VStack>
+            </UnavailableFrame>
+        );
+    }
+
+    // Through the proxy, Syn is for signed-in people only: say so rather than
+    // letting every turn fail.
+    if (AI_CONFIG.transport === 'proxy' && !isSignedIn) {
+        return (
+            <UnavailableFrame>
+                <VStack style={styles.centered}>
+                    <AuthHero
+                        icon="syn"
+                        eyebrow={t('syn.eyebrow')}
+                        title={t('syn.signInRequired.title')}
+                        subtitle={t('syn.signInRequired.message')}
+                    >
+                        <Button
+                            type="primary"
+                            title={t('syn.signInRequired.action')}
+                            onPress={() => router.navigate('/sign-in')}
+                        />
+                    </AuthHero>
                 </VStack>
             </UnavailableFrame>
         );
@@ -382,39 +305,27 @@ const SynScreen = () => {
                 showsVerticalScrollIndicator={false}
             />
 
-            {/* The intro already offers all four as full rows, so the pills
-                would repeat them on an empty screen. They come back once there
-                is a conversation to act on — the only way back to them then.
+            {/* The empty state already offers all four, so the row would repeat
+                them. It comes back once there is a conversation to act on.
                 Scrolls rather than wraps, so it never pushes the composer up. */}
             {messages.length > 0 ? (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={styles.suggestions}
-                    style={styles.suggestionsScroll}
-                >
-                    <QuotaChip remaining={quota.remaining} limit={quota.limit} />
-                    {quickActions.map((action) => {
-                        // Only generating spends the monthly allowance; asking a
-                        // question does not, so those two stay available.
-                        const disabled = isBusy || (action.spendsQuota && exhausted);
-
-                        return (
-                            <Pressable
-                                key={action.key}
-                                style={[styles.suggestion, disabled && styles.disabled]}
-                                onPress={action.run}
-                                disabled={disabled}
-                                accessibilityRole="button"
-                            >
-                                <Text fontSize="xs" fontWeight="medium">
-                                    {action.label}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
-                </ScrollView>
+                <VStack style={styles.threadFooter}>
+                    <Pressable
+                        onPress={() => router.navigate('/quota' as never)}
+                        accessibilityRole="button"
+                    >
+                        <Text style={styles.quota}>{quotaLine}</Text>
+                    </Pressable>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        contentContainerStyle={styles.suggestions}
+                        style={styles.suggestionsScroll}
+                    >
+                        {chips}
+                    </ScrollView>
+                </VStack>
             ) : null}
 
             <Composer onSend={handleSend} busy={isBusy} />

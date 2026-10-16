@@ -23,6 +23,9 @@ import { NavigationChrome, useAppFonts, useRootScreens } from '@/navigators/root
 import { useScreen } from '@/hooks/use-screen';
 import { NotificationsProvider } from '@/hooks/use-notifications';
 import Actions from '@/components/overlays/actions';
+import MissedSessionSheet from '@/components/overlays/missed';
+import MergePreviewSheet from '@/components/overlays/merge-preview';
+import { UndoToast } from '@/components/overlays/undo-toast';
 import RestInput from '@/components/overlays/rest';
 import { RunningWorkoutProvider } from '@/hooks/use-running-workout';
 import { AnalyticsProvider } from '@/hooks/use-analytics';
@@ -72,6 +75,7 @@ SplashScreen.preventAutoHideAsync();
 const SETTINGS_SCREENS = [
     ['account', 'account'],
     ['profile', 'profile'],
+    ['diet', 'diet'],
     ['autolock', 'autolock'],
     ['notifications', 'notifications'],
     ['theme', 'theme'],
@@ -80,6 +84,7 @@ const SETTINGS_SCREENS = [
     ['units', 'units'],
     ['language', 'language'],
     ['heartrate', 'heartRate'],
+    ['feedback', 'feedback'],
 ] as const;
 
 /**
@@ -149,6 +154,13 @@ const App: FC = () => {
                             <Stack.Screen name="(tabs)" />
                             <Stack.Screen name="onboarding" />
                             <Stack.Screen name="diet" options={screens.modal} />
+                            <Stack.Screen name="hydration" options={screens.modal} />
+                            <Stack.Screen name="quota" options={screens.modal} />
+                            <Stack.Screen name="coach/new" options={screens.modal} />
+                            {/* Pushed, not sheets: the plan screen opens Preview changes,
+                                a root-level sheet that a native modal would cover. */}
+                            <Stack.Screen name="coach/plans" options={screens.pushed} />
+                            <Stack.Screen name="coach/plan/[planId]" options={screens.pushed} />
                             <Stack.Screen name="timer" options={screens.timer} />
                             <Stack.Screen name="workout/[workoutId]" options={screens.pushed} />
                             <Stack.Screen
@@ -173,6 +185,7 @@ const App: FC = () => {
                             <Stack.Screen name="guide" options={screens.modal} />
                             <Stack.Screen name="review" options={screens.modal} />
                             <Stack.Screen name="day" options={screens.modal} />
+                            <Stack.Screen name="inbox" options={screens.pushed} />
                             <Stack.Screen name="filter" options={screens.modal} />
                         </Stack.Protected>
 
@@ -192,6 +205,7 @@ const App: FC = () => {
                                 so the guard would admit it, but the screen has to
                                 survive its own sign-out escape hatch, and it is
                                 pre-session in every sense that matters. */}
+                        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
                         <Stack.Screen name="sign-in" />
                         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
                         <Stack.Screen name="auth/forgot-password" options={screens.auth} />
@@ -199,6 +213,9 @@ const App: FC = () => {
                         <Stack.Screen name="auth/new-password" options={screens.auth} />
                     </Stack>
                     <Actions />
+                    <MissedSessionSheet />
+                    <MergePreviewSheet />
+                    <UndoToast />
                     <RestInput />
                 </NavigationChrome>
             </StoreReviewGateProvider>

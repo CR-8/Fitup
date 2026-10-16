@@ -2,7 +2,7 @@ import { createContext, PropsWithChildren, useContext, useEffect, FC } from 'rea
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Appearance, Platform } from 'react-native';
+import { Appearance } from 'react-native';
 import { UnistylesRuntime } from 'react-native-unistyles';
 import { getLocales, getCalendars } from 'expo-localization';
 
@@ -48,16 +48,11 @@ export type EditUserFormData = z.infer<typeof editUserSchema>;
  * that override does not change, so it has to be told as well.
  */
 const applyTheme = (theme: (typeof themes)[number]) => {
-    if (theme === 'auto') {
-        UnistylesRuntime.setAdaptiveThemes(true);
-    } else {
-        UnistylesRuntime.setAdaptiveThemes(false);
-        UnistylesRuntime.setTheme(theme);
-    }
-
-    if (Platform.OS === 'ios') {
-        Appearance.setColorScheme(theme === 'auto' ? 'unspecified' : theme);
-    }
+    // Dark only for the redesign (see `unistyles.ts`): the choice is stored, so
+    // it survives if light comes back, but dark is what is applied.
+    UnistylesRuntime.setAdaptiveThemes(false);
+    UnistylesRuntime.setTheme('dark');
+    Appearance.setColorScheme('dark');
 
     storage.set('user.theme', theme);
 };

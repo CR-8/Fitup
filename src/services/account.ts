@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,7 +15,7 @@ import { reportError } from '@/services/error-reporting';
  * set, or read history — those paths never touch this module.
  */
 
-export type AuthProvider = 'google' | 'email';
+export type AuthProvider = 'google' | 'apple' | 'email';
 
 export type AuthFailureCode =
     | 'DISABLED'
@@ -538,6 +539,76 @@ export const signInWithGoogle = async (): Promise<Session> => {
         throw classifyAuthError(error);
     } finally {
         WebBrowser.maybeCompleteAuthSession();
+    }
+};
+
+/* -------------------------------------------------------------------------- */
+/* Apple                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const isAppleAvailable = (): boolean =>
+    Platform.OS === 'ios' && isAuthConfigured() && AUTH_CONFIG.appleEnabled;
+
+/**
+ * Sign in with Apple, exchanged for a Supabase session by `signInWithIdToken`.
+ *
+ * Apple checks the nonce against the hash we send it; Supabase checks the raw
+ * value against the token, so a replayed identity token is refused. Apple only
+ * returns the person's name the first time they authorise the app, so it is
+ * saved to the account's metadata then or never.
+ */
+export const signInWithApple = async (): Promise<Session> => {
+    if (!isAppleAvailable()) throw new AuthError('DISABLED');
+
+    const client = requireSupabase();
+
+    try {
+        // Loaded here rather than at the top: both are native modules, and only
+        // an iOS sign-in ever needs them.
+        const [AppleAuthentication, Crypto] = await Promise.all([
+            import('expo-apple-authentication'),
+            import('expo-crypto'),
+        ]);
+        const rawNonce = Crypto.randomUUID();
+        const hashedNonce = await Crypto.digestStringAsync(
+            Crypto.CryptoDigestAlgorithm.SHA256,
+            rawNonce,
+        );
+
+        const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+            nonce: hashedNonce,
+        });
+
+        if (!credential.identityToken) throw new AuthError('UNKNOWN');
+
+        const { data, error } = await client.auth.signInWithIdToken({
+            provider: 'apple',
+            token: credential.identityToken,
+            nonce: rawNonce,
+        });
+
+        if (error) throw error;
+        if (!data.session) throw new AuthError('UNKNOWN');
+
+        const name = [credential.fullName?.givenName, credential.fullName?.familyName]
+            .filter(Boolean)
+            .join(' ');
+        if (name) {
+            // Best effort: a failure here must not undo a sign-in that worked.
+            await client.auth.updateUser({ data: { full_name: name } }).catch(() => undefined);
+        }
+
+        return data.session;
+    } catch (error) {
+        if ((error as { code?: string } | null)?.code === 'ERR_REQUEST_CANCELED') {
+            throw new AuthError('CANCELLED');
+        }
+
+        throw classifyAuthError(error);
     }
 };
 

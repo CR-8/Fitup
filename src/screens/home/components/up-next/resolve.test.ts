@@ -29,7 +29,7 @@ describe('what the home card offers', () => {
         expect(resolveUpNext([], [])).toEqual({ kind: 'create' });
     });
 
-    // `getPlannedWorkouts` sorts newest first, and the card takes the head of
+    // `getPlannedWorkouts` sorts soonest first, and the card takes the head of
     // that list. This pins that it takes the head rather than the tail.
     test('the first planned workout is taken, not the last', () => {
         const state = resolveUpNext([], [workout('newest'), workout('older')]);

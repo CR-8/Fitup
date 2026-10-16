@@ -15,6 +15,7 @@ import {
     useDuplicateWorkout,
     useUpdateExerciseSet,
     useUpdateWorkout,
+    useWorkout,
     useWorkoutWithDetails,
 } from '@/hooks/use-workouts';
 import { reportError } from '@/services/error-reporting';
@@ -68,6 +69,7 @@ export const useWorkoutMenu = (workoutId: string): ActionMenu => {
     const router = useRouter();
     const { navigate } = useEditor();
     const copy = useDuplicateMenu(workoutId, 'copy');
+    const { data: workout } = useWorkout(workoutId);
 
     const deleteWorkout = useDeleteWorkout();
     const deleteWorkoutMutations = useIsMutating({ mutationKey: deleteWorkoutMutationKey });
@@ -76,6 +78,17 @@ export const useWorkoutMenu = (workoutId: string): ActionMenu => {
 
     const actions: MenuAction[] = [
         { id: 'edit', title: t('edit', { ns: 'common' }), image: 'pencil' },
+        // A finished session's length is editable: the editor carries its start and
+        // end, and the duration follows them.
+        ...(workout?.status === 'completed'
+            ? [
+                  {
+                      id: 'duration',
+                      title: t('workout.editDuration', { ns: 'screens' }),
+                      image: 'timer',
+                  } satisfies MenuAction,
+              ]
+            : []),
         {
             id: 'supersets',
             title: t('workout.supersets.edit', { ns: 'screens' }),
@@ -94,7 +107,8 @@ export const useWorkoutMenu = (workoutId: string): ActionMenu => {
         (id: string) => {
             if (!workoutId) return;
 
-            if (id === 'edit') navigate({ type: 'workout__edit', payload: { workoutId } });
+            if (id === 'edit' || id === 'duration')
+                navigate({ type: 'workout__edit', payload: { workoutId } });
             else if (id === 'supersets') startSupersetEdit(workoutId);
             else if (id.startsWith('duplicate:')) void copy.onAction(id);
             else if (id === 'delete' && !isDeletingWorkout) {

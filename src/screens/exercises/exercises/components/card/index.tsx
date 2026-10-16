@@ -27,6 +27,7 @@ const styles = StyleSheet.create((theme) => ({
     // label in the app rather than its own one-off tracking.
     categoryEyebrow: {
         ...theme.typography.eyebrow,
+        textTransform: 'uppercase',
         color: theme.colors.mutedTypography,
     },
     sectionDivider: {
@@ -73,6 +74,21 @@ const styles = StyleSheet.create((theme) => ({
     muscleGroupHeaderWrapper: {
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: theme.space(3),
+    },
+    muscleGroupLead: {
+        flex: 1,
+        alignItems: 'center',
+        gap: theme.space(3),
+    },
+    // The reference's category rows: a glyph in a tinted square leads.
+    muscleGroupGlyph: {
+        height: theme.space(8),
+        width: theme.space(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.primarySoft,
     },
     muscleGroupTitle: {
         color: theme.colors.typography,
@@ -96,10 +112,22 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.mutedTypography,
         marginTop: theme.space(1),
     },
+    // A section's exercises sit on one rounded card, as a grouped list: the
+    // first row rounds the top, the last the bottom, hairlines between.
+    exerciseGroup: (first: boolean, last: boolean) => ({
+        marginHorizontal: theme.space(4),
+        marginTop: first ? theme.space(2) : 0,
+        backgroundColor: theme.colors.foreground,
+        borderTopLeftRadius: first ? theme.radius['2xl'] : 0,
+        borderTopRightRadius: first ? theme.radius['2xl'] : 0,
+        borderBottomLeftRadius: last ? theme.radius['2xl'] : 0,
+        borderBottomRightRadius: last ? theme.radius['2xl'] : 0,
+        overflow: 'hidden' as const,
+    }),
     exerciseItemSeparator: (borderStyle: 'default' | 'wide' | 'none') => ({
-        height: borderStyle === 'none' ? 0 : StyleSheet.hairlineWidth,
+        height: borderStyle === 'default' ? StyleSheet.hairlineWidth : 0,
         backgroundColor: theme.colors.border,
-        marginHorizontal: borderStyle === 'wide' ? 0 : theme.space(4),
+        marginLeft: theme.space(4),
     }),
     selectCircle: (selected: boolean) => ({
         width: theme.space(6),
@@ -119,7 +147,7 @@ const styles = StyleSheet.create((theme) => ({
         }),
     },
     swipeableContainer: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.foreground,
         width: '100%',
     },
     rightAction: {
@@ -221,9 +249,18 @@ const MuscleGroupHeaderComponent = ({
         <Pressable onPress={onToggle} disabled={!onToggle}>
             <Box style={styles.muscleGroupHeaderContainer(open)}>
                 <HStack style={styles.muscleGroupHeaderWrapper}>
-                    <Text fontWeight="semibold" style={styles.muscleGroupTitle}>
-                        {t(`muscleGroup.${item.name}`, { ns: 'common' })}
-                    </Text>
+                    <HStack style={styles.muscleGroupLead}>
+                        <Box style={styles.muscleGroupGlyph}>
+                            <Icon name="dumbbell" size={16} color={theme.colors.primary} />
+                        </Box>
+                        <Text
+                            fontWeight="semibold"
+                            style={styles.muscleGroupTitle}
+                            numberOfLines={1}
+                        >
+                            {t(`muscleGroup.${item.name}`, { ns: 'common' })}
+                        </Text>
+                    </HStack>
                     <HStack style={styles.headerRight}>
                         <Box style={styles.countPill}>
                             <Text fontSize="xs" fontWeight="medium" style={styles.muscleGroupCount}>
@@ -320,6 +357,9 @@ const ExerciseCardComponent = ({
         return 'default';
     }, [data, index]);
 
+    const isFirstInGroup = index === 0 || data[index - 1]?.type !== 'exercise';
+    const isLastInGroup = borderStyle !== 'default';
+
     const handleSelectToggle = useCallback(() => {
         onSelectToggle?.(item.exercise.id);
     }, [onSelectToggle, item.exercise.id]);
@@ -386,7 +426,10 @@ const ExerciseCardComponent = ({
     );
 
     return (
-        <Pressable onPress={handlePress}>
+        <Pressable
+            onPress={handlePress}
+            style={styles.exerciseGroup(isFirstInGroup, isLastInGroup)}
+        >
             {onDelete ? (
                 <Swipeable
                     containerStyle={styles.swipeable}

@@ -200,6 +200,13 @@ export const buildCompletionsUrl = (): string => {
     return `${base}${path}`;
 };
 
+/**
+ * The lowest daily energy a generated food chart may carry. Below it a plan is
+ * discarded rather than shown: an unsafe number from a model must not reach
+ * someone as a recommendation.
+ */
+export const MIN_DAILY_CALORIES = 1200;
+
 export const AI_PLAN_KINDS = ['workout', 'nutrition', 'combined'] as const;
 export type AiPlanKind = (typeof AI_PLAN_KINDS)[number];
 

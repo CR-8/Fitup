@@ -1,4 +1,11 @@
-import { create as createAxios, isAxiosError } from 'axios';
+import {
+    AxiosHeaders,
+    create as createAxios,
+    isAxiosError,
+    type AxiosResponse,
+    type RawAxiosHeaders,
+} from 'axios';
+import { create } from 'zustand';
 
 import {
     AI_CONFIG,
@@ -7,6 +14,7 @@ import {
     isAiEnabled,
 } from '@/constants/ai';
 import { reportError } from '@/services/error-reporting';
+import { supabase } from '@/services/supabase';
 import { AiError, type AiFailureCode } from '@/types/ai';
 
 export interface AiChatMessage {
@@ -42,6 +50,8 @@ const NETWORK_ERROR_CODES = new Set(['ERR_NETWORK', 'ERR_CANCELED']);
 
 // Transient or user-caused conditions are not actionable in Sentry.
 const SUPPRESS_SENTRY_CODES = new Set<AiFailureCode>([
+    'SIGN_IN',
+    'USER_QUOTA',
     'NO_INTERNET',
     'TIMEOUT',
     'RATE_LIMIT',
@@ -56,21 +66,68 @@ const SUPPRESS_SENTRY_CODES = new Set<AiFailureCode>([
 export const isReportableAiError = (error: unknown): boolean =>
     !(error instanceof AiError && SUPPRESS_SENTRY_CODES.has(error.code));
 
+/** What the proxy last said about an account's plan builds. */
+export interface AiUsage {
+    /** The Supabase account the count belongs to. */
+    userId: string;
+    remaining: number;
+    /** `YYYY-MM-DD`, the first day of the next UTC month. */
+    resetsOn: string;
+}
+
+/**
+ * The server's count, taken from the `X-Syn-Builds-*` headers `syn-complete`
+ * puts on every answer, errors included (supabase/migrations/0012). Set here,
+ * where every request passes, so no caller has to remember to. Null until the
+ * first request of the session, and always in direct mode, which has no server
+ * count.
+ */
+export const useAiUsageStore = create<{ usage: AiUsage | null }>()(() => ({ usage: null }));
+
+const recordUsage = (headers: AxiosResponse['headers'] | undefined, userId: string | null) => {
+    if (!headers || !userId) return;
+
+    // Case-insensitive, whatever case the platform's networking hands back.
+    const read = AxiosHeaders.from(headers as RawAxiosHeaders);
+    const remaining = Number(read.get('x-syn-builds-remaining'));
+    const resetsOn = String(read.get('x-syn-builds-reset'));
+
+    if (!Number.isInteger(remaining) || remaining < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(resetsOn)) {
+        return;
+    }
+
+    useAiUsageStore.setState({ usage: { userId, remaining, resetsOn } });
+};
+
 const aiClient = createAxios({ timeout: AI_CONFIG.timeoutMs });
 
-const buildHeaders = (): Record<string, string> => {
+/** The request headers, and the account they speak for (proxy mode only). */
+const buildHeaders = async (): Promise<{
+    headers: Record<string, string>;
+    userId: string | null;
+}> => {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...AI_CONFIG.headers,
     };
 
     // In proxy mode the backend attaches the provider credential; the device never
-    // holds one. In direct mode the key is read from the build environment.
+    // holds one, and proves who is asking with the signed-in session instead.
+    // In direct mode the key is read from the build environment.
     if (AI_CONFIG.transport === 'direct' && AI_CONFIG.apiKey) {
         headers.Authorization = `Bearer ${AI_CONFIG.apiKey}`;
     }
 
-    return headers;
+    if (AI_CONFIG.transport === 'proxy') {
+        const { data } = (await supabase?.auth.getSession()) ?? { data: { session: null } };
+        if (!data.session) throw new AiError('SIGN_IN', 'Sign in to use Syn');
+
+        headers.Authorization = `Bearer ${data.session.access_token}`;
+
+        return { headers, userId: data.session.user.id };
+    }
+
+    return { headers, userId: null };
 };
 
 const classifyError = (error: unknown): AiError => {
@@ -79,6 +136,12 @@ const classifyError = (error: unknown): AiError => {
     if (isAxiosError(error)) {
         const status = error.response?.status;
         const code = error.code;
+        // The proxy says why in its own envelope: { error: { type, message } }.
+        const reason = (error.response?.data as ChatCompletionResponse | undefined)?.error?.type;
+
+        if (reason === 'monthly_quota') {
+            return new AiError('USER_QUOTA', 'Monthly plan builds used up', status);
+        }
 
         if (code && TIMEOUT_ERROR_CODES.has(code)) {
             return new AiError('TIMEOUT', 'The request timed out', status);
@@ -130,11 +193,18 @@ export const requestCompletion = async ({
         body.response_format = { type: 'json_object' };
     }
 
+    let userId: string | null = null;
+
     try {
-        const { data } = await aiClient.post<ChatCompletionResponse>(buildCompletionsUrl(), body, {
-            headers: buildHeaders(),
-            signal,
-        });
+        const request = await buildHeaders();
+        userId = request.userId;
+
+        const { data, headers } = await aiClient.post<ChatCompletionResponse>(
+            buildCompletionsUrl(),
+            body,
+            { headers: request.headers, signal },
+        );
+        recordUsage(headers, userId);
 
         // Some gateways answer 200 with an error envelope rather than an HTTP error.
         if (data?.error?.message) {
@@ -165,6 +235,8 @@ export const requestCompletion = async ({
             completionTokens: data.usage?.completion_tokens ?? null,
         };
     } catch (error) {
+        if (isAxiosError(error)) recordUsage(error.response?.headers, userId);
+
         const aiError = classifyError(error);
 
         // A truncation is retried shorter by the plan generator, and reported there

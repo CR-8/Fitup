@@ -308,6 +308,9 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
 export type AnalyticsScreenName =
     | 'home'
     | 'workout_hub'
+    | 'plan'
+    | 'welcome'
+    | 'you'
     | 'progress'
     | 'exercise_library'
     | 'settings'
@@ -332,6 +335,8 @@ export type AnalyticsScreenName =
     | 'settings_notifications'
     | 'settings_sound'
     | 'settings_theme'
+    | 'settings_feedback'
+    | 'inbox'
     | 'settings_units'
     | 'tony'
     | 'sign_in'
@@ -342,4 +347,9 @@ export type AnalyticsScreenName =
     | 'onboarding'
     | 'exercise_timer'
     | 'diet'
+    | 'hydration'
+    | 'quota'
+    | 'coach_new_plan'
+    | 'coach_plans'
+    | 'coach_plan'
     | 'not_found';

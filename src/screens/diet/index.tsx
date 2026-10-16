@@ -24,7 +24,10 @@ import {
     useMealsForDate,
     useToggleMealItem,
 } from '@/hooks/use-nutrition';
-import { useAiAvailable, useAiChat, useAiConversation, useAiQuota } from '@/hooks/use-ai';
+import { useAiAvailable } from '@/hooks/use-ai';
+import { useUser } from '@/hooks/use-user';
+import { DayStrip } from '@/components/layout/day-strip';
+import { useSynDraftStore } from '@/stores/syn-draft';
 
 import { MacroBar } from './components/macro-bar';
 import { DietHeader } from './components/header';
@@ -49,29 +52,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     header: {
         gap: theme.space(1),
     },
-    /** One pill: previous, the day (tap to come back to today), next. */
-    dayRow: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-        padding: theme.space(1.5),
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.foreground,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    dayButton: {
-        height: theme.space(10),
-        width: theme.space(10),
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.elevated,
-    },
-    dayLabel: {
-        flex: 1,
-        alignItems: 'center',
-    },
     muted: {
         color: Platform.select({
             ios: theme.colors.mutedTypography,
@@ -82,11 +62,38 @@ const styles = StyleSheet.create((theme, rt) => ({
     // nothing on this screen read as a card.
     panel: {
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['3xl'],
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,
-        padding: theme.space(5),
-        gap: theme.space(4),
+        padding: theme.space(4),
+        gap: theme.space(3),
+    },
+    dayTitleRow: {
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+    },
+    dayTitle: {
+        ...theme.fontSize.xl,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    todayLink: {
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.primary,
+    },
+    slotTitleRow: {
+        alignItems: 'center',
+        gap: theme.space(2.5),
+    },
+    slotGlyph: {
+        height: theme.space(8),
+        width: theme.space(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.full,
+        backgroundColor: 'rgba(251, 191, 36, 0.16)',
     },
     sectionLabel: {
         ...theme.typography.eyebrow,
@@ -120,6 +127,16 @@ const styles = StyleSheet.create((theme, rt) => ({
     }),
     itemText: {
         flex: 1,
+    },
+    swap: {
+        minHeight: 44,
+        minWidth: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    swapText: {
+        color: theme.colors.brand[400],
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     // Planned but not yet eaten reads as pending rather than as a record.
     itemPending: {
@@ -169,22 +186,31 @@ const DietScreen: FC = () => {
     const { t } = useTranslation(['screens', 'common']);
     const { theme } = useUnistyles();
 
+    const { user } = useUser();
     const [dayOffset, setDayOffset] = useState(0);
     const date = useMemo(() => toDateKey(dayjs().add(dayOffset, 'day').toDate()), [dayOffset]);
+    const selectDay = useCallback(
+        (key: string) => setDayOffset(dayjs(key).diff(dayjs().startOf('day'), 'day')),
+        [],
+    );
 
     const { meals } = useMealsForDate(date);
     const progress = useDayProgress(meals);
     const { mutateAsync: toggleItem } = useToggleMealItem();
     const { mutateAsync: removeItem } = useDeleteMealItem();
 
-    // The same nutrition generation Syn already exposes — reused here rather
-    // than rebuilt, so a plan built from this screen lands in the one
-    // conversation and applies through the one code path.
     const aiAvailable = useAiAvailable();
-    const { conversation } = useAiConversation();
-    const { generatePlan, isBusy } = useAiChat(conversation?.id);
-    const quota = useAiQuota();
-    const quotaExhausted = quota.remaining <= 0;
+    const setDraft = useSynDraftStore((state) => state.setDraft);
+
+    // "Swap" hands the item to Syn as a question, so the change is a proposal the
+    // person reads, not a silent edit to what they planned to eat.
+    const handleSwap = useCallback(
+        (name: string) => {
+            setDraft(t('diet.swapDraft', { ns: 'screens', name }));
+            router.navigate('/syn');
+        },
+        [setDraft, t],
+    );
 
     const bySlot = useMemo(() => {
         const grouped: Record<string, (typeof meals)[number]['items']> = {};
@@ -257,43 +283,17 @@ const DietScreen: FC = () => {
         [removeItem, t],
     );
 
-    /**
-     * Builds a chart through the existing plan pipeline, then hands over to
-     * Syn, which is where a plan draft is reviewed and applied. Applying it
-     * writes real meals back into this screen.
-     */
-    const handleBuildPlan = useCallback(async () => {
-        if (quotaExhausted) {
-            Alert.alert(
-                t('syn.quota.title', { ns: 'screens' }),
-                t('syn.quota.message', { ns: 'screens', limit: quota.limit }),
-            );
-
-            return;
-        }
-
-        try {
-            await generatePlan({
-                kind: 'nutrition',
-                intent: t('syn.actions.nutritionIntent', { ns: 'screens' }),
-            });
-        } catch {
-            // The failure is written into the conversation as an assistant turn,
-            // so Syn is still the right place to land.
-        }
-
-        router.navigate('/syn');
-    }, [generatePlan, quota.limit, quotaExhausted, t]);
+    // A plan is built through the meal-plan form, which shows the diet and
+    // allergies it will respect and the build it uses before spending it.
+    const handleBuildPlan = useCallback(() => {
+        router.navigate({ pathname: '/coach/new', params: { kind: 'nutrition' } } as never);
+    }, []);
 
     const planCta = aiAvailable ? (
         <Button
-            icon="sparkles"
             title={t('diet.buildPlan', { ns: 'screens' })}
             type="primary"
             onPress={handleBuildPlan}
-            disabled={isBusy}
-            loading={isBusy}
-            spinnerColor={theme.solid.primaryTypography}
             accessibilityLabel={t('diet.buildPlan', { ns: 'screens' })}
         />
     ) : null;
@@ -302,49 +302,25 @@ const DietScreen: FC = () => {
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <DietHeader />
 
-            <HStack style={styles.dayRow}>
-                <Pressable
-                    style={styles.dayButton}
-                    onPress={() => setDayOffset((value) => value - 1)}
-                    accessibilityLabel={t('diet.previousDay', { ns: 'screens' })}
-                >
-                    <Icon
-                        name="chevron-left"
-                        size={theme.space(4)}
-                        color={theme.colors.typography}
-                    />
-                </Pressable>
+            <DayStrip selected={date} onSelect={selectDay} firstWeekday={user?.firstWeekday || 2} />
 
-                <Pressable
-                    style={styles.dayLabel}
-                    onPress={() => setDayOffset(0)}
-                    disabled={dayOffset === 0}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('diet.today', { ns: 'screens' })}
-                >
-                    <Text fontSize="sm" fontWeight="semibold">
-                        {dayOffset === 0
-                            ? t('diet.today', { ns: 'screens' })
-                            : dayjs(date).format('ddd, D MMM')}
-                    </Text>
-                    {dayOffset !== 0 ? (
-                        <Text fontSize="2xs" style={styles.muted}>
-                            {dayjs(date).format('YYYY')}
+            <HStack style={styles.dayTitleRow}>
+                <Text style={styles.dayTitle} accessibilityRole="header">
+                    {dayOffset === 0
+                        ? t('diet.today', { ns: 'screens' })
+                        : dayjs(date).format('dddd, D MMM')}
+                </Text>
+                {dayOffset !== 0 ? (
+                    <Pressable
+                        onPress={() => setDayOffset(0)}
+                        accessibilityRole="button"
+                        hitSlop={8}
+                    >
+                        <Text style={styles.todayLink}>
+                            {t('diet.backToToday', { ns: 'screens' })}
                         </Text>
-                    ) : null}
-                </Pressable>
-
-                <Pressable
-                    style={styles.dayButton}
-                    onPress={() => setDayOffset((value) => value + 1)}
-                    accessibilityLabel={t('diet.nextDay', { ns: 'screens' })}
-                >
-                    <Icon
-                        name="chevron-right"
-                        size={theme.space(4)}
-                        color={theme.colors.typography}
-                    />
-                </Pressable>
+                    </Pressable>
+                ) : null}
             </HStack>
 
             {hasAnything ? (
@@ -423,9 +399,18 @@ const DietScreen: FC = () => {
                         return (
                             <VStack key={slot} style={styles.panel}>
                                 <HStack style={styles.slotHeader}>
-                                    <Title type="h6">
-                                        {t(`diet.slots.${slot}`, { ns: 'screens' })}
-                                    </Title>
+                                    <HStack style={styles.slotTitleRow}>
+                                        <Box style={styles.slotGlyph}>
+                                            <Icon
+                                                name="utensils"
+                                                size={16}
+                                                color={theme.colors.amber[400]}
+                                            />
+                                        </Box>
+                                        <Title type="h6" accessibilityRole="header">
+                                            {t(`diet.slots.${slot}`, { ns: 'screens' })}
+                                        </Title>
+                                    </HStack>
                                     <HStack style={styles.slotMeta}>
                                         <Text fontSize="2xs" style={styles.muted}>
                                             {t('diet.itemsEaten', {
@@ -507,6 +492,19 @@ const DietScreen: FC = () => {
                                                         value: Math.round(item.calories),
                                                     })}
                                                 </Text>
+                                            ) : null}
+
+                                            {aiAvailable && !consumed ? (
+                                                <Pressable
+                                                    style={styles.swap}
+                                                    onPress={() => handleSwap(item.name)}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={`${t('diet.swap', { ns: 'screens' })}: ${item.name}`}
+                                                >
+                                                    <Text fontSize="sm" style={styles.swapText}>
+                                                        {t('diet.swap', { ns: 'screens' })}
+                                                    </Text>
+                                                </Pressable>
                                             ) : null}
                                         </HStack>
                                     );

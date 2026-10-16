@@ -211,6 +211,20 @@
       "when": 1790166057698,
       "tag": "0029_training_environment",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1791732245829,
+      "tag": "0030_notification_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1792133939761,
+      "tag": "0031_water_log",
+      "breakpoints": true
     }
   ]
 }

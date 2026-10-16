@@ -47,7 +47,6 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
         fontSize: theme.fontSize['4xl'].fontSize,
         lineHeight: theme.fontSize['4xl'].lineHeight,
-        fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center',
         ...theme.typography.metric,
     },

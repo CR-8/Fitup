@@ -1,4 +1,4 @@
-import { AI_PLAN_KINDS, type AiPlanKind } from '@/constants/ai';
+import { AI_PLAN_KINDS, MIN_DAILY_CALORIES, type AiPlanKind } from '@/constants/ai';
 import {
     AiError,
     type AiAssessment,
@@ -34,6 +34,40 @@ const MAX_MEAL_ITEMS = 20;
 const MAX_INTAKE_QUESTIONS = 3;
 
 const MEAL_SLOTS = new Set(['breakfast', 'lunch', 'dinner', 'snack']);
+
+/**
+ * A food chart below the calorie floor is rejected, not repaired: scaling a
+ * model's portions up would be inventing a plan nobody asked for. Judged on any
+ * day that lists three or more meals with calories (a day with one snack is not
+ * a day's intake), and on any stated daily target.
+ */
+const assertSafeCalories = (meals: AiPlanMeal[], targets: AiPlanDayTargets[]): void => {
+    const byDay = new Map<number, { calories: number; counted: number }>();
+
+    for (const meal of meals) {
+        const calories = meal.items.reduce((sum, item) => sum + (item.calories ?? 0), 0);
+        if (calories <= 0) continue;
+
+        const day = byDay.get(meal.dayOffset) ?? { calories: 0, counted: 0 };
+        day.calories += calories;
+        day.counted += 1;
+        byDay.set(meal.dayOffset, day);
+    }
+
+    const tooLowDay = [...byDay.values()].some(
+        (day) => day.counted >= 3 && day.calories < MIN_DAILY_CALORIES,
+    );
+    const tooLowTarget = targets.some(
+        (target) => typeof target.calories === 'number' && target.calories < MIN_DAILY_CALORIES,
+    );
+
+    if (tooLowDay || tooLowTarget) {
+        throw new AiError(
+            'UNSAFE_PLAN',
+            `The food chart was below the safe minimum of ${MIN_DAILY_CALORIES} kcal a day`,
+        );
+    }
+};
 
 export interface PlanValidationResult {
     payload: AiPlanPayload;
@@ -237,11 +271,24 @@ const validateWorkout = (
     }
 
     return {
-        name: asTrimmedString(raw.name) ?? 'Workout',
+        name: cleanWorkoutName(asTrimmedString(raw.name) ?? 'Workout'),
         dayOffset: asNonNegativeInt(raw.dayOffset, MAX_HORIZON_DAYS) ?? 0,
         focus: asTrimmedString(raw.focus),
         exercises,
     };
+};
+
+/**
+ * "Day 6 – Upper Push (Repeat)" -> "Upper Push". The prompt asks for content +
+ * variant names, but a model that ignores it must not reach the schedule.
+ */
+export const cleanWorkoutName = (name: string): string => {
+    const cleaned = name
+        .replace(/^\s*day\s*\d+\s*[–—:-]\s*/i, '')
+        .replace(/\s*\(\s*repeat\s*\)\s*$/i, '')
+        .trim();
+
+    return cleaned || name.trim();
 };
 
 const validateMealItem = (value: unknown): AiPlanMealItem | null => {
@@ -454,6 +501,8 @@ export const validatePlanPayload = (
     if (needsMeals && meals.length === 0) {
         throw new AiError('INVALID_RESPONSE', 'The plan contained no usable meals');
     }
+
+    if (needsMeals) assertSafeCalories(meals, targets);
 
     const impliedHorizon = Math.max(
         1,

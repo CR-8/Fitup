@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { useKeyboard } from '@react-native-community/hooks';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { Input } from '@/components/primitives/input';
 import { Pressable } from '@/components/primitives/pressable';
 import Spinner from '@/components/feedback/spinner';
 import { Icon } from '@/components/primitives/icon';
+import { useSynDraftStore } from '@/stores/syn-draft';
 
 // Android's tab bar floats over the content, so the composer clears it itself.
 const ANDROID_TAB_BAR = 16;
@@ -43,18 +44,14 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.typography,
         ...theme.fontSize.default,
     },
-    // iOS takes the coral of its primary buttons; Android keeps the pre-native
-    // ink fill its primary actions use.
+    // The accent on both platforms, like every primary action in the redesign.
     send: {
         height: theme.space(9),
         width: theme.space(9),
         borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Platform.select({
-            ios: theme.colors.primary,
-            default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-        }),
+        backgroundColor: theme.colors.brand[600],
     },
     sendDisabled: {
         backgroundColor: theme.colors.elevated,
@@ -69,17 +66,29 @@ interface ComposerProps {
 
 export const Composer: FC<ComposerProps> = ({ onSend, disabled = false, busy = false }) => {
     const { t } = useTranslation('screens');
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const { keyboardShown } = useKeyboard();
     const [value, setValue] = useState('');
+
+    // Text handed over from elsewhere, e.g. "Ask Syn for changes" on a plan
+    // preview. Taken into the field during render, then cleared from the store.
+    const draft = useSynDraftStore((state) => state.draft);
+    const setDraft = useSynDraftStore((state) => state.setDraft);
+    const [takenDraft, setTakenDraft] = useState('');
+    if (draft && draft !== takenDraft) {
+        setTakenDraft(draft);
+        setValue(draft);
+    } else if (!draft && takenDraft) {
+        setTakenDraft('');
+    }
+    useEffect(() => {
+        if (draft) setDraft('');
+    }, [draft, setDraft]);
 
     const trimmed = value.trim();
     const canSend = trimmed.length > 0 && !disabled && !busy;
 
-    const activeIconColor = Platform.select({
-        ios: theme.solid.primaryTypography,
-        default: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.neutral[50],
-    });
+    const activeIconColor = theme.colors.white;
 
     const handleSend = () => {
         if (!canSend) return;

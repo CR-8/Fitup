@@ -29,28 +29,37 @@
             "morning": "Good morning",
             "afternoon": "Good afternoon",
             "evening": "Good evening",
-            "fallback": "Ready to train?",
-            "tagline": "Let's make progress today."
+            "fallback": "Ready to train?"
         },
         "upNext": {
             "eyebrow": {
                 "resume": "In progress",
                 "start": "Today's workout",
-                "create": "Get started"
+                "create": "Get started",
+                "done": "Done for today",
+                "rest": "Rest day"
             },
             "action": {
-                "resume": "Resume",
+                "resume": "Resume workout",
                 "start": "Start workout",
-                "create": "Plan a workout"
+                "create": "Plan a workout",
+                "done": "View session",
+                "rest": "View session",
+                "coach": "Build a plan with Syn"
             },
             "createTitle": "Nothing planned yet",
             "createHint": "Build a workout and it will show up here.",
             "exerciseCount_one": "{{count}} exercise",
             "exerciseCount_other": "{{count}} exercises",
-            "startFailed": "Could not start that workout. Try again."
+            "startFailed": "Could not start that workout. Try again.",
+            "restTitle": "Rest day",
+            "restHint": "Next: {{name}}, {{day}}",
+            "minutes": "~{{count}} min",
+            "coachHint": "Let Syn build your first week, or plan a workout yourself."
         },
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
+        "streak_one": "{{count}} week streak",
+        "streak_other": "{{count}} week streak",
+        "weekProgress": "{{done}} of {{target}} this week",
         "ai": {
             "title": "Generate your plan with AI",
             "description": "Tell Syn your goal and body stats — get a full week of training in seconds.",
@@ -88,14 +97,42 @@
             }
         },
         "tiles": {
-            "streak": "Day streak",
-            "month": "This month"
+            "streak": "This week",
+            "streakValue": "{{done}} of {{target}}",
+            "month": "This month",
+            "total": "Total"
         },
         "recentActivity": "Recent activity",
-        "viewAll": "View all"
+        "viewAll": "View all",
+        "sessionWithWeek": "{{name}} · Week {{week}}",
+        "meals": {
+            "title": "Track your meals",
+            "hint": "Log food or ask Syn for a meal plan",
+            "log": "Log meal"
+        },
+        "nudge": {
+            "missed": "You missed {{name}}. Ask Syn to rebuild your week.",
+            "default": "Ask Syn to adjust this week's plan.",
+            "noPlan": "Ask Syn to build your first plan."
+        },
+        "today": "Today",
+        "openProfile": "Open your profile",
+        "loading": "Loading today's workout",
+        "summary": {
+            "title": "Today so far",
+            "training": "Training",
+            "nothingPlanned": "Nothing planned",
+            "sessions_one": "{{done}} of {{count}} session",
+            "sessions_other": "{{done}} of {{count}} sessions",
+            "meals": "Meals",
+            "noMeals": "No meals planned",
+            "mealsEaten_one": "{{done}} of {{count}} meal eaten",
+            "mealsEaten_other": "{{done}} of {{count}} meals eaten",
+            "openHint": "Opens today's training summary"
+        }
     },
     "results": {
-        "title": "Results",
+        "title": "Progress",
         "stats": {
             "title": "Stats",
             "trainingWeeks": {
@@ -124,7 +161,8 @@
             }
         },
         "activitySummary": {
-            "title": "Activity Summary"
+            "title": "Activity Summary",
+            "vsLastMonth": "vs last month: {{value}}"
         },
         "scale": {
             "title": "Scale",
@@ -156,7 +194,11 @@
                 "exercisesCount": "Exercises",
                 "setsCount": "Sets",
                 "repsCount": "Reps"
-            }
+            },
+            "time": "Training time",
+            "sessions_one": "{{count}} session",
+            "sessions_other": "{{count}} sessions",
+            "noSessions": "No sessions on this day"
         },
         "strength": {
             "metrics": {
@@ -174,7 +216,7 @@
         },
         "hero": {
             "hours": "{{value}}h",
-            "streak": "Day streak"
+            "streak": "Week streak"
         },
         "fitnessLevel": {
             "label": "Fitness level",
@@ -185,6 +227,23 @@
                 "intermediate": "Intermediate",
                 "advanced": "Advanced"
             }
+        },
+        "sessionsPerWeek": {
+            "title": "Sessions per week",
+            "thisWeek": "this week",
+            "goal_one": "Goal: {{count}} session a week",
+            "goal_other": "Goal: {{count}} sessions a week"
+        },
+        "personalBests": {
+            "title": "Personal bests",
+            "empty": "Log a few weighted sets and your best lifts will show up here."
+        },
+        "tiles": {
+            "week": "This week",
+            "thisWeek": "Sessions done of your goal",
+            "weeksInRow": "Weeks in a row on goal",
+            "allTime": "All time",
+            "hoursUnit": "h"
         }
     },
     "exercises": {
@@ -427,7 +486,8 @@
             "distance": "Distance",
             "pace": "Pace",
             "cadence": "Cadence"
-        }
+        },
+        "editDuration": "Edit duration"
     },
     "workoutExercise": {
         "delete": "Delete Exercise",
@@ -495,8 +555,20 @@
             "profile": {
                 "title": "Profile"
             },
+            "diet": {
+                "title": "Diet and allergies"
+            },
             "account": {
                 "title": "Account"
+            },
+            "feedback": {
+                "title": "Send feedback"
+            },
+            "water": {
+                "title": "Water goal"
+            },
+            "planBuilds": {
+                "title": "Plan builds"
             }
         },
         "watch": {
@@ -531,6 +603,9 @@
             "save": "Save changes",
             "saveFailed": "Could not save your profile. Try again."
         },
+        "diet": {
+            "subtitle": "Syn uses these for every meal plan and never includes anything you list."
+        },
         "account": {
             "signedOut": {
                 "title": "Not signed in",
@@ -551,7 +626,18 @@
                 "confirmBody": "Your workouts and history stay on this device, and stay backed up to your account.",
                 "cancel": "Cancel",
                 "changePassword": "Change password"
+            },
+            "delete": {
+                "title": "Delete account",
+                "confirmTitle": "Delete your account?",
+                "confirmBody": "This permanently deletes your account and everything backed up to it. Your workouts, plans and settings on this phone are erased too. This cannot be undone.",
+                "action": "Delete everything",
+                "failed": "Could not delete your account. Nothing was changed. Check your connection and try again."
             }
+        },
+        "sections": {
+            "goals": "Goals",
+            "preferences": "Preferences"
         }
     },
     "notifications": {
@@ -619,7 +705,7 @@
         }
     },
     "syn": {
-        "title": "Syn",
+        "title": "Coach",
         "eyebrow": "Your AI coach",
         "empty": {
             "title": "Ask Syn",
@@ -650,7 +736,9 @@
         "quota": {
             "remaining": "{{remaining}} of {{limit}} plans left this month",
             "title": "No plans left",
-            "message": "You have used all {{limit}} plans this month. Chat still works."
+            "message": "You have used all {{limit}} plans this month. Chat still works.",
+            "builds_one": "{{count}} plan build left · resets {{date}}",
+            "builds_other": "{{count}} plan builds left · resets {{date}}"
         },
         "clear": {
             "title": "Clear conversation",
@@ -684,7 +772,12 @@
                 "lunch": "Lunch",
                 "dinner": "Dinner",
                 "snack": "Snack"
-            }
+            },
+            "sessions_one": "{{count}} session",
+            "sessions_other": "{{count}} sessions",
+            "replaced": "{{count}} replaced",
+            "removed": "{{count}} removed",
+            "previewChanges": "Preview changes"
         },
         "errors": {
             "disabled": "The assistant is not configured in this build.",
@@ -695,30 +788,71 @@
             "auth": "The AI credential was rejected. Check your configuration.",
             "invalid": "The reply could not be read as a plan. Try again.",
             "provider": "The assistant is unavailable right now.",
-            "truncated": "The reply was cut off before it finished. Try a shorter plan."
+            "truncated": "The reply was cut off before it finished. Try a shorter plan.",
+            "signIn": "Sign in to use Syn.",
+            "userQuota": "You have used all your plan builds this month. Chat still works.",
+            "unsafe": "Syn proposed a food chart below a safe daily minimum, so it was discarded. Ask for a different plan, or talk to a dietitian."
         },
         "intro": {
-            "greeting": "Hey {{name}} 👋",
-            "greetingFallback": "Hey there 👋",
+            "greeting": "Hey {{name}}",
+            "greetingFallback": "Hey there",
             "body": "I can see your training history and your profile. Ask me anything, or start with one of these."
         },
         "subtitle": "Your personal fitness assistant.",
         "pending": {
             "plan": "Syn is building your plan…",
             "reply": "Syn is thinking…"
+        },
+        "coach": {
+            "intro": "I know your training history and goals. Nothing changes in your plan until you approve it.",
+            "example": "Example",
+            "exampleTitle": "Your next week",
+            "exampleSummary": "3 sessions · 2 replaced · 1 removed"
+        },
+        "starters": {
+            "week": "Build my next week",
+            "food": "Make me a food chart",
+            "form": "Fix my bench form",
+            "progress": "How am I progressing?",
+            "formIntent": "Check my bench press form: the setup, the cues and the mistakes to avoid. If anything hurts, tell me what to do instead."
+        },
+        "preview": {
+            "title": "Preview changes",
+            "new": "New",
+            "replaces": "Replaces",
+            "removed": "Removed",
+            "replacesOf": "Replaces {{name}}",
+            "removedHint": "Taken off your plan",
+            "nothing": "Nothing in your schedule changes.",
+            "mealsSame": "Meals stay the same",
+            "meals_one": "{{count}} meal will be added",
+            "meals_other": "{{count}} meals will be added",
+            "add_one": "Add {{count}} change to plan",
+            "add_other": "Add {{count}} changes to plan",
+            "addMeals": "Add meals to plan",
+            "ask": "Ask Syn for changes",
+            "added_one": "Added {{count}} change to your plan",
+            "added_other": "Added {{count}} changes to your plan",
+            "undo": "Undo",
+            "askDraft": "About \"{{title}}\": "
+        },
+        "signInRequired": {
+            "title": "Sign in to use Syn",
+            "message": "Syn builds plans on a secure server, so it needs you signed in.",
+            "action": "Sign in"
         }
     },
     "signIn": {
         "eyebrow": "FitSyn",
-        "title": "Welcome to FitSyn",
-        "subtitle": "Sign in to start training. Your account keeps your workouts if you change phones.",
+        "title": "Welcome back",
+        "subtitle": "Continue your fitness journey with Syn.",
         "google": "Continue with Google",
         "apple": "Continue with Apple",
         "email": "Email",
         "password": "Password",
-        "continue": "Continue",
+        "continue": "Sign in",
         "createAccount": "Create account",
-        "needAccount": "New here? Create an account",
+        "needAccount": "Don't have an account? Sign up",
         "haveAccount": "Already have an account? Sign in",
         "errors": {
             "invalidCredentials": "That email and password do not match. If you signed up with Google, use the Google button instead.",
@@ -733,7 +867,11 @@
             "samePassword": "Pick a password you have not used here before."
         },
         "titleReturning": "Sign in",
-        "forgotPassword": "Forgot your password?"
+        "forgotPassword": "Forgot your password?",
+        "registerTitle": "Create account",
+        "registerSubtitle": "Let's get you started.",
+        "orContinueWith": "or continue with",
+        "terms": "By continuing, you agree to our Terms of Service and Privacy Policy."
     },
     "onboarding": {
         "title": "About you",
@@ -744,11 +882,11 @@
         "somatotypeHint": "A rough self-description, not a measurement.",
         "example": "e.g. {{value}}",
         "fields": {
-            "name": "What should we call you?",
+            "name": "Name",
             "age": "Age",
-            "sex": "Biological sex",
-            "weight": "Current weight (kg)",
-            "height": "Height (cm)",
+            "sex": "Sex",
+            "weight": "Weight",
+            "height": "Height",
             "goal": "Goal",
             "targetWeight": "Target weight (kg)",
             "somatotype": "Body type",
@@ -787,26 +925,72 @@
         "back": "Back",
         "stepCounter": "Step {{current}} of {{total}}",
         "steps": {
-            "about": {
-                "title": "About you",
-                "subtitle": "Just the basics, so plans fit the person doing them.",
-                "motivation": "Everyone under that bar started at day one. Today is yours."
-            },
-            "body": {
-                "title": "Your body",
-                "subtitle": "Used to size portions and starting loads.",
-                "motivation": "Today's numbers are the ones you'll beat. Log them honestly."
+            "profile": {
+                "title": "Tell us about yourself",
+                "subtitle": "This helps Syn create a personalized plan."
             },
             "goal": {
-                "title": "Your goal",
-                "subtitle": "What you want out of the next few months.",
-                "motivation": "A goal you can name is a goal you can train for."
+                "title": "What's your main goal?",
+                "subtitle": "You can always change this later."
             },
-            "training": {
-                "title": "Your training",
-                "subtitle": "How much time you actually have.",
-                "motivation": "Showing up beats going hard. Pick days you will keep."
+            "schedule": {
+                "title": "Your week",
+                "subtitle": "How often you can train, and where."
+            },
+            "diet": {
+                "title": "Your diet",
+                "subtitle": "Optional. Syn uses this for meal plans, and you can change it later in Settings."
             }
+        },
+        "buildPlan": "Build my plan",
+        "environmentHint": {
+            "gym": "Barbells, machines and cables",
+            "home": "Dumbbells, bands and bodyweight"
+        },
+        "goals": {
+            "build": {
+                "title": "Build muscle",
+                "hint": "Gain lean mass and strength"
+            },
+            "lose": {
+                "title": "Lose fat",
+                "hint": "Get leaner and healthier"
+            },
+            "stronger": {
+                "title": "Get stronger",
+                "hint": "Improve overall strength"
+            },
+            "fitness": {
+                "title": "General fitness",
+                "hint": "Stay active and consistent"
+            }
+        },
+        "plan": {
+            "intent": "Build me a 4-week training plan. My goal: {{goal}}. I can train {{days}} days a week."
+        },
+        "generating": {
+            "title": "Syn is creating your plan",
+            "subtitle": "Working from your profile, goals and preferences.",
+            "stages": {
+                "context": "Reading your profile and history",
+                "request": "Writing your plan with Syn",
+                "validate": "Checking the plan",
+                "save": "Saving your plan"
+            },
+            "note": "This usually takes less than a minute.",
+            "cancel": "Cancel",
+            "failedTitle": "We could not build your plan",
+            "failedBody": "Nothing was saved to your schedule.",
+            "failedHint": "You can try again now, or start without a plan. Syn is always one tab away.",
+            "retry": "Try again"
+        },
+        "preview": {
+            "title": "Your personalized plan",
+            "subtitle": "Here's what Syn created for you.",
+            "meta": "{{weeks}}-week plan · {{goal}} · {{days}} days a week",
+            "weekOne": "Week 1",
+            "use": "Use this plan",
+            "regenerate": "Regenerate ({{count}} left)"
         }
     },
     "timer": {
@@ -840,7 +1024,9 @@
             "skipRest": "End rest early and start the next set",
             "endWorkout": "End the workout and save it",
             "minimize": "Go back to the workout",
-            "startNext": "Start the next set"
+            "startNext": "Start the next set",
+            "restLess": "Take 15 seconds off the rest",
+            "restMore": "Add 15 seconds to the rest"
         },
         "weight": "Weight",
         "reps": "Reps",
@@ -852,8 +1038,53 @@
             "sets_other": "Sets",
             "time": "Time",
             "exercises_one": "Exercise",
-            "exercises_other": "Exercises"
-        }
+            "exercises_other": "Exercises",
+            "logged": "Logged this session"
+        },
+        "lastTime": "Last time: {{value}}",
+        "restLess": "-15 s",
+        "restMore": "+15 s",
+        "setOf": "Set {{number}} of {{count}}",
+        "progress": "{{done}} of {{count}} sets done",
+        "progressDone": "{{count}} done",
+        "progressLeft": "{{count}} to go"
+    },
+    "long-session": {
+        "title_one": "{{count}} session looks too long",
+        "title_other": "{{count}} sessions look too long",
+        "body": "{{name}} is logged at {{duration}}.",
+        "fix": "Fix",
+        "dismiss": "Dismiss",
+        "setTo": "Set to {{duration}}",
+        "setToHint": "Ends at your last logged set",
+        "edit": "Edit manually"
+    },
+    "plan": {
+        "title": "Plan",
+        "week": "Week",
+        "library": "Library",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "unscheduled": "Unscheduled",
+        "updatedBySyn": "Updated by Syn",
+        "meals": "{{count}} meals, {{kcal}} kcal",
+        "history": "History"
+    },
+    "you": {
+        "title": "You"
+    },
+    "missed-session": {
+        "title": "You missed a session",
+        "subtitle": "It happens. What should we do with {{name}}?",
+        "today": "Do it today",
+        "todayHint": "Reschedule for today",
+        "tomorrow": "Move to tomorrow",
+        "tomorrowHint": "Push it to the next day",
+        "chooseDay": "Choose a day",
+        "chooseDayHint": "Pick another date",
+        "skip": "Skip this one",
+        "skipHint": "Cancel it and keep your plan on track",
+        "missedGroup": "Missed"
     },
     "workout-feedback": {
         "easy": "Easy",
@@ -894,7 +1125,10 @@
         "againstTarget": "Daily target",
         "itemsEaten": "{{consumed}} of {{total}} eaten",
         "buildPlan": "Build my meal plan",
-        "eaten": "Eaten"
+        "eaten": "Eaten",
+        "swap": "Swap",
+        "swapDraft": "Swap \"{{name}}\" for something similar with about the same calories and protein.",
+        "backToToday": "Back to today"
     },
     "forgotPassword": {
         "eyebrow": "FitSyn",
@@ -924,12 +1158,226 @@
         "abandon": "Not you? Sign out"
     },
     "workoutHub": {
-        "title": "Workout",
+        "title": "Plan",
         "subtitle": "Your sessions, planned and completed.",
         "empty": {
             "title": "No workouts yet",
             "description": "Plan your first workout and it will show up here, ready to start.",
             "action": "Plan a workout"
+        },
+        "dayEmpty": "Nothing on {{day}}. Tap the day again to see every session."
+    },
+    "welcome": {
+        "title": "Stronger Every Day",
+        "subtitle": "Personalised training, nutrition and AI coaching, built for you.",
+        "getStarted": "Get started",
+        "haveAccount": "Already have an account?",
+        "signIn": "Sign in"
+    },
+    "feedback": {
+        "type": "Type of feedback",
+        "types": {
+            "bug": "Bug",
+            "feature": "Feature",
+            "general": "General"
+        },
+        "message": "Your message",
+        "placeholder": "Tell us what's on your mind...",
+        "addScreenshot": "Add screenshot (optional)",
+        "removeScreenshot": "Remove",
+        "includeDevice": "Include device logs",
+        "deviceHint": "App version, OS and device model. No health data.",
+        "submit": "Submit feedback",
+        "thanks": "Thanks. We read every message.",
+        "subject": {
+            "bug": "Bug report",
+            "feature": "Feature request",
+            "general": "Feedback"
+        }
+    },
+    "inbox": {
+        "title": "Notifications",
+        "today": "Today",
+        "thisWeek": "This week",
+        "earlier": "Earlier",
+        "empty": "Nothing yet",
+        "emptyHint": "Reminders, plan updates and milestones will show up here.",
+        "unread": "Unread",
+        "open": "Notifications",
+        "planUpdated": {
+            "title": "Plan updated",
+            "body": "Syn updated your plan"
+        },
+        "planUndone": {
+            "title": "Plan change undone",
+            "body": "Your schedule is back as it was"
+        },
+        "milestone": {
+            "title": "Weekly goal reached",
+            "body": "{{done}} of {{target}} sessions this week"
+        },
+        "ago": {
+            "minutes": "{{count}}m ago",
+            "hours": "{{count}}h ago",
+            "days": "{{count}}d ago"
+        }
+    },
+    "hydration": {
+        "title": "Water",
+        "subtitle": "Logged by you. A new day starts at midnight, your local time.",
+        "glassesOf": "{{glasses}} of {{target}} glasses",
+        "ofGlasses_one": "of {{count}} glass",
+        "ofGlasses_other": "of {{count}} glasses",
+        "mlOf": "{{total}} of {{target}}",
+        "addGlass": "Glass",
+        "addGlassLabel": "Log a glass of water, {{amount}}",
+        "addAmountLabel": "Log {{amount}} of water",
+        "added": "Logged {{amount}} of water",
+        "openHint": "Opens today's water log",
+        "oneGlass": "1 glass",
+        "reached": "Goal reached for today",
+        "today": "Today",
+        "undoLast": "Undo last",
+        "undoLastLabel": "Remove the last entry, {{amount}}",
+        "removeLabel": "Remove {{amount}} logged at {{time}}",
+        "empty": "Nothing logged yet today. Tap a size above to log a drink.",
+        "goal": "Daily goal",
+        "decreaseGoal": "Lower the daily goal",
+        "increaseGoal": "Raise the daily goal",
+        "goalLabel": "Daily goal, {{amount}}",
+        "defaultGoal": "This is a starting goal, not advice. Set it to what suits you.",
+        "glassSize": "Glass size",
+        "source": "Water here is only what you log. Syn does not read it from a health app.",
+        "retry": "Try again",
+        "errors": {
+            "load": "Could not load today's water.",
+            "add": "Could not log that drink. Try again.",
+            "remove": "Could not remove that entry. Try again."
+        }
+    },
+    "quota": {
+        "left_one": "{{count}} of {{limit}} plan build left this month",
+        "left_other": "{{count}} of {{limit}} plan builds left this month",
+        "open": "See plan builds",
+        "title": "Plan builds",
+        "subtitle": "Syn can build {{limit}} workout or meal plans a month. Everything else in the app is free.",
+        "ofLimit": "of {{limit}} left",
+        "reset": "Builds reset on {{date}}, at the start of the month (UTC).",
+        "deviceCount": "Counted on this phone for now. Syn's server keeps the official count, which has the final say (for example if you also build plans on another device) and shows here after your next request to Syn.",
+        "countsTitle": "What uses a build",
+        "counts": "Asking Syn to build a workout plan or a meal plan. Chatting, reviewing a plan, adding it to your schedule and undoing it never use one.",
+        "failed": "A build counts once Syn starts on it, even if it stops to ask you something first or the attempt fails, so check your connection before trying again.",
+        "refunded": "A build that fails before Syn replies (no connection, a server error, a reply cut off) is given back. One Syn answers still counts, even if it stops to ask you something first.",
+        "freeTitle": "Always free",
+        "free": {
+            "today": "Today",
+            "plan": "Your plan and schedule",
+            "workouts": "Workouts, the player and history",
+            "water": "Water logging",
+            "meals": "Meals and Nutrition",
+            "progress": "Progress and trends",
+            "chat": "Chatting with Syn"
+        },
+        "moreTitle": "Need more builds?",
+        "more": "Extra plan builds are not available yet. Your allowance renews next month."
+    },
+    "coach": {
+        "hub": {
+            "workout": {
+                "title": "Build a workout plan",
+                "body": "A week of sessions from your goal, schedule and equipment. You review every change before it reaches your plan."
+            },
+            "nutrition": {
+                "title": "Build an Indian meal plan",
+                "body": "Three days of Indian home cooking that respects your diet and allergies. Nothing is added to Nutrition until you say so."
+            },
+            "cost": "Uses 1 plan build",
+            "hint": "Opens the plan form. Nothing is built until you confirm.",
+            "ask": "Ask Syn",
+            "askHint": "Questions don't use a plan build.",
+            "seeAll": "See all"
+        },
+        "new": {
+            "workoutTitle": "Workout plan",
+            "mealTitle": "Meal plan",
+            "workoutSubtitle": "Syn starts from your profile. Anything you change here is saved to it.",
+            "mealSubtitle": "Your diet and allergies are saved to your profile and kept for every meal plan.",
+            "minutes": "Minutes per session",
+            "minutesValue": "{{count}} min",
+            "focus": "Anything to focus on or avoid?",
+            "focusPlaceholder": "e.g. bad left knee, more upper body",
+            "diet": "Diet",
+            "diets": {
+                "vegetarian": "Vegetarian",
+                "eggetarian": "Eggetarian",
+                "omnivore": "Non-vegetarian",
+                "vegan": "Vegan",
+                "pescatarian": "Pescatarian",
+                "halal": "Halal",
+                "kosher": "Kosher"
+            },
+            "allergies": "Allergies and foods to avoid",
+            "allergiesHint": "Syn never includes these.",
+            "allergens": {
+                "peanuts": "Peanuts",
+                "tree_nuts": "Tree nuts",
+                "dairy": "Dairy",
+                "gluten": "Gluten",
+                "eggs": "Eggs",
+                "soy": "Soy",
+                "fish": "Fish",
+                "shellfish": "Shellfish",
+                "sesame": "Sesame"
+            },
+            "otherAllergy": "Add another",
+            "addAllergy": "Add to the list",
+            "region": "Cuisine",
+            "regions": {
+                "north": "North Indian",
+                "south": "South Indian",
+                "west": "West Indian",
+                "east": "East Indian",
+                "mixed": "Mix of regions"
+            },
+            "cooking": "Cooking time per meal",
+            "cookingValue": "Up to {{count}} min",
+            "budget": "Budget",
+            "budgets": {
+                "low": "Budget-friendly",
+                "moderate": "Moderate",
+                "flexible": "Flexible"
+            },
+            "mealCaution": "Meal plans are general guidance, not medical advice, and calories are estimates. If you manage a medical condition or a therapeutic diet, check with a doctor or dietitian first.",
+            "review": "You'll review the plan before anything changes. It is a recommendation built from your answers.",
+            "cost_one": "Uses your last plan build this month",
+            "cost_other": "Uses 1 of the {{count}} plan builds left this month",
+            "usedUp": "You have used all {{limit}} plan builds this month.",
+            "build": "Build plan",
+            "busy": "Syn is still working on your last request.",
+            "unknown": "not set",
+            "workoutIntent": "Build me a one-week training plan. Goal: {{goal}}. Days a week: {{days}}. Minutes per session: {{minutes}}. Training at: {{place}}.",
+            "focusIntent": "Please take this into account: {{focus}}.",
+            "mealIntent": "Build me an Indian meal plan for the next 3 days. Cuisine: {{region}}. Cooking time: up to {{minutes}} minutes a meal. Budget: {{budget}}."
+        },
+        "plans": {
+            "title": "Your plans",
+            "subtitle": "A draft changes nothing until you review it and add it.",
+            "empty": "No plans yet. Build one from Coach.",
+            "sections": {
+                "active": "Active",
+                "draft": "Drafts",
+                "archived": "Archived"
+            },
+            "status": {
+                "active": "Active",
+                "draft": "Draft",
+                "archived": "Archived"
+            },
+            "kind": {
+                "workout": "Workout plan",
+                "nutrition": "Meal plan",
+                "combined": "Training and meals"
+            }
         }
     }
 }

@@ -5,11 +5,13 @@ import {
     createWorkoutExercise,
     createWorkoutGroup,
     deleteWorkout,
+    updateWorkout,
 } from '@/crud/workout';
 import { createExerciseSet } from '@/crud/exercise';
 import { markPlanApplied } from '@/crud/ai';
 import { createMealItems, deleteMealsForPlan, getOrCreateMeal, toDateKey } from '@/crud/nutrition';
 import { reportError } from '@/services/error-reporting';
+import type { PlanDiffRow } from '@/helpers/plan-diff';
 import type { AiPlanPayload, AiPlanWorkout } from '@/types/ai';
 
 /**
@@ -21,7 +23,25 @@ import type { AiPlanPayload, AiPlanWorkout } from '@/types/ai';
  *
  * Only `planned` workouts are ever touched. Completed and in-progress sessions are the
  * user's training history and are never modified by generation.
+ *
+ * A session the plan replaces or drops is set to `cancelled`, never deleted, so
+ * undo can restore it. The plan row remembers which ones in `appliedWorkoutIds`,
+ * beside the workouts it created: a restorable id is stored as `~<id>`. (A
+ * column of its own would need a migration on both the local and the backup
+ * schema; this keeps the record in the one place the plan already lives.)
  */
+
+const RESTORE_PREFIX = '~';
+
+/** The workouts an applied plan created, without the ones it cancelled. */
+export const createdWorkoutIds = (appliedWorkoutIds: string[] | null | undefined): string[] =>
+    (appliedWorkoutIds ?? []).filter((id) => !id.startsWith(RESTORE_PREFIX));
+
+/** The workouts an applied plan cancelled, which undo restores. */
+export const cancelledWorkoutIds = (appliedWorkoutIds: string[] | null | undefined): string[] =>
+    (appliedWorkoutIds ?? [])
+        .filter((id) => id.startsWith(RESTORE_PREFIX))
+        .map((id) => id.slice(RESTORE_PREFIX.length));
 
 export interface ApplyPlanResult {
     workoutIds: string[];
@@ -131,40 +151,75 @@ const applyMeals = async (
     return created;
 };
 
+/**
+ * Applies a plan, or the chosen part of it.
+ *
+ * With `rows` (the rows of `diffPlanAgainstSchedule` the user left on), only
+ * those are applied: `new` and `replaces` create the session, `replaces` and
+ * `removed` cancel the old one. Without it every session is created, as before.
+ * `mealsCreated` follows the payload either way; meals are not part of the diff.
+ */
 export const applyPlanToSchedule = async (
     planId: string,
     payload: AiPlanPayload,
     userId: string,
     startDate: Date = new Date(),
+    rows?: PlanDiffRow[],
 ): Promise<ApplyPlanResult> => {
     const workoutIds: string[] = [];
+    const cancelledIds: string[] = [];
     let skipped = 0;
     let mealsCreated = 0;
 
     try {
-        for (const planWorkout of payload.workouts) {
-            if (planWorkout.exercises.length === 0) {
-                skipped += 1;
-                continue;
-            }
+        if (rows) {
+            for (const row of rows) {
+                if (row.kind === 'unchanged') continue;
 
-            workoutIds.push(await applyWorkout(planWorkout, userId, startDate));
+                if (row.incoming && (row.kind === 'new' || row.kind === 'replaces')) {
+                    workoutIds.push(await applyWorkout(row.incoming, userId, startDate));
+                }
+                if (row.existing && (row.kind === 'replaces' || row.kind === 'removed')) {
+                    await updateWorkout(row.existing.id, { status: 'cancelled' });
+                    cancelledIds.push(row.existing.id);
+                }
+            }
+        } else {
+            for (const planWorkout of payload.workouts) {
+                if (planWorkout.exercises.length === 0) {
+                    skipped += 1;
+                    continue;
+                }
+
+                workoutIds.push(await applyWorkout(planWorkout, userId, startDate));
+            }
         }
 
         mealsCreated = await applyMeals(payload, planId, userId, startDate);
 
-        await markPlanApplied(planId, workoutIds);
+        await markPlanApplied(planId, [
+            ...workoutIds,
+            ...cancelledIds.map((id) => `${RESTORE_PREFIX}${id}`),
+        ]);
 
         return { workoutIds, skipped, mealsCreated };
     } catch (error) {
         // A partially applied plan is worse than none: the user would be left with an
         // incoherent schedule and no clear way to tell which parts came from where.
-        // Roll back what was created before surfacing the failure.
+        // Roll back what was created, and bring back what was cancelled, before
+        // surfacing the failure.
         for (const workoutId of workoutIds) {
             try {
                 await deleteWorkout(workoutId);
             } catch (cleanupError) {
                 reportError(cleanupError, 'Failed to roll back a partially applied AI plan');
+            }
+        }
+        for (const workoutId of cancelledIds) {
+            try {
+                await updateWorkout(workoutId, { status: 'planned' });
+            } catch (cleanupError) {
+                reportError(cleanupError, 'Failed to restore a session after a failed plan');
             }
         }
 
@@ -180,10 +235,17 @@ export const applyPlanToSchedule = async (
 };
 
 /**
- * Undo: removes everything a plan created — scheduled workouts and logged meals
- * alike — leaving hand-entered records and completed history untouched.
+ * Undo: removes everything a plan created (scheduled workouts and logged meals
+ * alike) and restores the sessions it cancelled, leaving hand-entered records
+ * and completed history untouched. Takes the plan's `appliedWorkoutIds` as
+ * stored, restorable ids included.
  */
-export const revertAppliedPlan = async (workoutIds: string[], planId?: string): Promise<void> => {
+export const revertAppliedPlan = async (
+    appliedWorkoutIds: string[],
+    planId?: string,
+): Promise<void> => {
+    const workoutIds = createdWorkoutIds(appliedWorkoutIds);
+
     if (planId) {
         try {
             await deleteMealsForPlan(planId);
@@ -197,6 +259,14 @@ export const revertAppliedPlan = async (workoutIds: string[], planId?: string): 
             await deleteWorkout(workoutId);
         } catch (error) {
             reportError(error, 'Failed to revert an applied AI plan workout');
+        }
+    }
+
+    for (const workoutId of cancelledWorkoutIds(appliedWorkoutIds)) {
+        try {
+            await updateWorkout(workoutId, { status: 'planned' });
+        } catch (error) {
+            reportError(error, 'Failed to restore a session cancelled by an AI plan');
         }
     }
 };

@@ -25,6 +25,7 @@ import { computeWorkoutStats } from '@/services/workout-health-stats';
 import { HealthStats } from '@/types/health-stats';
 import { getTopLevelMuscleValue, getTopLevelMuscleValues } from '@/constants/muscles';
 import { isRestFinalized } from '@/helpers/rest';
+import { FINISH_GAP_MS, getLastActivityMs, hasLoggedSet } from '@/helpers/workout-activity';
 
 import { queueSyncOperation, queueSyncOperations } from '../sync';
 import { getExerciseSets, updateExerciseSet } from '../exercise';
@@ -103,6 +104,68 @@ const syncManualCompletedSetsToWorkoutCompletedAt = async (
             });
         }
     }
+};
+
+export interface PersonalBest {
+    exerciseId: string;
+    name: string;
+    userId: string | null;
+    weight: number;
+    reps: number;
+    weightUnits: 'kg' | 'lb';
+    /** Weight x (1 + reps / 30), in `weightUnits`. */
+    oneRm: number;
+    achievedAt: Date;
+}
+
+/**
+ * The best working set per exercise (by estimated 1RM, the same estimate the
+ * exercise screen uses), newest record first. Warm-ups and sets with no weight
+ * or reps are ignored. One pass over completed sets: the figures are small
+ * enough to rank in memory.
+ */
+export const getPersonalBests = async (limit = 5): Promise<PersonalBest[]> => {
+    const rows = await db
+        .select({
+            exerciseId: exercise.id,
+            name: exercise.name,
+            userId: exercise.userId,
+            exerciseUnits: exercise.weightUnits,
+            weight: exerciseSet.weight,
+            reps: exerciseSet.reps,
+            weightUnits: exerciseSet.weightUnits,
+            type: exerciseSet.type,
+            completedAt: exerciseSet.completedAt,
+        })
+        .from(exerciseSet)
+        .innerJoin(workoutExercise, eq(workoutExercise.id, exerciseSet.workoutExerciseId))
+        .innerJoin(exercise, eq(exercise.id, workoutExercise.exerciseId))
+        .where(isNotNull(exerciseSet.completedAt));
+
+    const best = new Map<string, PersonalBest>();
+
+    for (const row of rows) {
+        if (row.type === 'warmup' || !row.weight || !row.reps || !row.completedAt) continue;
+
+        const oneRm = row.weight * (1 + row.reps / 30);
+        const current = best.get(row.exerciseId);
+        if (current && current.oneRm >= oneRm) continue;
+
+        best.set(row.exerciseId, {
+            exerciseId: row.exerciseId,
+            name: row.name,
+            userId: row.userId,
+            weight: row.weight,
+            reps: row.reps,
+            weightUnits: row.weightUnits ?? row.exerciseUnits ?? 'kg',
+            oneRm,
+            achievedAt: row.completedAt,
+        });
+    }
+
+    return [...best.values()]
+        .sort((a, b) => b.achievedAt.getTime() - a.achievedAt.getTime())
+        .slice(0, limit);
 };
 
 export const getWorkouts = async (): Promise<WorkoutSelect[]> => {
@@ -773,7 +836,61 @@ const getActiveSetDurationSeconds = (sets: ExerciseSetSelect[]): number =>
         return total + Math.floor((completedAtMs - startedAtMs) / 1000);
     }, 0);
 
-export const completeWorkout = async (workoutId: string): Promise<CompleteWorkoutResult> => {
+/** The last logged activity of a workout, for repairing a session that ran on. Null when it has none. */
+export const getWorkoutLastActivity = async (workoutId: string): Promise<Date | null> => {
+    const current = await getWorkoutById(workoutId);
+    if (!current) return null;
+
+    const sets = (
+        await Promise.all(
+            (await getWorkoutExercises(workoutId)).map((we) => getExerciseSets(we.id)),
+        )
+    ).flat();
+    if (!hasLoggedSet(sets)) return null;
+
+    const last = getLastActivityMs(current.startedAt, sets);
+
+    return last == null ? null : new Date(last);
+};
+
+/**
+ * When the workout ends.
+ *
+ * - `now`: the moment of the call.
+ * - `last-activity`: the last logged set (plus its rest), whatever the clock says.
+ * - omitted: now, unless the last set was more than 30 minutes ago — someone
+ *   who stopped training and pressed Finish later should not be credited the gap.
+ */
+export type CompleteWorkoutAt = 'now' | 'last-activity';
+
+const resolveCompletionTime = (
+    workout: WorkoutSelect,
+    sets: ExerciseSetSelect[],
+    at: CompleteWorkoutAt | undefined,
+): Date => {
+    const now = Date.now();
+    if (at === 'now' || !hasLoggedSet(sets)) return new Date(now);
+
+    const lastActivity = getLastActivityMs(workout.startedAt, sets);
+    if (lastActivity == null) return new Date(now);
+    if (at !== 'last-activity' && now - lastActivity <= FINISH_GAP_MS) return new Date(now);
+
+    // The rest after the last set still belongs to the session.
+    const lastCompleted = sets
+        .filter((set) => set.completedAt != null)
+        .sort((a, b) => getDateMs(b.completedAt)! - getDateMs(a.completedAt)!)[0];
+    const restEnd =
+        lastCompleted && !lastCompleted.restCompletedAt && (lastCompleted.restTime ?? 0) > 0
+            ? getDateMs(lastCompleted.completedAt)! + lastCompleted.restTime! * 1000
+            : 0;
+
+    return new Date(Math.min(now, Math.max(lastActivity, restEnd)));
+};
+
+export const completeWorkout = async (
+    workoutId: string,
+    options: { at?: CompleteWorkoutAt } = {},
+): Promise<CompleteWorkoutResult> => {
     const workout = await getWorkoutById(workoutId);
     if (!workout) {
         throw new Error('Workout not found');
@@ -795,7 +912,7 @@ export const completeWorkout = async (workoutId: string): Promise<CompleteWorkou
         };
     }
 
-    const completionTime = new Date();
+    const completionTime = resolveCompletionTime(workout, allSets, options.at);
 
     // Complete only the set that has actually been started and finalize pending rest periods.
     // Unstarted sets remain incomplete so ending a workout midway doesn't pollute stats.

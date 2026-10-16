@@ -11,6 +11,10 @@ import type { WorkoutSelect } from '@/db/schema';
 import { useWorkoutDayHealthStats, useWorkoutDaySummary } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
 import { Stats } from '@/screens/workouts/workout/components/stats';
+import { DayStrip } from '@/components/layout/day-strip';
+import { VStack } from '@/components/primitives/vstack';
+import { Text } from '@/components/primitives/text';
+import { formatWorkoutDuration } from '@/helpers/times';
 
 import { Header } from './components/header';
 
@@ -30,6 +34,25 @@ const styles = StyleSheet.create((theme) => ({
         ...theme.screenContentPadding('child'),
         paddingHorizontal: theme.space(4),
         gap: theme.space(5),
+    },
+    /** The reference's day detail: the day's headline figure, large. */
+    hero: {
+        gap: theme.space(1),
+    },
+    heroLabel: {
+        ...theme.typography.eyebrow,
+        textTransform: 'uppercase',
+        color: theme.colors.mutedTypography,
+    },
+    heroValue: {
+        fontSize: 44,
+        lineHeight: 50,
+        color: theme.colors.primary,
+        ...theme.typography.metric,
+    },
+    heroCaption: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
     },
     healthStatsContainer: {
         marginHorizontal: 0,
@@ -113,6 +136,38 @@ const DaySummaryScreen: FC = () => {
         <Box style={styles.container}>
             <Header title={headerTitle} handleClose={handleClose} />
             <ScrollView contentContainerStyle={styles.content}>
+                {/* Changing the day here swaps the figures in place. */}
+                <DayStrip
+                    selected={validDateKey || dayjs().format('YYYY-MM-DD')}
+                    onSelect={(next) => router.setParams({ date: next })}
+                    firstWeekday={user?.firstWeekday || 2}
+                />
+                <VStack
+                    style={styles.hero}
+                    accessible
+                    accessibilityLabel={`${t('results.daySummary.time', { ns: 'screens' })}, ${
+                        summary.totalWorkoutDurationSeconds > 0
+                            ? formatWorkoutDuration(summary.totalWorkoutDurationSeconds)
+                            : '0'
+                    }`}
+                >
+                    <Text style={styles.heroLabel}>
+                        {t('results.daySummary.time', { ns: 'screens' })}
+                    </Text>
+                    <Text style={styles.heroValue}>
+                        {summary.totalWorkoutDurationSeconds > 0
+                            ? formatWorkoutDuration(summary.totalWorkoutDurationSeconds)
+                            : '—'}
+                    </Text>
+                    <Text style={styles.heroCaption}>
+                        {summary.workoutsCount > 0
+                            ? t('results.daySummary.sessions', {
+                                  ns: 'screens',
+                                  count: summary.workoutsCount,
+                              })
+                            : t('results.daySummary.noSessions', { ns: 'screens' })}
+                    </Text>
+                </VStack>
                 <Stats
                     workout={healthWorkout}
                     healthStats={healthStats}

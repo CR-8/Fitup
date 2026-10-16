@@ -1,10 +1,10 @@
 import { useAnalyticsScreen } from '@/hooks/use-analytics-screen';
-import { WorkoutHubScreen } from '@/screens';
+import { PlanScreen } from '@/screens';
 
 const Workout = () => {
-    useAnalyticsScreen('workout_hub');
+    useAnalyticsScreen('plan');
 
-    return <WorkoutHubScreen />;
+    return <PlanScreen />;
 };
 
 export default Workout;

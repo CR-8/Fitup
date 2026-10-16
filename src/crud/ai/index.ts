@@ -209,6 +209,15 @@ export const getAppliedPlans = async (userId: string): Promise<AiPlanSelect[]> =
         .where(and(eq(aiPlan.userId, userId), eq(aiPlan.status, 'applied')))
         .orderBy(desc(aiPlan.appliedAt));
 
+/** Every plan, newest first, for the saved-plans list: drafts, active and archived. */
+export const getPlans = async (userId: string, limit = 50): Promise<AiPlanSelect[]> =>
+    await db
+        .select()
+        .from(aiPlan)
+        .where(eq(aiPlan.userId, userId))
+        .orderBy(desc(aiPlan.createdAt))
+        .limit(limit);
+
 export interface CreatePlanInput {
     userId: string;
     conversationId?: string | null;

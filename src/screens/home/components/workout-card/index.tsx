@@ -1,5 +1,5 @@
 import { FC, memo, useCallback, useMemo } from 'react';
-import { Platform } from 'react-native';
+import { Platform, type ColorValue } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -13,92 +13,82 @@ import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { WorkoutSelect } from '@/db/schema';
 import { VStack } from '@/components/primitives/vstack';
-import { HStack } from '@/components/primitives/hstack';
 import { useDeleteWorkout, type WorkoutOverviewMeta } from '@/hooks/use-workouts';
 import { formatWorkoutDuration } from '@/helpers/times';
 import { Icon } from '@/components/primitives/icon';
+import { getTrainingType } from '@/helpers/training-type';
 
 dayjs.extend(localizedFormat);
 
 /**
- * A workout, in a list of them.
- *
- * The muscle groups used to be a comma-joined sentence sharing a line with the
- * duration, which made the two read as one run-on string. They are chips now:
- * the same information, but scannable at the speed someone actually reads a
- * list.
+ * A workout, in a list of them, drawn as the reference's session row: a
+ * tinted glyph for the kind of training, the name, then the figure that
+ * matters in the training colour (the time it took, the time it is planned
+ * for, or the clock of a running one), with the day on the trailing edge.
  *
  * Two things here are load-bearing and easy to lose in a restyle. The
  * `Swipeable` wrapper is the only way to delete a workout from this screen — its
  * radius lives on the container so the red action is revealed with the same
- * corners. And `in_progress` inverts the whole card onto the accent colour,
- * which is what makes a running workout findable at a glance.
+ * corners. And `in_progress` outlines the card in the accent, which is what
+ * makes a running workout findable at a glance.
  */
 
 const styles = StyleSheet.create((theme) => ({
     container: (status: WorkoutSelect['status']) => ({
-        backgroundColor: status === 'in_progress' ? theme.colors.primary : theme.colors.foreground,
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous' as const,
+        borderWidth: 1,
+        borderColor: status === 'in_progress' ? theme.colors.brand[500] : theme.colors.border,
+        overflow: 'hidden' as const,
     }),
     card: {
-        paddingVertical: theme.space(4),
-        paddingHorizontal: theme.space(5),
-        gap: theme.space(2),
-    },
-    topRow: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(2),
-    },
-    eyebrow: (status: WorkoutSelect['status']) => ({
-        ...theme.typography.eyebrow,
-        color:
-            status === 'in_progress'
-                ? theme.colors.primaryTypography
-                : theme.colors.mutedTypography,
-        opacity: status === 'in_progress' ? 0.9 : 1,
-        flexShrink: 1,
-    }),
-    title: (status: WorkoutSelect['status']) => ({
-        ...theme.fontSize.lg,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: status === 'in_progress' ? theme.colors.primaryTypography : theme.colors.typography,
-    }),
-    trailing: (status: WorkoutSelect['status']) => ({
-        ...theme.fontSize.sm,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color:
-            status === 'in_progress'
-                ? theme.colors.primaryTypography
-                : theme.colors.mutedTypography,
-        fontVariant: ['tabular-nums' as const],
-    }),
-    chipRow: {
-        flexWrap: 'wrap',
-        gap: theme.space(1.5),
-        alignItems: 'center',
-    },
-    chip: (status: WorkoutSelect['status']) => ({
-        paddingHorizontal: theme.space(2.5),
-        paddingVertical: theme.space(1),
-        borderRadius: theme.radius.full,
-        backgroundColor:
-            status === 'in_progress' ? 'rgba(255,255,255,0.18)' : theme.colors.background,
-    }),
-    chipText: (status: WorkoutSelect['status']) => ({
-        ...theme.fontSize.xs,
-        fontWeight: theme.fontWeight.medium.fontWeight,
-        color: status === 'in_progress' ? theme.colors.primaryTypography : theme.colors.typography,
-    }),
-    // The affordance the plan called for: a planned workout should look startable.
-    startHint: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.space(1),
-        marginLeft: 'auto',
+        paddingVertical: theme.space(3.5),
+        paddingHorizontal: theme.space(4),
+        gap: theme.space(3),
     },
-    startHintText: {
-        ...theme.fontSize.xs,
+    glyph: (color: string) => ({
+        height: theme.space(11),
+        width: theme.space(11),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.xl,
+        borderCurve: 'continuous' as const,
+        // The training colour at a low alpha, so the glyph reads as a tint.
+        backgroundColor: `${color}2e`,
+    }),
+    body: {
+        flex: 1,
+        gap: theme.space(0.5),
+    },
+    title: {
+        ...theme.fontSize.default,
         fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.typography,
+    },
+    value: (color: ColorValue) => ({
+        fontSize: 28,
+        lineHeight: 32,
+        color,
+        ...theme.typography.metric,
+    }),
+    detail: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+    },
+    trailing: {
+        alignSelf: 'flex-end',
+        alignItems: 'flex-end',
+        gap: theme.space(0.5),
+    },
+    when: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
+    },
+    syn: {
+        ...theme.typography.eyebrow,
         color: theme.colors.primary,
     },
     swipeable: {
@@ -106,7 +96,7 @@ const styles = StyleSheet.create((theme) => ({
             ios: theme.colors.destructive,
             default: theme.colors.red[500],
         }),
-        borderRadius: theme.radius['4xl'],
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
     },
     swipeableContainer: {
@@ -130,6 +120,10 @@ interface WorkoutCardProps {
     onPress: (workoutId: string) => void;
     activeElapsedFormatted: string | null;
     overviewMeta?: WorkoutOverviewMeta;
+    /** "Push A · Week 2", when the screen knows the week; otherwise the stored name. */
+    displayName?: string;
+    /** The session came from a Syn plan. */
+    bySyn?: boolean;
 }
 
 interface RightActionProps {
@@ -161,58 +155,58 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
     onPress,
     activeElapsedFormatted,
     overviewMeta,
+    displayName,
+    bySyn,
 }) => {
     const { t, i18n } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
+    const typeColor =
+        theme.colors.training[getTrainingType(overviewMeta?.sortedPrimaryMuscleGroups)];
 
     const deleteWorkout = useDeleteWorkout();
 
-    // Capped: past three, chips wrap to a second line and the card stops being
-    // a glance.
-    const muscleGroups = useMemo(
-        () => (overviewMeta?.sortedPrimaryMuscleGroups ?? []).slice(0, 3),
-        [overviewMeta],
+    const muscles = useMemo(
+        () =>
+            (overviewMeta?.sortedPrimaryMuscleGroups ?? [])
+                .slice(0, 3)
+                .map((muscle) => t(`muscleGroup.${muscle}`, { ns: 'common', defaultValue: muscle }))
+                .join(' · '),
+        [overviewMeta, t],
     );
 
     const handlePress = useCallback(() => {
         onPress(workout.id);
     }, [onPress, workout.id]);
 
-    const formattedDate = useMemo(() => {
-        if (workout.status === 'planned' && workout.startAt) {
-            return dayjs(workout.startAt).locale(i18n.language).format('lll');
-        }
+    // The trailing edge: the weekday for a finished session, the day for a
+    // planned one, "Now" for one under way.
+    const when = useMemo(() => {
+        if (workout.status === 'in_progress') return t('now', { ns: 'common' });
 
-        if (workout.status === 'completed' && workout.completedAt) {
-            const dayName = dayjs(workout.completedAt).locale(i18n.language).format('dddd');
-            return dayName.charAt(0).toUpperCase() + dayName.slice(1);
-        }
+        const at = workout.status === 'completed' ? workout.completedAt : (workout.startAt ?? null);
+        if (!at) return t('workoutStatus.planned', { ns: 'common' });
 
-        return null;
-    }, [workout.status, workout.startAt, workout.completedAt, i18n.language]);
+        const day = dayjs(at).locale(i18n.language);
+        const label = day.isSame(dayjs(), 'week') ? day.format('dddd') : day.format('D MMM');
 
-    const formattedDuration =
-        workout.status === 'completed' && isNumber(workout.duration)
-            ? formatWorkoutDuration(workout.duration)
-            : null;
+        return label.charAt(0).toUpperCase() + label.slice(1);
+    }, [i18n.language, t, workout.completedAt, workout.startAt, workout.status]);
 
-    /** The status line: when it happened, and what kind of session it was. */
-    const eyebrow = useMemo(() => {
-        const when =
-            workout.status === 'in_progress'
-                ? t('now', { ns: 'common' })
-                : workout.status === 'planned'
-                  ? (formattedDate ?? t('workoutStatus.planned', { ns: 'common' }))
-                  : formattedDate;
-
-        const kinds = (overviewMeta?.sortedWorkoutTypes ?? []).map((type) =>
-            t(`exerciseCategory.${type}`, { ns: 'common' }),
-        );
-
-        return [when, ...kinds].filter(Boolean).join(' · ');
-    }, [formattedDate, overviewMeta, t, workout.status]);
-
-    const trailing = workout.status === 'in_progress' ? activeElapsedFormatted : formattedDuration;
+    // The big figure: how long it took, how long it has run, or when it starts.
+    const value =
+        workout.status === 'in_progress'
+            ? activeElapsedFormatted
+            : workout.status === 'completed' && isNumber(workout.duration)
+              ? formatWorkoutDuration(workout.duration)
+              : workout.status === 'planned' && workout.startAt
+                ? dayjs(workout.startAt).locale(i18n.language).format('LT')
+                : null;
+    const valueColor =
+        workout.status === 'in_progress'
+            ? theme.colors.brand[500]
+            : workout.status === 'completed'
+              ? typeColor
+              : theme.colors.mutedTypography;
 
     const handleDelete = useCallback(() => {
         deleteWorkout.mutate(workout.id);
@@ -230,49 +224,33 @@ const WorkoutCardComponent: FC<WorkoutCardProps> = ({
             )}
         >
             <Box style={styles.container(workout.status)}>
-                <Pressable onPress={handlePress}>
-                    <VStack style={styles.card}>
-                        <HStack style={styles.topRow}>
-                            <Text style={styles.eyebrow(workout.status)} numberOfLines={1}>
-                                {eyebrow}
+                <Pressable onPress={handlePress} accessibilityRole="button">
+                    <Box style={styles.card}>
+                        <Box style={styles.glyph(typeColor)}>
+                            <Icon name="dumbbell" size={20} color={typeColor} />
+                        </Box>
+
+                        <VStack style={styles.body}>
+                            <Text style={styles.title} numberOfLines={1}>
+                                {displayName ?? workout.name}
                             </Text>
-                            {trailing ? (
-                                <Text style={styles.trailing(workout.status)}>{trailing}</Text>
+                            {value ? <Text style={styles.value(valueColor)}>{value}</Text> : null}
+                            {muscles ? (
+                                <Text style={styles.detail} numberOfLines={1}>
+                                    {muscles}
+                                </Text>
                             ) : null}
-                        </HStack>
+                        </VStack>
 
-                        <Text style={styles.title(workout.status)} numberOfLines={2}>
-                            {workout.name}
-                        </Text>
-
-                        {muscleGroups.length > 0 || workout.status === 'planned' ? (
-                            <HStack style={styles.chipRow}>
-                                {muscleGroups.map((muscle) => (
-                                    <Box key={muscle} style={styles.chip(workout.status)}>
-                                        <Text style={styles.chipText(workout.status)}>
-                                            {t(`muscleGroup.${muscle}`, {
-                                                ns: 'common',
-                                                defaultValue: muscle,
-                                            })}
-                                        </Text>
-                                    </Box>
-                                ))}
-
-                                {workout.status === 'planned' ? (
-                                    <Box style={styles.startHint}>
-                                        <Icon
-                                            name="play"
-                                            size={theme.space(3.5)}
-                                            color={theme.colors.primary}
-                                        />
-                                        <Text style={styles.startHintText}>
-                                            {t('home.upNext.action.start', { ns: 'screens' })}
-                                        </Text>
-                                    </Box>
-                                ) : null}
-                            </HStack>
-                        ) : null}
-                    </VStack>
+                        <VStack style={styles.trailing}>
+                            {bySyn ? (
+                                <Text style={styles.syn}>
+                                    {t('plan.updatedBySyn', { ns: 'screens' })}
+                                </Text>
+                            ) : null}
+                            <Text style={styles.when}>{when}</Text>
+                        </VStack>
+                    </Box>
                 </Pressable>
             </Box>
         </Swipeable>
@@ -284,6 +262,8 @@ export const WorkoutCard = memo(WorkoutCardComponent, (prev, next) => {
         prev.workout === next.workout &&
         prev.onPress === next.onPress &&
         prev.activeElapsedFormatted === next.activeElapsedFormatted &&
-        prev.overviewMeta === next.overviewMeta
+        prev.overviewMeta === next.overviewMeta &&
+        prev.displayName === next.displayName &&
+        prev.bySyn === next.bySyn
     );
 });

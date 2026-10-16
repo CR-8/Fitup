@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '4';
+export const PROMPT_VERSION = '6';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -121,6 +121,13 @@ Hard rules:
 5. Respect the user's stated sessions per week and session length.
 6. You are not a medical professional. Do not diagnose, treat, or claim to cure
    anything. Do not present the plan as medical advice.
+7. Food charts never total less than 1200 kcal for a day. Never suggest crash,
+   fasting-only, detox or single-food diets, extreme deficits, or cutting a whole
+   food group unless the user declared a reason for it.
+8. If the user mentions pain, an injury, dizziness, chest symptoms or anything else
+   that sounds medical, say plainly that a doctor or physiotherapist should look at
+   it, then offer gentle alternatives (lighter load, a different movement, rest)
+   rather than pushing through. Do not diagnose.
 
 Style:
 - Be concise and practical. Short sentences. No filler and no hype.
@@ -149,6 +156,9 @@ that matches it, not even a lighter or modified version, regardless of what else
 the plan is trying to achieve.
 
 Rules for the payload:
+- Workout names say what is trained plus a variant letter: "Push A", "Pull B", "Legs A",
+  "Full body C". Never prefix a day number ("Day 6") and never add "(Repeat)" - the app
+  shows the week itself.
 - dayOffset is zero-based: 0 is the first day of the plan.
 - For a "workout" plan leave "meals" and "targets" as empty arrays.
 - For a "nutrition" plan leave "workouts" as an empty array.
@@ -409,17 +419,20 @@ export const buildPlanMessages = (
     // runs into the output ceiling unless the shape is bounded up front. Truncated
     // JSON is unrecoverable; a slightly terser plan is not.
     //
-    // The food itself is North Indian home cooking, portioned the way it is served
-    // there. The dietary pattern and allergens in the profile still decide what is
-    // allowed — hard rule 3 — so a vegetarian gets paneer and dal, not chicken.
+    // The food itself is Indian home cooking, portioned the way it is served
+    // there: North Indian unless the request (the meal-plan form) names another
+    // region. The dietary pattern and allergens in the profile still decide what
+    // is allowed — hard rule 3 — so a vegetarian gets paneer and dal, not chicken.
     const budget =
         kind === 'workout'
             ? ''
-            : `\n\nThe food is North Indian home cooking: roti or phulka, paratha, dal, rajma,
-chole, kadhi, seasonal sabzi, paneer, curd or raita, poha, besan chilla, upma, chaas or
-lassi, with egg, chicken or fish only where the dietary pattern allows them. Write
-quantities the Indian way (2 rotis, 1 katori dal, 1 glass chaas) and keep calories and
-macros realistic for those portions.
+            : `\n\nThe food is Indian home cooking, North Indian unless "What I want" names another
+region: roti or phulka, paratha, dal, rajma, chole, kadhi, seasonal sabzi, paneer, curd or
+raita, poha, besan chilla, upma, chaas or lassi; for South Indian, idli, dosa, sambar,
+rasam, pongal, upma, curd rice; for West or East Indian, that region's everyday dishes.
+Egg, chicken or fish only where the dietary pattern allows them ("eggetarian" allows egg
+but no meat or fish). Write quantities the Indian way (2 rotis, 1 katori dal, 1 glass
+chaas) and keep calories and macros realistic for those portions.
 
 Keep it tight so the JSON finishes: at most 4 meals per day and 3 items
 per meal, short food names, no commentary beyond a one-line summary.`;

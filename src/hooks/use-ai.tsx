@@ -3,11 +3,14 @@ import { Alert } from 'react-native';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { isReportableAiError, requestCompletion } from '@/api/ai';
+import { isReportableAiError, requestCompletion, useAiUsageStore } from '@/api/ai';
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
 import { extractJsonObject, parseAssessment } from '@/ai/validate';
 import { applyPlanToSchedule, revertAppliedPlan } from '@/ai/apply-plan';
+import type { PlanDiffRow } from '@/helpers/plan-diff';
+import { useAiProgressStore } from '@/stores/ai-progress';
+import { logPlanUpdated } from '@/services/notification-events';
 import {
     buildChatHistory,
     buildRequestContext,
@@ -20,6 +23,8 @@ import {
     getAppliedPlans,
     getLatestConversation,
     getMessages,
+    getPlanById,
+    getPlans,
     getPlansByIds,
     getProfile,
     markPlanDiscarded,
@@ -30,6 +35,7 @@ import { AiError } from '@/types/ai';
 import { reportError } from '@/services/error-reporting';
 
 import { useUser } from './use-user';
+import { useAccount } from './use-account';
 import { useAnalytics } from './use-analytics';
 
 /** Horizon retried when a plan at the requested length runs out of output budget. */
@@ -139,6 +145,30 @@ export const useAiPlans = (messages: AiMessageSelect[]) => {
     );
 };
 
+/** One plan by id, kept fresh by the same invalidation as the thread's plans. */
+export const usePlanById = (planId: string | undefined) => {
+    const { data } = useQuery({
+        queryKey: [PLANS_KEY, 'one', planId],
+        queryFn: () => getPlanById(planId!),
+        enabled: !!planId,
+    });
+
+    return (data ?? null) as AiPlanSelect | null;
+};
+
+/** Every saved plan, newest first. Shares the plans key, so a build or an apply refreshes it. */
+export const usePlans = () => {
+    const { user } = useUser();
+
+    const { data, isLoading } = useQuery({
+        queryKey: [PLANS_KEY, 'list', user?.id],
+        queryFn: () => getPlans(user!.id),
+        enabled: !!user?.id,
+    });
+
+    return { plans: (data ?? []) as AiPlanSelect[], isLoading };
+};
+
 export const useAiProfile = () => {
     const { user } = useUser();
     const queryClient = useQueryClient();
@@ -159,8 +189,22 @@ export const useAiProfile = () => {
     return { profile: (data ?? null) as AiProfileSelect | null, save, isSaving: isPending };
 };
 
+/** `YYYY-MM-DD` of the next UTC month start, when the server renews builds. */
+const nextUtcMonthStart = (now = new Date()): string =>
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+
+/**
+ * Plan builds left this month.
+ *
+ * The server's count when it has answered for this account this month (see
+ * `useAiUsageStore`); otherwise this device's count of saved plans, which misses
+ * builds made on another device and builds that ended in a question.
+ * `isServerCount` says which one this is.
+ */
 export const useAiQuota = () => {
     const { user } = useUser();
+    const { session } = useAccount();
+    const usage = useAiUsageStore((state) => state.usage);
 
     const { data = 0 } = useQuery({
         queryKey: [QUOTA_KEY, user?.id],
@@ -169,10 +213,18 @@ export const useAiQuota = () => {
         staleTime: 30_000,
     });
 
+    // Another account's count, or one from before the reset, says nothing about now.
+    const today = new Date().toISOString().slice(0, 10);
+    const server =
+        usage && usage.userId === session?.user.id && today < usage.resetsOn ? usage : null;
+    const limit = AI_CONFIG.monthlyQuota;
+
     return {
-        used: data,
-        limit: AI_CONFIG.monthlyQuota,
-        remaining: Math.max(0, AI_CONFIG.monthlyQuota - data),
+        used: server ? Math.max(0, limit - server.remaining) : data,
+        limit,
+        remaining: server ? server.remaining : Math.max(0, limit - data),
+        resetsOn: server?.resetsOn ?? nextUtcMonthStart(),
+        isServerCount: server !== null,
     };
 };
 
@@ -226,6 +278,12 @@ const resolveErrorKey = (error: unknown): string => {
                 return 'syn.errors.quota';
             case 'AUTH':
                 return 'syn.errors.auth';
+            case 'SIGN_IN':
+                return 'syn.errors.signIn';
+            case 'USER_QUOTA':
+                return 'syn.errors.userQuota';
+            case 'UNSAFE_PLAN':
+                return 'syn.errors.unsafe';
             case 'INVALID_RESPONSE':
                 return 'syn.errors.invalid';
             case 'TRUNCATED':
@@ -315,6 +373,9 @@ export const useAiChat = (conversationId: string | undefined) => {
             await createMessage({ conversationId, role: 'user', content: intent });
             invalidate();
 
+            const progress = useAiProgressStore.getState();
+            const signal = progress.begin();
+
             // Retrieval needs something to embed — `intent` is it. Passed as
             // buildRequestContext's fourth argument, which is what actually
             // triggers a retrieval call; omitted (as `sendMessage` above
@@ -325,6 +386,7 @@ export const useAiChat = (conversationId: string | undefined) => {
                 user.weightUnits ?? 'kg',
                 intent,
             );
+            progress.setStage('request');
 
             // The turn just written is passed separately as `intent`, and the
             // prior turns are what let the model see a question it already
@@ -354,7 +416,9 @@ export const useAiChat = (conversationId: string | undefined) => {
                         forceReady,
                     ),
                     json: true,
+                    signal,
                 });
+                progress.setStage('validate');
 
                 return {
                     result,
@@ -387,6 +451,7 @@ export const useAiChat = (conversationId: string | undefined) => {
                     });
 
                     track('ai:intake_question', { kind, model: result.model });
+                    progress.finish();
 
                     return undefined;
                 }
@@ -399,11 +464,13 @@ export const useAiChat = (conversationId: string | undefined) => {
                     });
 
                     track('ai:intake_stop', { kind, model: result.model });
+                    progress.finish();
 
                     return undefined;
                 }
 
                 const { payload, repairs } = assessment;
+                progress.setStage('save');
 
                 const plan = await createPlan({
                     userId: user.id,
@@ -427,8 +494,15 @@ export const useAiChat = (conversationId: string | undefined) => {
                     repairs: repairs.length,
                 });
 
+                progress.finish();
+
                 return plan;
             } catch (error) {
+                progress.finish();
+
+                // Cancelled by the person: nothing went wrong, so nothing is said.
+                if (signal.aborted) return undefined;
+
                 await createMessage({
                     conversationId,
                     role: 'assistant',
@@ -527,10 +601,16 @@ export const useApplyAiPlan = () => {
     const { track } = useAnalytics();
 
     const { mutateAsync: apply, isPending: isApplying } = useMutation({
-        mutationFn: async (plan: AiPlanSelect) => {
+        mutationFn: async ({ plan, rows }: { plan: AiPlanSelect; rows?: PlanDiffRow[] }) => {
             if (!user?.id) return null;
 
-            const result = await applyPlanToSchedule(plan.id, plan.payload, user.id);
+            const result = await applyPlanToSchedule(
+                plan.id,
+                plan.payload,
+                user.id,
+                new Date(),
+                rows,
+            );
             track('ai:plan_applied', { kind: plan.kind, workouts: result.workoutIds.length });
 
             return result;
@@ -541,6 +621,7 @@ export const useApplyAiPlan = () => {
             // Applying is what makes a plan the active one, which is what Home's
             // plan card reads.
             queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user?.id] });
+            if (user?.id) void logPlanUpdated(user.id);
         },
     });
 
@@ -553,6 +634,7 @@ export const useApplyAiPlan = () => {
             queryClient.invalidateQueries({ queryKey: [PLANS_KEY] });
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
             queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user?.id] });
+            if (user?.id) void logPlanUpdated(user.id, true);
         },
     });
 

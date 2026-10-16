@@ -24,7 +24,7 @@ export type BaseButtonsFieldType = {
     variant?: 'accent';
 } & UnistylesVariants<typeof styles>;
 
-const styles = StyleSheet.create((theme, rt) => ({
+const styles = StyleSheet.create((theme) => ({
     labelContainer: {
         marginBottom: theme.space(2),
     },
@@ -42,23 +42,20 @@ const styles = StyleSheet.create((theme, rt) => ({
         borderRadius: theme.radius.full,
         variants: {
             variant: {
+                // The redesign's pills: grey at rest, the accent when chosen.
                 default: {
                     backgroundColor: error
                         ? theme.colors.red[100]
                         : checked
-                          ? rt.themeName === 'dark'
-                              ? theme.colors.white
-                              : theme.colors.neutral[950]
-                          : theme.colors.background,
+                          ? theme.colors.brand[600]
+                          : theme.colors.elevated,
                 },
                 accent: {
                     backgroundColor: error
                         ? theme.colors.red[100]
                         : checked
-                          ? rt.themeName === 'dark'
-                              ? theme.colors.white
-                              : theme.colors.neutral[950]
-                          : theme.colors.foreground,
+                          ? theme.colors.brand[600]
+                          : theme.colors.elevated,
                 },
             },
             size: {
@@ -79,12 +76,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: error
             ? theme.colors.red[500]
             : checked
-              ? rt.themeName === 'dark'
-                  ? theme.colors.neutral[950]
-                  : theme.colors.white
-              : rt.themeName === 'dark'
-                ? theme.colors.white
-                : theme.colors.neutral[950],
+              ? theme.colors.white
+              : theme.colors.typography,
         fontWeight: checked
             ? theme.fontWeight.medium.fontWeight
             : theme.fontWeight.medium.fontWeight,

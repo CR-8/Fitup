@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { LineChart, type lineDataItem, yAxisSides } from 'react-native-gifted-charts';
-import { type GestureResponderEvent, Platform, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { BarChart } from 'react-native-gifted-charts';
+import { Platform } from 'react-native';
 
 import type { WorkoutSelect } from '@/db/schema';
+import { useUser } from '@/hooks/use-user';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
@@ -18,43 +18,18 @@ import { Icon } from '@/components/primitives/icon';
 
 const CHART_HEIGHT = 172;
 const CHART_EDGE_INSET = 6;
-const CHART_SECTIONS = 3;
 const Y_AXIS_LABEL_AREA = 40;
-const CURRENT_POINT_SIZE = 10;
-const CURRENT_POINT_ACTIVE_SIZE = 12;
-const CURRENT_POINT_BORDER_WIDTH = 1.5;
 
-type ActivitySummaryModel = {
-    timelineDays: number;
-    todayIndex: number;
-    currentSeries: number[];
-    previousSeries: number[];
-    currentDateLabels: string[];
-    previousDateLabels: string[];
-    xAxisTicks: string[];
-    currentTotalSeconds: number;
-    previousTotalSeconds: number;
-    currentMonthLabel: string;
-    previousMonthLabel: string;
-    maxValue: number;
-    yAxisLabels: string[];
-};
-
-type DurationUnits = {
-    hr: string;
-    min: string;
-};
+type Week = { start: dayjs.Dayjs; seconds: number };
 
 interface ActivitySummaryProps {
+    /** Part of the Results screen contract. Bars are not scrubbable, so it never fires. */
     onScrubbingChange?: (isScrubbing: boolean) => void;
 }
 
 const styles = StyleSheet.create((theme) => ({
     section: {
         gap: theme.space(3),
-    },
-    sectionHeader: {
-        gap: theme.space(0.5),
     },
     sectionTitle: {
         ...theme.fontSize['2xl'],
@@ -94,37 +69,12 @@ const styles = StyleSheet.create((theme) => ({
     monthNavButtonDisabled: {
         opacity: 0.45,
     },
-    valuesRow: {
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        gap: theme.space(3),
-    },
-    valueBlock: {
-        flex: 1,
-    },
-    prevValueBlock: {
-        alignItems: 'flex-end',
-        justifyContent: 'flex-end',
-    },
     valueText: {
         ...theme.fontSize['3xl'],
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.solid.typography,
     },
-    prevValueText: {
-        ...theme.fontSize.lg,
-        marginBottom: theme.space(0.5),
-    },
-    metaRow: {
-        alignItems: 'center',
-        gap: theme.space(1.5),
-    },
-    metaDot: {
-        width: theme.space(2),
-        height: theme.space(2),
-        borderRadius: theme.radius.full,
-    },
-    metaLabel: {
+    comparison: {
         ...theme.fontSize.sm,
         color: theme.solid.typography,
         opacity: 0.6,
@@ -132,7 +82,6 @@ const styles = StyleSheet.create((theme) => ({
     chartWrap: {
         width: '100%',
         alignSelf: 'stretch',
-        justifyContent: 'center',
     },
     chartFrame: {
         position: 'relative',
@@ -147,60 +96,25 @@ const styles = StyleSheet.create((theme) => ({
         justifyContent: 'space-between',
         alignItems: 'flex-end',
     },
-    xAxisLabel: {
+    axisLabel: {
         ...theme.fontSize['2xs'],
         color: theme.solid.typography,
         opacity: 0.6,
     },
-    yAxisLabel: {
-        ...theme.fontSize['2xs'],
-        color: theme.solid.typography,
-        opacity: 0.6,
-    },
-    xAxisMetaRow: {
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    xAxisRow: {
         marginTop: theme.space(1),
-        alignSelf: 'flex-start',
+        paddingHorizontal: CHART_EDGE_INSET,
     },
-    xAxisTickItem: {
+    xAxisItem: {
         flex: 1,
-    },
-    xAxisTickLabelStart: {
-        textAlign: 'left',
-    },
-    xAxisTickLabelCenter: {
         textAlign: 'center',
-    },
-    xAxisTickLabelEnd: {
-        textAlign: 'right',
-    },
-    touchLayer: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        height: CHART_HEIGHT,
-        zIndex: 2,
-    },
-    selectedDayGuide: {
-        position: 'absolute',
-        top: 8,
-        bottom: 0,
-        width: 1,
-        zIndex: 1,
-        height: CHART_HEIGHT,
     },
 }));
 
-const resolveWorkoutDate = (workout: WorkoutSelect): Date | null => {
-    return workout.completedAt ?? workout.startedAt ?? workout.createdAt ?? null;
-};
-
-const resolveWorkoutDurationSeconds = (workout: WorkoutSelect): number => {
+const durationSeconds = (workout: WorkoutSelect): number => {
     if (typeof workout.duration === 'number' && Number.isFinite(workout.duration)) {
         return Math.max(0, workout.duration);
     }
-
     if (workout.startedAt && workout.completedAt) {
         return Math.max(
             0,
@@ -211,524 +125,199 @@ const resolveWorkoutDurationSeconds = (workout: WorkoutSelect): number => {
     return 0;
 };
 
-const toCumulativeSeries = (values: number[]): number[] => {
-    const cumulative: number[] = [];
-    let total = 0;
+/** The smallest 1, 2 or 5 times a power of ten that is at least `value`. */
+export const niceCeil = (value: number): number => {
+    if (value <= 1) return 1;
 
-    for (const value of values) {
-        total += Math.max(0, Math.round(value));
-        cumulative.push(total);
-    }
+    const magnitude = 10 ** Math.floor(Math.log10(value));
+    const mantissa = value / magnitude;
+    const nice = mantissa <= 1 ? 1 : mantissa <= 2 ? 2 : mantissa <= 5 ? 5 : 10;
 
-    return cumulative;
+    return nice * magnitude;
 };
 
-const formatDurationLabel = (totalSeconds: number, units: DurationUnits): string => {
-    const safeSeconds = Math.max(0, Math.round(totalSeconds));
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
+/** How many gridlines divide `niceMax` into whole, readable steps. */
+const sectionsFor = (niceMax: number): number => {
+    if (niceMax <= 5) return niceMax;
 
-    if (hours > 0) {
-        return `${hours}${units.hr} ${minutes}${units.min}`;
-    }
+    const mantissa = niceMax / 10 ** Math.floor(Math.log10(niceMax));
 
-    return `${minutes}${units.min}`;
+    return mantissa === 2 ? 4 : 5;
 };
 
-const formatAxisTick = (valueSeconds: number, units: DurationUnits): string => {
-    if (!Number.isFinite(valueSeconds) || valueSeconds <= 0) {
-        return '0';
-    }
+const formatHours = (seconds: number): string => {
+    const hours = seconds / 3600;
 
-    if (valueSeconds >= 3600) {
-        const hours = valueSeconds / 3600;
-        const rounded = hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10;
-        return `${rounded}${units.hr}`;
-    }
-
-    return `${Math.round(valueSeconds / 60)}${units.min}`;
+    return `${hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10}`;
 };
 
-const formatMonthLabel = (monthStart: dayjs.Dayjs): string => {
-    const formatted = monthStart.format('MMM YYYY');
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-};
-
-const formatMonthTitle = (monthStart: dayjs.Dayjs): string => {
-    const formatted = monthStart.format('MMMM YYYY');
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-};
-
-const formatRangeLabel = (start: dayjs.Dayjs, end: dayjs.Dayjs): string => {
-    if (start.isSame(end, 'month') && start.isSame(end, 'year')) {
-        return `${start.format('D')}-${end.format('D MMM')}`;
-    }
-
-    return `${start.format('D MMM')} - ${end.format('D MMM')}`;
-};
-
-const buildXAxisTicks = (monthStart: dayjs.Dayjs, daysInMonth: number): string[] => {
-    const endIndex = daysInMonth - 1;
-    const middleIndex = Math.floor(endIndex / 2);
-
-    return [0, middleIndex, endIndex].map((dayIndex) =>
-        monthStart.date(dayIndex + 1).format('D MMM'),
-    );
-};
-
-const buildActivitySummaryModel = (
-    workouts: WorkoutSelect[],
-    visibleMonthStart: dayjs.Dayjs,
-    units: DurationUnits,
-): ActivitySummaryModel => {
-    const now = dayjs();
-    const currentMonthStart = visibleMonthStart.startOf('month');
-    const runtimeCurrentMonthStart = now.startOf('month');
-    const isVisibleCurrentMonth = currentMonthStart.isSame(runtimeCurrentMonthStart, 'month');
-    const timelineDays = currentMonthStart.daysInMonth();
-    const previousPeriodStart = currentMonthStart.subtract(timelineDays, 'day').startOf('day');
-    const previousPeriodEnd = currentMonthStart.subtract(1, 'day').startOf('day');
-    const todayIndex = isVisibleCurrentMonth
-        ? Math.min(timelineDays - 1, Math.max(0, now.date() - 1))
-        : timelineDays - 1;
-
-    const currentDurations = Array.from({ length: timelineDays }, () => 0);
-    const previousDurations = Array.from({ length: timelineDays }, () => 0);
-
-    for (const workout of workouts) {
-        if (workout.status !== 'completed') continue;
-
-        const workoutDate = resolveWorkoutDate(workout);
-        if (!workoutDate) continue;
-
-        const workoutDay = dayjs(workoutDate);
-        if (!workoutDay.isValid()) continue;
-
-        const durationSeconds = resolveWorkoutDurationSeconds(workout);
-        if (durationSeconds <= 0) continue;
-
-        if (workoutDay.isSame(currentMonthStart, 'month')) {
-            currentDurations[workoutDay.date() - 1]! += durationSeconds;
-            continue;
-        }
-
-        const isInPreviousWindow =
-            !workoutDay.isBefore(previousPeriodStart, 'day') &&
-            !workoutDay.isAfter(previousPeriodEnd, 'day');
-
-        if (isInPreviousWindow) {
-            const previousDayIndex = workoutDay.startOf('day').diff(previousPeriodStart, 'day');
-            if (previousDayIndex >= 0 && previousDayIndex < timelineDays) {
-                previousDurations[previousDayIndex] += durationSeconds;
-            }
-        }
-    }
-
-    const currentCumulative = toCumulativeSeries(currentDurations);
-    const previousCumulative = toCumulativeSeries(previousDurations);
-
-    const currentTotalSeconds = currentCumulative[todayIndex] ?? 0;
-    const previousTotalSeconds = previousCumulative[previousCumulative.length - 1] ?? 0;
-
-    const currentSeries = Array.from({ length: timelineDays }, (_, index) => {
-        if (isVisibleCurrentMonth && index > todayIndex) {
-            return currentTotalSeconds;
-        }
-
-        return currentCumulative[index] ?? currentTotalSeconds;
-    });
-
-    const previousSeries = Array.from(
-        { length: timelineDays },
-        (_, index) => previousCumulative[index] ?? 0,
-    );
-    const currentDateLabels = Array.from({ length: timelineDays }, (_, index) =>
-        currentMonthStart.date(index + 1).format('D MMM'),
-    );
-    const previousDateLabels = Array.from({ length: timelineDays }, (_, index) =>
-        previousPeriodStart.add(index, 'day').format('D MMM'),
-    );
-
-    const rawMaxValue = Math.max(
-        currentTotalSeconds,
-        previousTotalSeconds,
-        ...currentSeries,
-        ...previousSeries,
-    );
-    const maxValue = rawMaxValue > 0 ? Math.ceil(rawMaxValue * 1.08) : 3600;
-    const axisStep = maxValue / CHART_SECTIONS;
-    const yAxisLabels = Array.from({ length: CHART_SECTIONS + 1 }, (_, index) => {
-        const fromTop = CHART_SECTIONS - index;
-        return formatAxisTick(fromTop * axisStep, units);
-    });
-    const xAxisTicks = buildXAxisTicks(currentMonthStart, timelineDays);
-
-    return {
-        timelineDays,
-        todayIndex,
-        currentSeries,
-        previousSeries,
-        currentDateLabels,
-        previousDateLabels,
-        xAxisTicks,
-        currentTotalSeconds,
-        previousTotalSeconds,
-        currentMonthLabel: formatMonthLabel(currentMonthStart),
-        previousMonthLabel: formatRangeLabel(previousPeriodStart, previousPeriodEnd),
-        maxValue,
-        yAxisLabels,
-    };
-};
-
-const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
+const ActivitySummary = (_: ActivitySummaryProps) => {
     const { t } = useTranslation(['common', 'screens']);
     const { theme, rt } = useUnistyles();
     const { data: workouts = [] } = useWorkouts();
+    const { user } = useUser();
     const { track } = useAnalytics();
     const [chartWidth, setChartWidth] = useState(0);
     const [visibleMonthStart, setVisibleMonthStart] = useState(() => dayjs().startOf('month'));
-    const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
-    const [isScrubbing, setIsScrubbing] = useState(false);
-    const lastHapticDayIndexRef = useRef<number | null>(null);
 
-    const durationUnits = useMemo<DurationUnits>(
-        () => ({
-            hr: t('durations.hr', { ns: 'common' }),
-            min: t('durations.min', { ns: 'common' }),
-        }),
-        [t],
-    );
+    const hr = t('durations.hr', { ns: 'common' });
+    const min = t('durations.min', { ns: 'common' });
 
-    const model = useMemo(
-        () => buildActivitySummaryModel(workouts, visibleMonthStart, durationUnits),
-        [durationUnits, visibleMonthStart, workouts],
-    );
-    const monthTitle = useMemo(() => formatMonthTitle(visibleMonthStart), [visibleMonthStart]);
-    const canGoForward = useMemo(() => {
-        const currentMonthStart = dayjs().startOf('month');
-        return visibleMonthStart.isBefore(currentMonthStart, 'month');
-    }, [visibleMonthStart]);
+    const { weeks, monthSeconds, previousSeconds } = useMemo(() => {
+        const monthEnd = visibleMonthStart.endOf('month');
+        const previousStart = visibleMonthStart.subtract(1, 'month');
+        const mondayFirst = user?.firstWeekday !== 1;
+        const weekStartOf = (date: dayjs.Dayjs) =>
+            date.startOf('day').subtract(mondayFirst ? (date.day() + 6) % 7 : date.day(), 'day');
 
-    const currentLineColor = theme.colors.brand[400];
-    const previousLineColor = theme.solid.border;
+        const list: Week[] = [];
+        for (
+            let start = weekStartOf(visibleMonthStart);
+            !start.isAfter(monthEnd);
+            start = start.add(7, 'day')
+        ) {
+            list.push({ start, seconds: 0 });
+        }
+
+        let month = 0;
+        let previous = 0;
+        for (const workout of workouts) {
+            if (workout.status !== 'completed' || !workout.completedAt) continue;
+
+            const seconds = durationSeconds(workout);
+            const completed = dayjs(workout.completedAt);
+
+            if (completed.isSame(visibleMonthStart, 'month')) {
+                month += seconds;
+                const week = list.find(
+                    (entry) =>
+                        !completed.isBefore(entry.start, 'day') &&
+                        completed.isBefore(entry.start.add(7, 'day'), 'day'),
+                );
+                if (week) week.seconds += seconds;
+            } else if (completed.isSame(previousStart, 'month')) {
+                previous += seconds;
+            }
+        }
+
+        return { weeks: list, monthSeconds: month, previousSeconds: previous };
+    }, [user?.firstWeekday, visibleMonthStart, workouts]);
+
+    const maxHours = Math.max(0, ...weeks.map((week) => week.seconds / 3600));
+    const niceMax = niceCeil(maxHours);
+    const sections = sectionsFor(niceMax);
+    const yAxisLabels = Array.from({ length: sections + 1 }, (_value, index) => {
+        const value = ((sections - index) * niceMax) / sections;
+
+        return value === 0 ? '0' : `${value}${hr}`;
+    });
+
+    const canGoForward = visibleMonthStart.isBefore(dayjs().startOf('month'), 'month');
     const navIconColor = Platform.select({
         ios: theme.solid.typography,
         default: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
     });
 
-    const clampedSelectedDayIndex = useMemo(() => {
-        if (selectedDayIndex == null) return null;
-        return Math.max(0, Math.min(selectedDayIndex, model.timelineDays - 1));
-    }, [model.timelineDays, selectedDayIndex]);
-
-    const renderCurrentDataPoint = useCallback(
-        (isActive: boolean) => (
-            <View
-                style={{
-                    width: isActive ? CURRENT_POINT_ACTIVE_SIZE : CURRENT_POINT_SIZE,
-                    height: isActive ? CURRENT_POINT_ACTIVE_SIZE : CURRENT_POINT_SIZE,
-                    borderRadius: (isActive ? CURRENT_POINT_ACTIVE_SIZE : CURRENT_POINT_SIZE) / 1.5,
-                    borderWidth: CURRENT_POINT_BORDER_WIDTH,
-                    borderColor: currentLineColor,
-                    backgroundColor: isActive ? currentLineColor : theme.solid.foreground,
-                }}
-            />
-        ),
-        [currentLineColor, theme.solid.foreground],
-    );
-
-    const chartData = useMemo(() => {
-        const lineChartWidth = Math.max(1, chartWidth - Y_AXIS_LABEL_AREA);
-        if (lineChartWidth <= 0) {
-            return {
-                current: [] as lineDataItem[],
-                previous: [] as lineDataItem[],
-            };
-        }
-
-        const timelineWidth = Math.max(0, lineChartWidth - CHART_EDGE_INSET * 2);
-        const segmentSpacing =
-            model.timelineDays > 1 ? timelineWidth / (model.timelineDays - 1) : 0;
-
-        const current = model.currentSeries.map((value, index) => {
-            const previousValue = index > 0 ? (model.currentSeries[index - 1] ?? 0) : 0;
-            const shouldShowPoint = value > previousValue;
-            const isActive =
-                shouldShowPoint &&
-                clampedSelectedDayIndex != null &&
-                index === clampedSelectedDayIndex;
-            const pointSize = isActive ? CURRENT_POINT_ACTIVE_SIZE : CURRENT_POINT_SIZE;
-
-            return {
-                value,
-                spacing: index < model.currentSeries.length - 1 ? segmentSpacing : 0,
-                hideDataPoint: !shouldShowPoint,
-                customDataPoint: shouldShowPoint
-                    ? () => renderCurrentDataPoint(isActive)
-                    : undefined,
-                dataPointWidth: shouldShowPoint ? pointSize : undefined,
-                dataPointHeight: shouldShowPoint ? pointSize : undefined,
-                dataPointRadius: shouldShowPoint ? pointSize / 2 : undefined,
-            } satisfies lineDataItem;
-        });
-
-        const previous = model.previousSeries.map((value, index) => {
-            return {
-                value,
-                spacing: index < model.previousSeries.length - 1 ? segmentSpacing : 0,
-            } satisfies lineDataItem;
-        });
-
-        return { current, previous };
-    }, [chartWidth, clampedSelectedDayIndex, model, renderCurrentDataPoint]);
-
-    const lineChartWidth = Math.max(1, chartWidth - Y_AXIS_LABEL_AREA);
-    const timelineWidth = Math.max(1, lineChartWidth - CHART_EDGE_INSET * 2);
-
-    const displayedCurrentTotalSeconds =
-        clampedSelectedDayIndex == null
-            ? model.currentTotalSeconds
-            : (model.currentSeries[clampedSelectedDayIndex] ?? model.currentTotalSeconds);
-    const displayedPreviousTotalSeconds =
-        clampedSelectedDayIndex == null
-            ? model.previousTotalSeconds
-            : (model.previousSeries[clampedSelectedDayIndex] ?? model.previousTotalSeconds);
-    const displayedCurrentMetaLabel =
-        clampedSelectedDayIndex == null
-            ? model.currentMonthLabel
-            : (model.currentDateLabels[clampedSelectedDayIndex] ?? model.currentMonthLabel);
-    const displayedPreviousMetaLabel =
-        clampedSelectedDayIndex == null
-            ? model.previousMonthLabel
-            : (model.previousDateLabels[clampedSelectedDayIndex] ?? model.previousMonthLabel);
-
-    const selectedGuideX =
-        clampedSelectedDayIndex == null || model.timelineDays <= 1
-            ? null
-            : Math.round(
-                  CHART_EDGE_INSET +
-                      (clampedSelectedDayIndex / (model.timelineDays - 1)) * timelineWidth,
-              );
-
-    const resolveDayIndexFromTouchX = useCallback(
-        (touchX: number) => {
-            if (model.timelineDays <= 1) return 0;
-
-            const clampedTouchX = Math.max(
-                CHART_EDGE_INSET,
-                Math.min(touchX, CHART_EDGE_INSET + timelineWidth),
+    const changeMonth = useCallback(
+        (direction: 'previous' | 'next') => {
+            track('progress:period_changed', { surface: 'activity_summary', direction });
+            setVisibleMonthStart((prev) =>
+                prev.add(direction === 'next' ? 1 : -1, 'month').startOf('month'),
             );
-            const ratio = (clampedTouchX - CHART_EDGE_INSET) / timelineWidth;
-            return Math.round(ratio * (model.timelineDays - 1));
         },
-        [model.timelineDays, timelineWidth],
+        [track],
     );
 
-    const resetScrubbingState = useCallback(() => {
-        setIsScrubbing(false);
-        setSelectedDayIndex(null);
-        onScrubbingChange?.(false);
-    }, [onScrubbingChange]);
-
-    const handleChartTouch = useCallback(
-        (event: GestureResponderEvent) => {
-            const nextIndex = resolveDayIndexFromTouchX(event.nativeEvent.locationX);
-            setSelectedDayIndex((prev) => (prev === nextIndex ? prev : nextIndex));
-        },
-        [resolveDayIndexFromTouchX],
+    const chartContentWidth = Math.max(1, chartWidth - Y_AXIS_LABEL_AREA);
+    const slot = Math.max(
+        1,
+        (chartContentWidth - CHART_EDGE_INSET * 2) / Math.max(1, weeks.length),
     );
+    const barWidth = Math.min(theme.space(8), slot * 0.5);
+    const barSpacing = slot - barWidth;
 
-    const handleChartTouchStart = useCallback(
-        (event: GestureResponderEvent) => {
-            setIsScrubbing(true);
-            onScrubbingChange?.(true);
-            handleChartTouch(event);
-        },
-        [handleChartTouch, onScrubbingChange],
-    );
-
-    const handleChartTouchEnd = useCallback(() => {
-        resetScrubbingState();
-    }, [resetScrubbingState]);
-
-    const handlePrevMonth = useCallback(() => {
-        resetScrubbingState();
-        track('progress:period_changed', {
-            surface: 'activity_summary',
-            direction: 'previous',
-        });
-        setVisibleMonthStart((prev) => prev.subtract(1, 'month').startOf('month'));
-    }, [resetScrubbingState, track]);
-
-    const handleNextMonth = useCallback(() => {
-        if (!canGoForward) return;
-        resetScrubbingState();
-        track('progress:period_changed', {
-            surface: 'activity_summary',
-            direction: 'next',
-        });
-        setVisibleMonthStart((prev) => {
-            const next = prev.add(1, 'month').startOf('month');
-            const currentMonthStart = dayjs().startOf('month');
-            return next.isAfter(currentMonthStart, 'month') ? prev : next;
-        });
-    }, [canGoForward, resetScrubbingState, track]);
-
-    useEffect(() => {
-        return () => {
-            onScrubbingChange?.(false);
-        };
-    }, [onScrubbingChange]);
-
-    useEffect(() => {
-        if (!isScrubbing || clampedSelectedDayIndex == null) {
-            lastHapticDayIndexRef.current = null;
-            return;
-        }
-
-        if (lastHapticDayIndexRef.current === clampedSelectedDayIndex) {
-            return;
-        }
-
-        lastHapticDayIndexRef.current = clampedSelectedDayIndex;
-        void Haptics.selectionAsync();
-    }, [clampedSelectedDayIndex, isScrubbing]);
+    const totalLabel = `${Math.floor(monthSeconds / 3600)}${hr} ${Math.floor((monthSeconds % 3600) / 60)}${min}`;
 
     return (
         <VStack style={styles.section}>
-            <VStack style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                    {t('results.activitySummary.title', { ns: 'screens' })}
-                </Text>
-            </VStack>
+            <Text style={styles.sectionTitle}>
+                {t('results.activitySummary.title', { ns: 'screens' })}
+            </Text>
             <VStack style={styles.card}>
-                <HStack style={styles.valuesRow}>
-                    <VStack style={styles.valueBlock}>
-                        <Text style={styles.valueText}>
-                            {formatDurationLabel(displayedCurrentTotalSeconds, durationUnits)}
-                        </Text>
-                        <HStack style={styles.metaRow}>
-                            <Box style={[styles.metaDot, { backgroundColor: currentLineColor }]} />
-                            <Text style={styles.metaLabel}>{displayedCurrentMetaLabel}</Text>
-                        </HStack>
-                    </VStack>
-                    <VStack style={[styles.valueBlock, styles.prevValueBlock]}>
-                        <Text style={[styles.valueText, styles.prevValueText]}>
-                            {formatDurationLabel(displayedPreviousTotalSeconds, durationUnits)}
-                        </Text>
-                        <HStack style={styles.metaRow}>
-                            <Box style={[styles.metaDot, { backgroundColor: previousLineColor }]} />
-                            <Text style={styles.metaLabel}>{displayedPreviousMetaLabel}</Text>
-                        </HStack>
-                    </VStack>
-                </HStack>
+                <VStack>
+                    <Text style={styles.valueText}>{totalLabel}</Text>
+                    <Text style={styles.comparison}>
+                        {t('results.activitySummary.vsLastMonth', {
+                            ns: 'screens',
+                            value: `${formatHours(previousSeconds)}${hr}`,
+                        })}
+                    </Text>
+                </VStack>
                 <VStack
                     style={styles.chartWrap}
                     onLayout={(event) => {
                         const width = Math.round(event.nativeEvent.layout.width);
-                        if (width > 0 && width !== chartWidth) {
-                            setChartWidth(width);
-                        }
+                        if (width > 0 && width !== chartWidth) setChartWidth(width);
                     }}
                 >
                     {chartWidth > 0 && (
                         <VStack style={styles.chartFrame}>
-                            <LineChart
-                                data={chartData.current}
-                                data2={chartData.previous}
-                                width={lineChartWidth}
+                            <BarChart
+                                data={weeks.map((week) => ({ value: week.seconds / 3600 }))}
+                                width={chartContentWidth}
                                 height={CHART_HEIGHT}
-                                disableScroll
-                                adjustToWidth
-                                initialSpacing={CHART_EDGE_INSET}
+                                noOfSections={sections}
+                                maxValue={niceMax}
+                                frontColor={theme.colors.brand[500]}
+                                barBorderRadius={theme.radius.xs}
+                                barWidth={barWidth}
+                                spacing={barSpacing}
+                                initialSpacing={CHART_EDGE_INSET + barSpacing / 2}
                                 endSpacing={CHART_EDGE_INSET}
-                                endIndex={model.todayIndex}
-                                endIndex2={model.timelineDays - 1}
-                                maxValue={model.maxValue}
-                                noOfSections={CHART_SECTIONS}
-                                thickness={4}
-                                thickness2={2}
-                                color={currentLineColor}
-                                color2={previousLineColor}
-                                hideDataPoints={false}
-                                hideDataPoints1={false}
-                                hideDataPoints2={true}
-                                dataPointsRadius2={0}
-                                dataPointsColor2="transparent"
-                                xAxisThickness={1}
                                 xAxisColor={theme.solid.border}
-                                xAxisLabelsHeight={0}
-                                labelsExtraHeight={0}
-                                yAxisSide={yAxisSides.RIGHT}
+                                xAxisThickness={1}
                                 hideYAxisText
                                 yAxisLabelWidth={0}
                                 yAxisThickness={0}
+                                xAxisLabelsHeight={0}
+                                labelsExtraHeight={0}
+                                hideRules={false}
                                 rulesColor={theme.solid.border}
                                 rulesThickness={1}
-                                hideRules={false}
-                            />
-                            {selectedGuideX != null && (
-                                <Box
-                                    pointerEvents="none"
-                                    style={[
-                                        styles.selectedDayGuide,
-                                        {
-                                            left: selectedGuideX,
-                                            backgroundColor: theme.solid.border,
-                                            opacity: 0.95,
-                                        },
-                                    ]}
-                                />
-                            )}
-                            <View
-                                style={[styles.touchLayer, { width: lineChartWidth }]}
-                                onStartShouldSetResponder={() => true}
-                                onMoveShouldSetResponder={() => true}
-                                onResponderGrant={handleChartTouchStart}
-                                onResponderMove={handleChartTouch}
-                                onResponderRelease={handleChartTouchEnd}
-                                onResponderTerminate={handleChartTouchEnd}
-                                onResponderTerminationRequest={() => false}
+                                disableScroll
+                                adjustToWidth
                             />
                             <VStack pointerEvents="none" style={styles.yAxisOverlay}>
-                                {model.yAxisLabels.map((label, index) => (
-                                    <Text key={`y-axis-${index}`} style={styles.yAxisLabel}>
+                                {yAxisLabels.map((label, index) => (
+                                    <Text key={`y-${index}`} style={styles.axisLabel}>
                                         {label}
                                     </Text>
                                 ))}
                             </VStack>
                         </VStack>
                     )}
-                    <HStack
-                        style={[
-                            styles.xAxisMetaRow,
-                            {
-                                width: lineChartWidth,
-                                paddingHorizontal: CHART_EDGE_INSET,
-                            },
-                        ]}
-                    >
-                        {model.xAxisTicks.map((label, index) => (
-                            <Box key={`x-axis-${index}`} style={styles.xAxisTickItem}>
-                                <Text
-                                    numberOfLines={1}
-                                    style={[
-                                        styles.xAxisLabel,
-                                        index === 0
-                                            ? styles.xAxisTickLabelStart
-                                            : index === model.xAxisTicks.length - 1
-                                              ? styles.xAxisTickLabelEnd
-                                              : styles.xAxisTickLabelCenter,
-                                    ]}
-                                >
-                                    {label}
-                                </Text>
-                            </Box>
+                    <HStack style={[styles.xAxisRow, { width: chartContentWidth }]}>
+                        {weeks.map((week) => (
+                            <Text
+                                key={week.start.valueOf()}
+                                numberOfLines={1}
+                                style={[styles.axisLabel, styles.xAxisItem]}
+                            >
+                                {week.start.format('D MMM')}
+                            </Text>
                         ))}
                     </HStack>
                 </VStack>
                 <HStack style={styles.monthHeader}>
-                    <Pressable onPress={handlePrevMonth} hitSlop={theme.space(2)}>
+                    <Pressable
+                        onPress={() => changeMonth('previous')}
+                        hitSlop={theme.space(2)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('previous', {
+                            ns: 'common',
+                            defaultValue: 'Previous',
+                        })}
+                    >
                         <Box style={styles.monthNavButton}>
                             <Icon
                                 name="chevron-left"
@@ -738,11 +327,13 @@ const ActivitySummary = ({ onScrubbingChange }: ActivitySummaryProps) => {
                             />
                         </Box>
                     </Pressable>
-                    <Text style={styles.monthTitle}>{monthTitle}</Text>
+                    <Text style={styles.monthTitle}>{visibleMonthStart.format('MMMM YYYY')}</Text>
                     <Pressable
-                        onPress={handleNextMonth}
+                        onPress={() => canGoForward && changeMonth('next')}
                         disabled={!canGoForward}
                         hitSlop={theme.space(2)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('next', { ns: 'common', defaultValue: 'Next' })}
                     >
                         <Box
                             style={[

@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import { ListFilter } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
@@ -44,9 +45,14 @@ const FilterButton: FC<FilterButtonProps> = ({
     iconColor,
 }) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation(['common']);
 
     return (
-        <Pressable onPress={onPress}>
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={t('filter', { ns: 'common' })}
+        >
             <Box style={[styles.container, containerStyle]}>
                 <ListFilter
                     size={iconSize ?? theme.space(5.5)}

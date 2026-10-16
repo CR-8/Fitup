@@ -30,8 +30,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(5),
     },
     fieldContainer: {
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
     },
     sliderWrapper: {

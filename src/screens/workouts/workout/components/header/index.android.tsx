@@ -2,7 +2,7 @@ import { FC, useMemo } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
-import { Title } from '@/components/typography/title';
+import { SessionHero } from '../hero';
 import { Box } from '@/components/primitives/box';
 import { useLocalSearchParams } from 'expo-router';
 import { useWorkout } from '@/hooks/use-workouts';
@@ -14,8 +14,6 @@ import { BaseButtons } from '@/components/forms/fields/base/buttons';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
-        paddingHorizontal: theme.space(4),
-        backgroundColor: theme.colors.brand[400],
         paddingBottom: theme.space(5),
     },
     stateContainer: {
@@ -29,19 +27,16 @@ const styles = StyleSheet.create((theme) => ({
     state: {
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
-        color: theme.colors.neutral[950],
-    },
-    title: {
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
     },
     stateTitle: {
-        fontWeight: theme.fontWeight.semibold.fontWeight,
         fontSize: theme.fontSize.default.fontSize,
-        color: theme.colors.neutral[950],
+        color: theme.colors.typography,
+        ...theme.typography.metric,
     },
     environmentToggle: {
         marginTop: theme.space(3),
+        marginHorizontal: theme.space(4),
         alignSelf: 'flex-start',
     },
 }));
@@ -86,9 +81,7 @@ export const Header: FC = () => {
             <Box style={styles.stateContainer}>
                 {title && <Text style={styles.stateTitle}>{title}</Text>}
             </Box>
-            <Title type="h3" style={styles.title}>
-                {workout?.name}
-            </Title>
+            {workout ? <SessionHero workoutId={workout.id} name={workout.name} /> : null}
             <BaseButtons
                 size="small"
                 choicesContainerStyle={styles.environmentToggle}

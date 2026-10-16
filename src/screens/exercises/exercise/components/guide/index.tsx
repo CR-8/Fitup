@@ -72,11 +72,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         padding: theme.space(5),
         gap: theme.space(5),
     },
+    // On the white plate, so always dark text (the light theme colour on
+    // white was invisible on iOS in dark mode).
     heroTitle: {
-        color: Platform.select({
-            ios: theme.colors.typography,
-            default: theme.colors.neutral[950],
-        }),
+        color: theme.colors.neutral[950],
     },
     heroImage: {
         width: '100%',

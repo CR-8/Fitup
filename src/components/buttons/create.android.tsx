@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
@@ -30,9 +31,14 @@ const CreateButton: FC<CreateButtonProps> = ({
     iconColor,
 }) => {
     const { theme, rt } = useUnistyles();
+    const { t } = useTranslation(['common']);
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            onPress={onPressHandler}
+            accessibilityRole="button"
+            accessibilityLabel={t('create', { ns: 'common' })}
+        >
             <Box style={[styles.createContainer, containerStyle]}>
                 <Plus
                     size={iconSize || theme.space(7)}

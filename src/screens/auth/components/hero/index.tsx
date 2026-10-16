@@ -8,6 +8,7 @@ import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Title } from '@/components/typography/title';
+import { SynMark } from '@/components/brand/syn-mark';
 import { Icon, type IconName } from '@/components/primitives/icon';
 
 /**
@@ -86,7 +87,7 @@ const styles = StyleSheet.create((theme) => ({
 
 interface AuthHeroProps {
     /** Left out on sign-in, where the badge is the app's own logo instead. */
-    icon?: IconName;
+    icon?: IconName | 'syn';
     /** Short, uppercase context tag above the title — e.g. "FitSyn". */
     eyebrow: string;
     title: string;
@@ -113,7 +114,11 @@ export const AuthHero: FC<AuthHeroProps> = ({ icon, eyebrow, title, subtitle, ch
                 )}
                 {icon ? (
                     <Box style={styles.badge}>
-                        <Icon name={icon} size={theme.space(7)} color={theme.colors.primary} />
+                        {icon === 'syn' ? (
+                            <SynMark size={theme.space(9)} />
+                        ) : (
+                            <Icon name={icon} size={theme.space(7)} color={theme.colors.primary} />
+                        )}
                     </Box>
                 ) : (
                     <Image source={LOGO} style={styles.logo} accessibilityIgnoresInvertColors />

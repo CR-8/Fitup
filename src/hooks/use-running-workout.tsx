@@ -29,6 +29,8 @@ import { resolveMhrFromProfile } from '@/helpers/heart-rate-zones';
 import { normalizeSetType } from '@/helpers/set-type';
 import { WorkoutItem } from '@/screens/workouts/workout/types';
 import { useActionsStore } from '@/stores/actions';
+import { STALE_AFTER_MS, getLastActivityMs } from '@/helpers/workout-activity';
+import type { CompleteWorkoutAt } from '@/crud/workout';
 
 import { useAudio } from './use-audio';
 import {
@@ -36,6 +38,7 @@ import {
     useCompleteExerciseSet,
     useStartWorkout,
     useUpdateExerciseSet,
+    useUpdateWorkout,
     useWorkoutExercises,
     useWorkoutGroups,
     useWorkoutWithDetails,
@@ -1597,6 +1600,67 @@ const useRunningWorkoutProvider = () => {
         [ensureWorkoutHealthReady, playWorkoutStart, runningWorkout, start],
     );
 
+    const runComplete = useCallback(
+        (completeAt?: CompleteWorkoutAt) => {
+            if (!runningWorkout) return;
+            watchManagerRef.current.hydrateLifecycleState();
+            const preferWatchSave = watchManagerRef.current.isTrackingOnWatch;
+            const watchUsed = watchManagerRef.current.wasWorkoutTracked(runningWorkout.id);
+            setIsTrackingOnWatch(preferWatchSave);
+            complete.mutate(
+                {
+                    workoutId: runningWorkout.id,
+                    completionSource: 'phone',
+                    completeAt,
+                    watchUsed,
+                    liveActivityUsed: liveActivityUsedWorkoutIdsRef.current.has(runningWorkout.id),
+                },
+                {
+                    onSuccess: (completion) => {
+                        if (!completion.didComplete) return;
+                        const data = completion.workout;
+                        playWorkoutStop();
+                        runInBackground(
+                            () =>
+                                syncCompletedWorkoutHealth(data, {
+                                    preferWatchSave,
+                                }),
+                            'Failed to sync completed workout health after workout completion:',
+                        );
+                        runInBackground(
+                            () => watchManagerRef.current.end(data.id),
+                            'Failed to end watch session after workout completion:',
+                        );
+                        // Asked here rather than on the screen the
+                        // tap came from, so that every way of
+                        // ending a session gets the same question
+                        // and generation is not left guessing for
+                        // workouts finished from the other one.
+                        openActions({
+                            type: 'workout__feedback',
+                            title: t('workoutFeedback', { ns: 'common' }),
+                            showCloseButton: true,
+                            payload: { workoutId: data.id },
+                        });
+                        runInBackground(
+                            () => maybeShowAppReviewPrompt(data, 'phone'),
+                            'Failed to show post-workout app review prompt:',
+                        );
+                    },
+                },
+            );
+        },
+        [
+            complete,
+            maybeShowAppReviewPrompt,
+            openActions,
+            playWorkoutStop,
+            runningWorkout,
+            syncCompletedWorkoutHealth,
+            t,
+        ],
+    );
+
     const completeWorkout = useCallback(() => {
         if (!runningWorkout) return;
         Alert.alert(
@@ -1609,72 +1673,77 @@ const useRunningWorkoutProvider = () => {
                 },
                 {
                     text: t('complete', { ns: 'common' }),
-                    onPress: () => {
-                        watchManagerRef.current.hydrateLifecycleState();
-                        const preferWatchSave = watchManagerRef.current.isTrackingOnWatch;
-                        const watchUsed = watchManagerRef.current.wasWorkoutTracked(
-                            runningWorkout.id,
-                        );
-                        setIsTrackingOnWatch(preferWatchSave);
-                        complete.mutate(
-                            {
-                                workoutId: runningWorkout.id,
-                                completionSource: 'phone',
-                                watchUsed,
-                                liveActivityUsed: liveActivityUsedWorkoutIdsRef.current.has(
-                                    runningWorkout.id,
-                                ),
-                            },
-                            {
-                                onSuccess: (completion) => {
-                                    if (!completion.didComplete) return;
-                                    const data = completion.workout;
-                                    playWorkoutStop();
-                                    runInBackground(
-                                        () =>
-                                            syncCompletedWorkoutHealth(data, {
-                                                preferWatchSave,
-                                            }),
-                                        'Failed to sync completed workout health after workout completion:',
-                                    );
-                                    runInBackground(
-                                        () => watchManagerRef.current.end(data.id),
-                                        'Failed to end watch session after workout completion:',
-                                    );
-                                    // Asked here rather than on the screen the
-                                    // tap came from, so that every way of
-                                    // ending a session gets the same question
-                                    // and generation is not left guessing for
-                                    // workouts finished from the other one.
-                                    openActions({
-                                        type: 'workout__feedback',
-                                        title: t('workoutFeedback', { ns: 'common' }),
-                                        showCloseButton: true,
-                                        payload: { workoutId: data.id },
-                                    });
-                                    runInBackground(
-                                        () => maybeShowAppReviewPrompt(data, 'phone'),
-                                        'Failed to show post-workout app review prompt:',
-                                    );
-                                },
-                            },
-                        );
-                    },
+                    onPress: () => runComplete(),
                 },
             ],
             {
                 cancelable: true,
             },
         );
-    }, [
-        complete,
-        maybeShowAppReviewPrompt,
-        openActions,
-        playWorkoutStop,
-        runningWorkout,
-        syncCompletedWorkoutHealth,
-        t,
-    ]);
+    }, [runComplete, runningWorkout, t]);
+
+    // A workout left running overnight would otherwise be "finished" by the
+    // clock, crediting it the whole gap. On launch and on foreground, ask once
+    // what to do with one whose last activity is long past.
+    const { mutateAsync: updateWorkoutRecord } = useUpdateWorkout();
+    const stalePromptOpenRef = useRef(false);
+    const resumedAtRef = useRef(new Map<string, number>());
+
+    const checkStaleWorkout = useCallback(() => {
+        if (!runningWorkout || !workoutDetails || stalePromptOpenRef.current) return;
+
+        const lastActivity = Math.max(
+            getLastActivityMs(
+                runningWorkout.startedAt,
+                workoutDetails.exercises.flatMap((exercise) => exercise.sets),
+            ) ?? 0,
+            resumedAtRef.current.get(runningWorkout.id) ?? 0,
+        );
+        if (!lastActivity || Date.now() - lastActivity < STALE_AFTER_MS) return;
+
+        const settle = (action: () => void) => () => {
+            stalePromptOpenRef.current = false;
+            action();
+        };
+
+        stalePromptOpenRef.current = true;
+        Alert.alert(
+            t('staleWorkout.title', { ns: 'common', name: runningWorkout.name }),
+            t('staleWorkout.body', { ns: 'common' }),
+            [
+                {
+                    text: t('staleWorkout.finish', { ns: 'common' }),
+                    onPress: settle(() => runComplete('last-activity')),
+                },
+                {
+                    text: t('staleWorkout.resume', { ns: 'common' }),
+                    onPress: settle(() => resumedAtRef.current.set(runningWorkout.id, Date.now())),
+                },
+                {
+                    text: t('staleWorkout.discard', { ns: 'common' }),
+                    style: 'destructive',
+                    // Cancelled, not deleted: nothing the user logged is lost.
+                    onPress: settle(() => {
+                        void updateWorkoutRecord({
+                            id: runningWorkout.id,
+                            updates: { status: 'cancelled' },
+                        }).catch((error) => reportError(error, 'Failed to discard stale workout:'));
+                    }),
+                },
+            ],
+            { cancelable: false },
+        );
+    }, [runComplete, runningWorkout, t, updateWorkoutRecord, workoutDetails]);
+
+    useEffect(() => {
+        checkStaleWorkout();
+
+        const subscription = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') checkStaleWorkout();
+        });
+
+        return () => subscription.remove();
+    }, [checkStaleWorkout]);
 
     const resetWatchSync = useCallback(() => {
         watchManagerRef.current.reset();

@@ -40,10 +40,11 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(8),
         padding: theme.space(0.75),
     },
+    // As the iOS switch: a white thumb on an accent track when on.
     thumb: {
         height: '100%',
         aspectRatio: 1,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.white,
     },
     title: (error: boolean) => ({
         fontWeight: theme.fontWeight.medium.fontWeight,
@@ -71,7 +72,7 @@ const Switch: FC<SwitchType> = ({ value, title, description, onChange, container
         const color = interpolateColor(
             isOn.get(),
             [0, 1],
-            [!!error ? theme.colors.red[100] : theme.solid.foreground, theme.solid.typography],
+            [!!error ? theme.colors.red[100] : theme.solid.elevated, theme.colors.brand[600]],
         );
         const colorValue = withTiming(color, { duration });
 

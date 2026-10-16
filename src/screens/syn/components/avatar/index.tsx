@@ -1,8 +1,8 @@
 import { FC } from 'react';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
-import { Icon } from '@/components/primitives/icon';
+import { SynMark } from '@/components/brand/syn-mark';
 
 const styles = StyleSheet.create((theme) => ({
     avatar: {
@@ -17,11 +17,9 @@ const styles = StyleSheet.create((theme) => ({
 
 /** Syn's mark beside its turns: the auth hero's badge, at message size. */
 export const SynAvatar: FC = () => {
-    const { theme } = useUnistyles();
-
     return (
         <Box style={styles.avatar}>
-            <Icon name="sparkles" size={theme.space(3.5)} color={theme.colors.primary} />
+            <SynMark size={20} />
         </Box>
     );
 };

@@ -1,25 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Image } from 'expo-image';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { VStack } from '@/components/primitives/vstack';
+import { HStack } from '@/components/primitives/hstack';
+import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
+import { Title } from '@/components/typography/title';
 import { Pressable } from '@/components/primitives/pressable';
 import { Button } from '@/components/buttons/base';
 import { Label } from '@/components/forms/label';
 import { Input } from '@/components/forms/fields/input';
-import { Separator } from '@/components/layout/separator';
 import { MIN_PASSWORD_LENGTH } from '@/constants/auth';
 import {
     AuthError,
     claimOAuthNavigation,
+    isAppleAvailable,
     isGoogleAvailable,
+    signInWithApple,
     signInWithEmail,
     signInWithGoogle,
     signUpWithEmail,
@@ -27,35 +32,58 @@ import {
 } from '@/services/account';
 import { resolveAuthDestination } from '@/services/auth-navigation';
 import { errorKey, reportUnexpected } from '@/screens/auth/errors';
-import { AuthHero } from '@/screens/auth/components/hero';
+
+// The app icon's own artwork, so the first screen and the home screen match.
+const LOGO = require('../../../../assets/images/logo.png');
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
-        paddingHorizontal: theme.space(4),
+        paddingHorizontal: theme.space(6),
     },
     // No bar above sign-in on iOS, which insets the scroll view under the status
     // bar itself. Android keeps the pre-native header clearance.
     content: {
         ...theme.screenContentPadding('child'),
-        paddingTop: Platform.select({
-            ios: theme.space(5),
-            default: theme.screenContentPadding('child').paddingTop,
-        }),
         gap: theme.space(5),
     },
-    muted: {
-        color: Platform.select({
-            ios: theme.colors.mutedTypography,
-            default: theme.colors.neutral[400],
-        }),
+    logoRow: {
+        alignItems: 'center',
+        paddingTop: theme.space(2),
     },
-    panel: {
-        backgroundColor: theme.colors.inset,
-        borderRadius: theme.radius['4xl'],
+    logo: {
+        height: theme.space(16),
+        width: theme.space(16),
+        borderRadius: theme.radius['2xl'],
         borderCurve: 'continuous',
-        padding: theme.space(5),
-        gap: theme.space(4),
+    },
+    // As the reference's setup screens: a centred title over one paragraph,
+    // then the fields grouped on one card.
+    heading: {
+        alignItems: 'center',
+        gap: theme.space(1),
+    },
+    title: {
+        textAlign: 'center',
+    },
+    subtitle: {
+        ...theme.fontSize.default,
+        textAlign: 'center',
+        color: theme.colors.mutedTypography,
+    },
+    fieldsCard: {
+        gap: theme.space(3),
+        padding: theme.space(4),
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
+        backgroundColor: theme.colors.foreground,
+    },
+    fieldDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: theme.colors.border,
+    },
+    muted: {
+        color: theme.colors.mutedTypography,
     },
     fieldContainer: {
         gap: theme.space(2),
@@ -64,11 +92,23 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
         gap: theme.space(3),
     },
-    providerButton: {
-        backgroundColor: theme.colors.foreground,
+    dividerLine: {
+        flex: 1,
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: theme.colors.border,
     },
-    providerButtonText: {
-        color: theme.colors.typography,
+    providers: {
+        gap: theme.space(3),
+    },
+    forgot: {
+        alignSelf: 'flex-end',
+        minHeight: theme.space(11),
+        justifyContent: 'center',
+    },
+    forgotText: {
+        ...theme.fontSize.sm,
+        color: theme.colors.brand[400],
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     link: {
         // 44dp, the Apple HIG / WCAG 2.5.5 minimum. Padding alone gave these
@@ -76,6 +116,16 @@ const styles = StyleSheet.create((theme) => ({
         minHeight: theme.space(11),
         justifyContent: 'center',
         paddingVertical: theme.space(2),
+    },
+    linkText: {
+        ...theme.fontSize.default,
+        textAlign: 'center',
+        color: theme.colors.mutedTypography,
+    },
+    terms: {
+        ...theme.fontSize.xs,
+        textAlign: 'center',
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -96,14 +146,21 @@ const schema = z.object({
 
 type SignInForm = z.infer<typeof schema>;
 
+type Provider = 'google' | 'apple';
+
 const SignInScreen = () => {
     const { t } = useTranslation(['screens']);
-    const { theme, rt } = useUnistyles();
-    // Set when the screen is opened deliberately (from Settings) rather than by
-    // the first-launch gate.
-    const { returnTo, reason } = useLocalSearchParams<{ returnTo?: string; reason?: string }>();
-    const [pending, setPending] = useState<'google' | 'email' | null>(null);
-    const [isRegistering, setIsRegistering] = useState(false);
+    const { theme } = useUnistyles();
+    // `returnTo` is set when the screen is opened deliberately (from Settings)
+    // rather than by the first-launch gate; `mode=register` when Welcome's
+    // "Get started" sent the person here.
+    const { returnTo, reason, mode } = useLocalSearchParams<{
+        returnTo?: string;
+        reason?: string;
+        mode?: string;
+    }>();
+    const [pending, setPending] = useState<Provider | 'email' | null>(null);
+    const [isRegistering, setIsRegistering] = useState(mode === 'register');
 
     const {
         control,
@@ -136,7 +193,7 @@ const SignInScreen = () => {
     }, []);
 
     const runProvider = useCallback(
-        async (provider: 'google', signIn: () => Promise<unknown>) => {
+        async (provider: Provider, signIn: () => Promise<unknown>) => {
             setPending(provider);
 
             try {
@@ -198,32 +255,32 @@ const SignInScreen = () => {
     });
 
     const busy = pending !== null;
+    const hasProviders = isAppleAvailable() || isGoogleAvailable();
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <AuthHero
-                eyebrow={t('signIn.eyebrow', { ns: 'screens' })}
-                title={t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
-                subtitle={t('signIn.subtitle', { ns: 'screens' })}
-            />
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+        >
+            <Box style={styles.logoRow}>
+                <Image source={LOGO} style={styles.logo} accessibilityIgnoresInvertColors />
+            </Box>
 
-            <VStack style={styles.panel}>
-                {isGoogleAvailable() ? (
-                    <Button
-                        size="sm"
-                        title={t('signIn.google', { ns: 'screens' })}
-                        loading={pending === 'google'}
-                        disabled={busy}
-                        onPress={() => runProvider('google', signInWithGoogle)}
-                        // Android draws its own button; iOS keeps the system one.
-                        containerStyle={Platform.select({ android: styles.providerButton })}
-                        textStyle={styles.providerButtonText}
-                        spinnerColor={theme.solid.typography}
-                    />
-                ) : null}
+            <VStack style={styles.heading}>
+                <Title type="h1" style={styles.title} accessibilityRole="header">
+                    {isRegistering
+                        ? t('signIn.registerTitle', { ns: 'screens' })
+                        : t(returnTo ? 'signIn.titleReturning' : 'signIn.title', { ns: 'screens' })}
+                </Title>
+                <Text style={styles.subtitle}>
+                    {isRegistering
+                        ? t('signIn.registerSubtitle', { ns: 'screens' })
+                        : t('signIn.subtitle', { ns: 'screens' })}
+                </Text>
+            </VStack>
 
-                <Separator />
-
+            <VStack style={styles.fieldsCard}>
                 <VStack style={styles.fieldContainer}>
                     <Label field>{t('signIn.email', { ns: 'screens' })}</Label>
                     <Input
@@ -238,6 +295,8 @@ const SignInScreen = () => {
                         textContentType="emailAddress"
                     />
                 </VStack>
+
+                <Box style={styles.fieldDivider} />
 
                 <VStack style={styles.fieldContainer}>
                     <Label field>{t('signIn.password', { ns: 'screens' })}</Label>
@@ -255,48 +314,88 @@ const SignInScreen = () => {
                         textContentType={isRegistering ? 'newPassword' : 'password'}
                     />
                 </VStack>
+            </VStack>
 
-                <Button
-                    size="sm"
-                    title={
-                        isRegistering
-                            ? t('signIn.createAccount', { ns: 'screens' })
-                            : t('signIn.continue', { ns: 'screens' })
-                    }
-                    loading={pending === 'email'}
+            {/* Offered only when signing in. Someone creating an account has
+                no password to have forgotten. */}
+            {isRegistering ? null : (
+                <Pressable
+                    style={styles.forgot}
                     disabled={busy}
-                    onPress={onSubmitEmail}
-                    // Android draws its own spinner; iOS keeps the system one.
-                    spinnerColor={
-                        rt.themeName === 'dark'
-                            ? theme.colors.neutral[950]
-                            : theme.colors.neutral[50]
-                    }
-                />
-
-                <Pressable style={styles.link} onPress={() => setIsRegistering((value) => !value)}>
-                    <Text fontSize="xs" style={[styles.muted, { textAlign: 'center' }]}>
-                        {isRegistering
-                            ? t('signIn.haveAccount', { ns: 'screens' })
-                            : t('signIn.needAccount', { ns: 'screens' })}
+                    onPress={() => router.push('/auth/forgot-password')}
+                    accessibilityRole="button"
+                >
+                    <Text style={styles.forgotText}>
+                        {t('signIn.forgotPassword', { ns: 'screens' })}
                     </Text>
                 </Pressable>
+            )}
 
-                {/* Offered only when signing in. Someone creating an account has
-                    no password to have forgotten, and the link would just be one
-                    more thing to read. */}
-                {isRegistering ? null : (
-                    <Pressable
-                        style={styles.link}
-                        disabled={busy}
-                        onPress={() => router.push('/auth/forgot-password')}
-                    >
-                        <Text fontSize="xs" style={[styles.muted, { textAlign: 'center' }]}>
-                            {t('signIn.forgotPassword', { ns: 'screens' })}
+            <Button
+                type="primary"
+                title={
+                    isRegistering
+                        ? t('signIn.createAccount', { ns: 'screens' })
+                        : t('signIn.continue', { ns: 'screens' })
+                }
+                loading={pending === 'email'}
+                disabled={busy}
+                onPress={onSubmitEmail}
+                spinnerColor={theme.solid.primaryTypography}
+            />
+
+            {hasProviders ? (
+                <>
+                    <HStack style={styles.dividerRow}>
+                        <Box style={styles.dividerLine} />
+                        <Text fontSize="xs" style={styles.muted}>
+                            {t('signIn.orContinueWith', { ns: 'screens' })}
                         </Text>
-                    </Pressable>
-                )}
-            </VStack>
+                        <Box style={styles.dividerLine} />
+                    </HStack>
+
+                    {/* Labelled and full width. Apple first where it exists: its
+                        guidelines ask for it to be at least as prominent as any
+                        other third-party option. */}
+                    <VStack style={styles.providers}>
+                        {isAppleAvailable() ? (
+                            <Button
+                                type="outline"
+                                icon="apple"
+                                title={t('signIn.apple', { ns: 'screens' })}
+                                loading={pending === 'apple'}
+                                disabled={busy}
+                                onPress={() => runProvider('apple', signInWithApple)}
+                                spinnerColor={theme.solid.typography}
+                            />
+                        ) : null}
+                        {isGoogleAvailable() ? (
+                            <Button
+                                type="outline"
+                                title={t('signIn.google', { ns: 'screens' })}
+                                loading={pending === 'google'}
+                                disabled={busy}
+                                onPress={() => runProvider('google', signInWithGoogle)}
+                                spinnerColor={theme.solid.typography}
+                            />
+                        ) : null}
+                    </VStack>
+                </>
+            ) : null}
+
+            <Pressable
+                style={styles.link}
+                onPress={() => setIsRegistering((value) => !value)}
+                accessibilityRole="button"
+            >
+                <Text style={styles.linkText}>
+                    {isRegistering
+                        ? t('signIn.haveAccount', { ns: 'screens' })
+                        : t('signIn.needAccount', { ns: 'screens' })}
+                </Text>
+            </Pressable>
+
+            <Text style={styles.terms}>{t('signIn.terms', { ns: 'screens' })}</Text>
         </ScrollView>
     );
 };

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { Title } from '@/components/typography/title';
@@ -9,13 +9,16 @@ import { VStack } from '@/components/primitives/vstack';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
-import { StatBlocks, type StatBlock } from '@/components/layout/stat-blocks';
-import { useWorkoutStats, useWorkouts } from '@/hooks/use-workouts';
+import { MetricTiles, type MetricTile } from '@/components/layout/metric-tiles';
+import { useWorkoutStats } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
-import { computeStreakDays } from '@/helpers/workouts';
+import { useWeeklyStreak } from '@/hooks/use-weekly-streak';
 import { resolveFitnessLevel } from '@/helpers/fitness-level';
 
 import { ActivitySummary } from './components/activity-summary';
+import { PersonalBests } from './components/personal-bests';
+import { SessionsPerWeek } from './components/sessions-per-week';
+import { LongSessionNotice } from './components/long-session-notice';
 import { FitnessLevelCard } from './components/fitness-level';
 import { MonthStats } from './components/month';
 import { Scale } from './components/scale';
@@ -55,7 +58,6 @@ const styles = StyleSheet.create((theme) => ({
     },
     statValue: {
         color: theme.colors.typography,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
         ...theme.typography.metric,
     },
     divider: {
@@ -70,13 +72,14 @@ const styles = StyleSheet.create((theme) => ({
 
 const ResultsScreen = () => {
     const { t } = useTranslation(['common', 'screens']);
+    const { theme } = useUnistyles();
     const { user } = useUser();
     const stats = useWorkoutStats();
     const [isChartScrubbing, setIsChartScrubbing] = useState(false);
 
     // `MonthStats` below already runs this query, so the streak rides along on
     // a cache hit rather than a second fetch.
-    const { data: workouts } = useWorkouts();
+    const { streak, done: weekDone, target: weekTarget } = useWeeklyStreak();
 
     /**
      * The three figures worth reading from across a room, promoted out of the
@@ -102,33 +105,41 @@ const ResultsScreen = () => {
         [stats.trainingWeeks, stats.workoutsCount],
     );
 
-    const heroBlocks = useMemo<StatBlock[]>(() => {
-        const streak = computeStreakDays(workouts ?? []);
-
-        return [
-            {
-                key: 'workouts',
-                value: stats.workoutsCount
-                    ? t('number', { value: stats.workoutsCount, ns: 'common' })
-                    : '—',
-                label: t('results.stats.workoutsCount.title', { ns: 'screens' }),
-                emphasised: true,
-            },
-            {
-                key: 'time',
-                value: stats.trainingHours
-                    ? t('results.hero.hours', { ns: 'screens', value: stats.trainingHours })
-                    : '—',
-                label: t('results.stats.trainingHours.title', { ns: 'screens' }),
-            },
-            {
-                key: 'streak',
-                value: streak > 0 ? String(streak) : '—',
-                label: t('results.hero.streak', { ns: 'screens' }),
-                emphasised: streak >= 2,
-            },
-        ];
-    }, [stats.trainingHours, stats.workoutsCount, t, workouts]);
+    // The reference summary's grid: four figures, each in its own colour,
+    // each a real count or an em dash.
+    const tiles: MetricTile[] = [
+        {
+            key: 'week',
+            title: t('results.tiles.week', { ns: 'screens' }),
+            caption: t('results.tiles.thisWeek', { ns: 'screens' }),
+            value: `${weekDone}/${weekTarget}`,
+            color: theme.colors.primary,
+        },
+        {
+            key: 'streak',
+            title: t('results.hero.streak', { ns: 'screens' }),
+            caption: t('results.tiles.weeksInRow', { ns: 'screens' }),
+            value: String(streak),
+            color: theme.colors.success,
+        },
+        {
+            key: 'workouts',
+            title: t('results.stats.workoutsCount.title', { ns: 'screens' }),
+            caption: t('results.tiles.allTime', { ns: 'screens' }),
+            value: stats.workoutsCount
+                ? t('number', { value: stats.workoutsCount, ns: 'common' })
+                : '—',
+            color: theme.colors.typography,
+        },
+        {
+            key: 'time',
+            title: t('results.stats.trainingHours.title', { ns: 'screens' }),
+            caption: t('results.tiles.allTime', { ns: 'screens' }),
+            value: stats.trainingHours ? String(stats.trainingHours) : '—',
+            unit: stats.trainingHours ? t('results.tiles.hoursUnit', { ns: 'screens' }) : undefined,
+            color: theme.colors.amber[400],
+        },
+    ];
 
     // `workoutsCount` and `trainingHours` are already the hero blocks above —
     // repeating them here was the same two figures shown twice on one screen.
@@ -187,16 +198,21 @@ const ResultsScreen = () => {
             {Platform.OS === 'android' && (
                 <Title type="h1">{t('results.title', { ns: 'screens' })}</Title>
             )}
-            <StatBlocks blocks={heroBlocks} inset={false} />
+            <LongSessionNotice />
+            <MetricTiles tiles={tiles} />
             {/* The design board's reading order: totals, the month's training
                 time, then muscular load — before the calendar and the rest. */}
             <ActivitySummary onScrubbingChange={setIsChartScrubbing} />
+            <SessionsPerWeek />
+            <PersonalBests />
             <StrengthStats />
             <MonthStats />
             <FitnessLevelCard level={fitnessLevel} />
             <Scale />
             <VStack style={styles.fieldContainer}>
-                <Title type="h4">{t('results.stats.title', { ns: 'screens' })}</Title>
+                <Title type="h4" accessibilityRole="header">
+                    {t('results.stats.title', { ns: 'screens' })}
+                </Title>
                 <VStack style={styles.statsContainer}>
                     <VStack style={styles.statsWrapper}>
                         {statsData.map((stat, index) => (

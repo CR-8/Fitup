@@ -1,12 +1,12 @@
 {
     "home": {
-        "title": "Home"
+        "title": "Today"
     },
     "results": {
-        "title": "Results"
+        "title": "Progress"
     },
     "syn": {
-        "title": "Syn"
+        "title": "Coach"
     },
     "exercises": {
         "title": "Exercises"
@@ -15,6 +15,9 @@
         "title": "Settings"
     },
     "workouts": {
-        "title": "Workout"
+        "title": "Plan"
+    },
+    "you": {
+        "title": "You"
     }
 }

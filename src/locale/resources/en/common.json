@@ -13,6 +13,13 @@
     "begin": "Begin",
     "complete": "Complete",
     "completeWorkout": "Complete workout?",
+    "staleWorkout": {
+        "title": "Did you finish {{name}}?",
+        "body": "This workout has been open for hours with no activity.",
+        "finish": "Finish at last set",
+        "resume": "Resume",
+        "discard": "Discard"
+    },
     "workoutFeedback": "How did that feel?",
     "repeat": "Repeat",
     "add": "Add",
@@ -24,6 +31,12 @@
     "merge": "Merge",
     "delete": "Delete",
     "create": "Create",
+    "more": "More",
+    "close": "Close",
+    "filter": "Filter",
+    "collapse": "Collapse",
+    "next": "Next",
+    "previous": "Previous",
     "exercise": "Exercise",
     "code": "Code",
     "problem": "Problem",
@@ -461,5 +474,7 @@
             "delay": "Not now"
         }
     },
-    "passwordMismatch": "Those passwords do not match."
+    "passwordMismatch": "Those passwords do not match.",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week"
 }

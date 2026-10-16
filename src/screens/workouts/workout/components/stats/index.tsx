@@ -206,19 +206,23 @@ const RECOVERY_SCALE_BOUNDS_BY_AGE: readonly {
 // further down, which need plain strings. Static colours here left a black block
 // in the grey workout sheet.
 const styles = StyleSheet.create((theme) => ({
+    // The reference's "Workout Details": one card, a title per section, the
+    // figures in a two-column grid inside it.
     container: {
         marginHorizontal: theme.space(4),
-        backgroundColor: theme.colors.background,
-        paddingTop: theme.space(5),
-        paddingBottom: theme.space(3),
-        gap: theme.space(5),
+        marginTop: theme.space(4),
+        backgroundColor: theme.colors.foreground,
+        borderRadius: theme.radius['2xl'],
+        borderCurve: 'continuous',
+        padding: theme.space(4),
+        gap: theme.space(4),
     },
     section: {
         gap: theme.space(3),
     },
     sectionTitle: {
-        fontSize: theme.fontSize.lg.fontSize,
-        fontWeight: theme.fontWeight.bold.fontWeight,
+        fontSize: theme.fontSize.default.fontSize,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },
     divider: {
@@ -1916,7 +1920,6 @@ export const Stats: FC<StatsProps> = ({
                     </HStack>
                 </VStack>
             )}
-            <Box style={styles.divider} />
         </VStack>
     );
 };

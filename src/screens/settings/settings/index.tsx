@@ -19,7 +19,13 @@ import { requestStoreReviewIfAvailable } from '@/services/store-review';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { SUPPORT_EMAIL } from '@/constants/contact';
 
-type Row = { icon: IconName; title: string; value?: string; onPress: () => void };
+type Row = {
+    icon: IconName;
+    title: string;
+    value?: string;
+    supportingText?: string;
+    onPress: () => void;
+};
 
 const SettingsScreen = () => {
     const { user } = useUser();
@@ -113,7 +119,7 @@ const SettingsScreen = () => {
             // The profile row doubles as the screen's header: who is signed in.
             title:
                 user?.displayName?.trim() || t('settings.items.profile.title', { ns: 'screens' }),
-            value: session?.user.email ?? undefined,
+            supportingText: session?.user.email ?? undefined,
             onPress: () => router.navigate('/settings/profile'),
         },
         // Hidden entirely in a build shipped without accounts, where the row
@@ -226,6 +232,7 @@ const SettingsScreen = () => {
                 icon={row.icon}
                 title={row.title}
                 value={row.value}
+                supportingText={row.supportingText}
                 disclosure={disclosure}
                 onPress={row.onPress}
             />

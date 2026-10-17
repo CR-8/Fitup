@@ -5,9 +5,7 @@ import { Menu } from '@/components/overlays/menu';
 import { useScreen } from '@/hooks/use-screen';
 import { useHomeTab } from '@/screens/home/hooks';
 import { useResultsTab } from '@/screens/results/results/hooks';
-import { useWorkoutHubTab } from '@/screens/workouts/hub/hooks';
 import { useSynTab } from '@/screens/syn/hooks';
-import { useYouTab } from '@/screens/settings/settings/hooks';
 
 /**
  * Android keeps the pre-native tab bar and headers. Each tab is a route group
@@ -17,10 +15,8 @@ export default function TabLayout() {
     const { options } = useScreen();
 
     const home = useHomeTab();
-    const workout = useWorkoutHubTab();
     const results = useResultsTab();
     const syn = useSynTab();
-    const you = useYouTab();
 
     return (
         <Tabs
@@ -32,10 +28,8 @@ export default function TabLayout() {
             }}
         >
             <Tabs.Screen name="(home)" options={home.options} />
-            <Tabs.Screen name="(workouts)" options={workout.options} />
             <Tabs.Screen name="(syn)" options={syn.options} />
             <Tabs.Screen name="(results)" options={results.options} />
-            <Tabs.Screen name="(you)" options={you.options} />
         </Tabs>
     );
 }

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
@@ -33,9 +33,11 @@ interface ModalHeaderProps {
     subtitle?: string;
     /** False on a pushed screen, which has the platform back button instead. */
     done?: boolean;
+    /** The bar's trailing button, in place of Done. */
+    right?: ReactNode;
 }
 
-export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle, done = true }) => {
+export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle, done = true, right }) => {
     const { t } = useTranslation(['common']);
 
     return (
@@ -43,15 +45,17 @@ export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle, done = true
             <Stack.Screen
                 options={{
                     title,
-                    headerRight: done
-                        ? () => (
-                              <HeaderTextButton
-                                  title={t('done', { ns: 'common' })}
-                                  onPress={() => router.back()}
-                                  prominent
-                              />
-                          )
-                        : undefined,
+                    headerRight: right
+                        ? () => right
+                        : done
+                          ? () => (
+                                <HeaderTextButton
+                                    title={t('done', { ns: 'common' })}
+                                    onPress={() => router.back()}
+                                    prominent
+                                />
+                            )
+                          : undefined,
                 }}
             />
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}

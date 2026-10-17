@@ -26,7 +26,7 @@ export const logPlanUpdated = async (userId: string, undone = false): Promise<vo
         body: i18n.t(undone ? 'inbox.planUndone.body' : 'inbox.planUpdated.body', {
             ns: 'screens',
         }),
-        path: '/workouts',
+        path: '/',
     });
     refresh();
 };

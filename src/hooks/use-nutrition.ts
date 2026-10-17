@@ -7,6 +7,7 @@ import {
     type CreateMealItemInput,
     deleteMeal,
     deleteMealItem,
+    getMealsBetween,
     getMealsForDate,
     getOrCreateMeal,
     type MealWithItems,
@@ -33,6 +34,19 @@ export const useMealsForDate = (date: string) => {
     });
 
     return { meals: data as MealWithItems[], isLoading };
+};
+
+/** Meals from `from` through `to` (inclusive day keys), for Today's charts. */
+export const useMealsBetween = (from: string, to: string) => {
+    const { user } = useUser();
+
+    const { data = [] } = useQuery({
+        queryKey: [MEALS_KEY, user?.id, 'range', from, to],
+        queryFn: () => getMealsBetween(user!.id, from, to),
+        enabled: !!user?.id,
+    });
+
+    return data;
 };
 
 export interface DayMealsSummary {

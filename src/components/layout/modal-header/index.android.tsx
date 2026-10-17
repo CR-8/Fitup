@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router } from 'expo-router';
 
@@ -25,6 +25,7 @@ export const modalStyles = StyleSheet.create((theme, rt) => ({
 const styles = StyleSheet.create((theme) => ({
     topRow: {
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
     header: {
         gap: theme.space(1),
@@ -40,12 +41,15 @@ interface ModalHeaderProps {
     subtitle?: string;
     /** iOS only (Done in the native bar); Android always draws its back button. */
     done?: boolean;
+    /** A trailing button beside the back button. */
+    right?: ReactNode;
 }
 
-export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle }) => (
+export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle, right }) => (
     <>
         <HStack style={styles.topRow}>
             <BackButton onPressHandler={() => router.back()} />
+            {right}
         </HStack>
 
         <VStack style={styles.header}>

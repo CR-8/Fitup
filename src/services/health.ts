@@ -841,7 +841,7 @@ const resolveWorkoutBounds = (workouts: HealthKitWorkoutSample[]) => {
     return { workoutStartDate, workoutEndDate };
 };
 
-async function readDistanceMeters(startDate: Date, endDate: Date): Promise<number | null> {
+export async function readDistanceMeters(startDate: Date, endDate: Date): Promise<number | null> {
     try {
         if (Platform.OS === 'ios') {
             const result = await queryStatisticsForQuantity(
@@ -879,7 +879,7 @@ async function readDistanceMeters(startDate: Date, endDate: Date): Promise<numbe
     return null;
 }
 
-async function readStepCount(startDate: Date, endDate: Date): Promise<number | null> {
+export async function readStepCount(startDate: Date, endDate: Date): Promise<number | null> {
     try {
         if (Platform.OS === 'ios') {
             const result = await queryStatisticsForQuantity(

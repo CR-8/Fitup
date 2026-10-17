@@ -307,6 +307,10 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
 
 export type AnalyticsScreenName =
     | 'home'
+    | 'calories'
+    | 'calorie_goal'
+    | 'calendar'
+    | 'metric'
     | 'workout_hub'
     | 'plan'
     | 'welcome'

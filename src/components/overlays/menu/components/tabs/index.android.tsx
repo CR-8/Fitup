@@ -4,14 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { RelativePathString, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import {
-    LucideIcon,
-    House,
-    CalendarDays,
-    CircleUserRound,
-    ChartNoAxesColumn,
-    MessageCircle,
-} from 'lucide-react-native';
+import { LucideIcon, House, ChartNoAxesColumn, MessageCircle } from 'lucide-react-native';
 
 import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
@@ -100,7 +93,7 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
-        // Today, Plan, Coach, Progress, You. Each tab is a route group, so
+        // Today, Coach, Progress. Each tab is a route group, so
         // `screen` is the group's name.
         const items = [
             {
@@ -108,12 +101,6 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 href: '/',
                 title: 'home.title',
                 icon: House,
-            },
-            {
-                screen: '(workouts)',
-                href: '/workouts',
-                title: 'workouts.title',
-                icon: CalendarDays,
             },
             {
                 screen: '(syn)',
@@ -126,12 +113,6 @@ const Tabs: FC<TabsType> = ({ state }) => {
                 href: '/results',
                 title: 'results.title',
                 icon: ChartNoAxesColumn,
-            },
-            {
-                screen: '(you)',
-                href: '/you',
-                title: 'you.title',
-                icon: CircleUserRound,
             },
         ];
 

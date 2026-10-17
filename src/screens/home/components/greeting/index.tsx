@@ -10,88 +10,100 @@ import { Icon } from '@/components/primitives/icon';
 import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
-import { Title } from '@/components/typography/title';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { useEditor } from '@/hooks/use-editor';
 import { useUnreadNotifications } from '@/hooks/use-notification-log';
-import { useUser } from '@/hooks/use-user';
-
-import { greetingKeyForHour } from './salutation';
 
 /**
- * Today's header: the date over a large "Today", who it is for, and the inbox
- * and profile on the trailing edge. No native bar here; the screen insets it
- * from the status bar itself.
+ * Today's header, after Apple Fitness's Summary: a large title over the date,
+ * and on the trailing edge a new workout, the inbox and the profile (settings).
  */
 
 const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(4),
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         gap: theme.space(3),
     },
     text: {
         flex: 1,
-        gap: theme.space(0.5),
+    },
+    title: {
+        fontSize: 34,
+        lineHeight: 41,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    date: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+        color: theme.colors.mutedTypography,
     },
     actions: {
         alignItems: 'center',
+        gap: theme.space(2),
     },
-    bell: {
-        height: theme.space(11),
-        width: theme.space(11),
+    round: {
+        height: 40,
+        width: 40,
+        borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: theme.colors.elevated,
     },
-    unreadDot: {
+    badge: {
         position: 'absolute',
-        top: theme.space(2.5),
-        right: theme.space(2.5),
-        height: theme.space(2),
-        width: theme.space(2),
+        top: -2,
+        right: -2,
+        minWidth: 18,
+        height: 18,
+        paddingHorizontal: 4,
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.brand[500],
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.primary,
     },
-    date: {
-        ...theme.typography.eyebrow,
-        textTransform: 'uppercase',
-        color: theme.colors.mutedTypography,
-    },
-    salutation: {
-        ...theme.fontSize.sm,
-        color: theme.colors.mutedTypography,
+    badgeText: {
+        fontSize: 11,
+        lineHeight: 14,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.white,
     },
 }));
 
-export const Greeting: FC = () => {
+export const Greeting: FC<{ accent: string }> = ({ accent }) => {
     const { t, i18n } = useTranslation(['screens']);
-    const { user } = useUser();
     const { theme } = useUnistyles();
     const unread = useUnreadNotifications();
-    const name = user?.displayName?.trim();
-    const now = new Date();
-    const salutation = t(`home.greeting.${greetingKeyForHour(now.getHours())}`, { ns: 'screens' });
+    const { navigate } = useEditor();
+    const { track } = useAnalytics();
 
     return (
         <HStack style={styles.container}>
             <VStack style={styles.text}>
-                <Text style={styles.date}>
-                    {dayjs(now).locale(i18n.language).format('dddd, D MMM')}
+                <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
+                    {t('home.dash.title', { ns: 'screens' })}
                 </Text>
-                <Title type="h1" numberOfLines={1} accessibilityRole="header">
-                    {t('home.today', { ns: 'screens' })}
-                </Title>
-                {/* The name is optional (onboarding can be skipped), so the line
-                has to read as complete without it. */}
-                <Text style={styles.salutation} numberOfLines={1}>
-                    {name
-                        ? `${salutation}, ${name}`
-                        : t('home.greeting.fallback', { ns: 'screens' })}
+                <Text style={styles.date} numberOfLines={1}>
+                    {dayjs().locale(i18n.language).format('dddd, MMM D')}
                 </Text>
             </VStack>
 
             <HStack style={styles.actions}>
                 <Pressable
-                    style={styles.bell}
+                    style={styles.round}
+                    onPress={() => {
+                        track('workout:create_requested', { surface: 'home_header' });
+                        navigate({ type: 'workout__create' });
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.dash.newWorkout', { ns: 'screens' })}
+                >
+                    <Icon name="plus" size={20} color={theme.colors.typography} />
+                </Pressable>
+                <Pressable
+                    style={styles.round}
                     onPress={() => router.navigate('/inbox' as never)}
                     accessibilityRole="button"
                     accessibilityLabel={t('inbox.open', { ns: 'screens' })}
@@ -99,16 +111,19 @@ export const Greeting: FC = () => {
                         unread > 0 ? t('inbox.unread', { ns: 'screens' }) : undefined
                     }
                 >
-                    <Icon name="bell" size={theme.space(6)} color={theme.colors.mutedTypography} />
-                    {unread > 0 ? <Box style={styles.unreadDot} /> : null}
+                    <Icon name="bell" size={20} color={theme.colors.typography} />
+                    {unread > 0 ? (
+                        <Box style={styles.badge}>
+                            <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+                        </Box>
+                    ) : null}
                 </Pressable>
                 <Pressable
-                    style={styles.bell}
-                    onPress={() => router.navigate('/you' as never)}
+                    onPress={() => router.navigate('/settings' as never)}
                     accessibilityRole="button"
                     accessibilityLabel={t('home.openProfile', { ns: 'screens' })}
                 >
-                    <Icon name="person-circle" size={theme.space(7)} color={theme.colors.primary} />
+                    <Icon name="person-circle" size={44} color={accent} />
                 </Pressable>
             </HStack>
         </HStack>

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, between, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -20,11 +20,19 @@ export * from './totals';
 
 const now = () => new Date();
 
-export const getMealsForDate = async (userId: string, date: string): Promise<MealWithItems[]> => {
+export const getMealsForDate = (userId: string, date: string): Promise<MealWithItems[]> =>
+    getMealsBetween(userId, date, date);
+
+/** Meals on the days `from` through `to`, both `YYYY-MM-DD` and inclusive. */
+export const getMealsBetween = async (
+    userId: string,
+    from: string,
+    to: string,
+): Promise<MealWithItems[]> => {
     const meals = await db
         .select()
         .from(meal)
-        .where(and(eq(meal.userId, userId), eq(meal.date, date)))
+        .where(and(eq(meal.userId, userId), between(meal.date, from, to)))
         .orderBy(asc(meal.createdAt));
 
     if (meals.length === 0) return [];

@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 
 /**
- * The system tab bar (Liquid Glass): Today, Plan, Coach, Progress, You. The
- * exercise library lives inside Plan, and settings is the You tab. Android keeps
- * its pre-native tab bar: `_layout.android.tsx`.
+ * The system tab bar (Liquid Glass): Today, Coach, Progress. Plan and You are
+ * off the navigation; settings opens from Today's avatar. Android keeps its
+ * pre-native tab bar: `_layout.android.tsx`.
  */
 export default function TabLayout() {
     const { t } = useTranslation(['menu']);
@@ -20,13 +20,6 @@ export default function TabLayout() {
                 />
                 <NativeTabs.Trigger.Label>{t('home.title')}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
-            <NativeTabs.Trigger name="(workouts)">
-                <NativeTabs.Trigger.Icon
-                    sf={{ default: 'calendar', selected: 'calendar' }}
-                    md="calendar_month"
-                />
-                <NativeTabs.Trigger.Label>{t('workouts.title')}</NativeTabs.Trigger.Label>
-            </NativeTabs.Trigger>
             <NativeTabs.Trigger name="(syn)">
                 <NativeTabs.Trigger.Icon
                     sf={{ default: 'bubble.left', selected: 'bubble.left.fill' }}
@@ -40,13 +33,6 @@ export default function TabLayout() {
                     md="bar_chart"
                 />
                 <NativeTabs.Trigger.Label>{t('results.title')}</NativeTabs.Trigger.Label>
-            </NativeTabs.Trigger>
-            <NativeTabs.Trigger name="(you)">
-                <NativeTabs.Trigger.Icon
-                    sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
-                    md="person"
-                />
-                <NativeTabs.Trigger.Label>{t('you.title')}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
         </NativeTabs>
     );

@@ -155,6 +155,13 @@ const App: FC = () => {
                             <Stack.Screen name="onboarding" />
                             <Stack.Screen name="diet" options={screens.modal} />
                             <Stack.Screen name="hydration" options={screens.modal} />
+                            <Stack.Screen name="calories" options={screens.pushed} />
+                            <Stack.Screen name="calorie-goal" options={screens.modal} />
+                            <Stack.Screen name="calendar" options={screens.modal} />
+                            <Stack.Screen
+                                name="metric"
+                                options={{ ...screens.pushed, headerLargeTitle: true }}
+                            />
                             <Stack.Screen name="quota" options={screens.modal} />
                             <Stack.Screen name="coach/new" options={screens.modal} />
                             {/* Pushed, not sheets: the plan screen opens Preview changes,

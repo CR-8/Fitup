@@ -3,7 +3,12 @@ import { Alert } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { addWaterLog, deleteWaterLog, getWaterLogsForDate } from '@/crud/water';
+import {
+    addWaterLog,
+    deleteWaterLog,
+    getWaterLogsBetween,
+    getWaterLogsForDate,
+} from '@/crud/water';
 import { toDateKey } from '@/crud/nutrition';
 import type { WaterLogSelect } from '@/db/schema';
 import { DEFAULT_WATER_GLASS_ML, DEFAULT_WATER_TARGET_ML } from '@/constants/water';
@@ -87,6 +92,17 @@ export const useWaterDay = (date: string) => {
     };
 };
 
+/** Every drink from `from` through `to` (inclusive day keys), for Today's charts. */
+export const useWaterBetween = (from: string, to: string) => {
+    const { user } = useUser();
+
+    return useQuery({
+        queryKey: [WATER_KEY, user?.id, 'range', from, to],
+        queryFn: () => getWaterLogsBetween(user!.id, from, to),
+        enabled: !!user?.id,
+    });
+};
+
 /**
  * Logging and removing drinks. Both are optimistic: the day's total moves on
  * the tap, then the write is reconciled; a failed write puts the day back and
@@ -116,7 +132,7 @@ export const useWaterLogging = ({ undoToast = false }: { undoToast?: boolean } =
             reportError(error, 'Failed to remove a water entry:');
             Alert.alert(t('hydration.errors.remove', { ns: 'screens' }));
         },
-        onSettled: (_, __, { date }) => queryClient.invalidateQueries({ queryKey: keyFor(date) }),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: [WATER_KEY, user?.id] }),
     });
 
     const add = useMutation({
@@ -144,7 +160,7 @@ export const useWaterLogging = ({ undoToast = false }: { undoToast?: boolean } =
             reportError(error, 'Failed to log water:');
             Alert.alert(t('hydration.errors.add', { ns: 'screens' }));
         },
-        onSettled: (_, __, { date }) => queryClient.invalidateQueries({ queryKey: keyFor(date) }),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: [WATER_KEY, user?.id] }),
     });
 
     return {

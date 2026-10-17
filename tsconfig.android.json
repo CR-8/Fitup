@@ -18,9 +18,7 @@
     "exclude": [
         "src/routes/(tabs)/_layout.tsx",
         "src/routes/(tabs)/(home)/_layout.tsx",
-        "src/routes/(tabs)/(workouts)/_layout.tsx",
         "src/routes/(tabs)/(results)/_layout.tsx",
         "src/routes/(tabs)/(syn)/_layout.tsx",
-        "src/routes/(tabs)/(you)/_layout.tsx",
     ],
 }

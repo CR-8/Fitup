@@ -129,6 +129,27 @@
             "mealsEaten_one": "{{done}} of {{count}} meal eaten",
             "mealsEaten_other": "{{done}} of {{count}} meals eaten",
             "openHint": "Opens today's training summary"
+        },
+        "dash": {
+            "title": "Summary",
+            "periods": {
+                "today": "Today",
+                "week": "Weekly",
+                "month": "Monthly",
+                "year": "Yearly"
+            },
+            "water": "Water",
+            "distance": "Total distance",
+            "noHealth": "No Health data yet",
+            "sessions": "Sessions",
+            "done": "Done",
+            "planned": "Planned",
+            "missed": "Missed",
+            "target": "Target",
+            "calories": "Calories",
+            "remaining": "Remaining",
+            "consumed": "Consumed",
+            "newWorkout": "New workout"
         }
     },
     "results": {
@@ -1378,6 +1399,54 @@
                 "nutrition": "Meal plan",
                 "combined": "Training and meals"
             }
+        }
+    },
+    "calories": {
+        "today": "Today, {{date}}",
+        "openCalendar": "Open calendar",
+        "calendar": "Calendar",
+        "consumed": "Consumed",
+        "goalMenu": "Calorie goal",
+        "adjustToday": "Adjust Goal for Today",
+        "changeDaily": "Change Daily Goal",
+        "total": "Total {{total}} kcal",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "changeGoal": "Change Goal",
+        "logMeal": "Log Meal",
+        "goal": {
+            "unit": "Kilocalories/day",
+            "today": {
+                "title": "Today's Calorie Goal",
+                "body": "Set a calorie goal just for this day. It does not change your daily goal.",
+                "save": "Change Calorie Goal for Today"
+            },
+            "daily": {
+                "title": "Daily Calorie Goal",
+                "body": "The calorie goal for every day you have not adjusted on its own.",
+                "save": "Change Daily Goal"
+            }
+        }
+    },
+    "metric": {
+        "total": "Total",
+        "steps": "Steps",
+        "distance": "Distance",
+        "done": "Sessions done",
+        "minutes": "Training time",
+        "logWater": "Log water",
+        "this": {
+            "today": "Today",
+            "week": "This Week",
+            "month": "This Month",
+            "year": "This Year"
+        },
+        "short": {
+            "today": "D",
+            "week": "W",
+            "month": "M",
+            "year": "Y"
         }
     }
 }

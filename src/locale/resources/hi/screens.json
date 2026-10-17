@@ -985,8 +985,6 @@
         "total": "कुल",
         "steps": "कदम",
         "distance": "दूरी",
-        "done": "पूरे सेशन",
-        "minutes": "ट्रेनिंग समय",
         "logWater": "पानी जोड़ें",
         "this": {
             "today": "आज",
@@ -1000,5 +998,97 @@
             "month": "म",
             "year": "सा"
         }
+    },
+    "sessions": {
+        "title": "सेशन",
+        "all": "सभी",
+        "workouts": "वर्कआउट",
+        "empty": "अभी कोई सेशन नहीं। पूरे हुए वर्कआउट यहां दिखेंगे।",
+        "total": "कुल",
+        "average": "औसत",
+        "time": "समय",
+        "kcal": "किलोकैलोरी",
+        "deleteTitle": "वर्कआउट हटाएं?",
+        "deleteBody": "यह सेशन और उसके सेट आपकी हिस्ट्री से हट जाएंगे। हेल्थ डेटा नहीं बदलेगा।",
+        "deleteConfirm": "वर्कआउट हटाएं",
+        "details": "वर्कआउट विवरण",
+        "showMore": "और देखें",
+        "workoutTime": "वर्कआउट समय",
+        "activeKcal": "एक्टिव किलोकैलोरी",
+        "totalKcal": "कुल किलोकैलोरी",
+        "share": "शेयर करें",
+        "shareMessage": "{{name}}: {{date}} को {{time}}"
+    },
+    "awards": {
+        "title": "अवॉर्ड",
+        "goForIt": "कोशिश करें",
+        "goForItBody": "वे अवॉर्ड जिनके आप करीब हैं, या जिन्हें आप अभी पूरा कर सकते हैं।",
+        "showAll": "सभी देखें",
+        "share": "शेयर करें",
+        "shareMessage": "{{name}}: {{detail}}",
+        "progress": "{{target}} में से {{value}} {{unit}}",
+        "groups": {
+            "daily": "रोज़ के लक्ष्य",
+            "workouts": "वर्कआउट"
+        },
+        "units": {
+            "kcal": "kcal",
+            "ml": "ml",
+            "days_one": "दिन",
+            "days_other": "दिन",
+            "workouts_one": "वर्कआउट",
+            "workouts_other": "वर्कआउट",
+            "goals_one": "लक्ष्य",
+            "goals_other": "लक्ष्य"
+        },
+        "items": {
+            "calorieGoal": {
+                "name": "कैलोरी लक्ष्य",
+                "description": "हर उस दिन मिलता है जब आप अपना कैलोरी लक्ष्य पूरा करते हैं। आपका लक्ष्य {{target}} kcal है और आज अब तक {{value}} kcal हुई।"
+            },
+            "calorieGoals100": {
+                "name": "100 कैलोरी लक्ष्य",
+                "description": "100 दिन अपना कैलोरी लक्ष्य पूरा करें। पिछले साल में {{value}} दिन पूरा हुआ।"
+            },
+            "waterGoal": {
+                "name": "पानी का लक्ष्य",
+                "description": "हर उस दिन मिलता है जब आप अपना पानी का लक्ष्य पूरा करते हैं। आपका लक्ष्य {{target}} ml है और आज अब तक {{value}} ml हुआ।"
+            },
+            "waterGoals30": {
+                "name": "30 पानी लक्ष्य",
+                "description": "30 दिन अपना पानी का लक्ष्य पूरा करें। पिछले साल में {{value}} दिन पूरा हुआ।"
+            },
+            "workouts1": {
+                "name": "पहला वर्कआउट",
+                "description": "अपना पहला सेशन पूरा करें।"
+            },
+            "workouts10": {
+                "name": "10 वर्कआउट",
+                "description": "10 सेशन पूरे करें। अब तक {{value}} पूरे हुए।"
+            },
+            "workouts50": {
+                "name": "50 वर्कआउट",
+                "description": "50 सेशन पूरे करें। अब तक {{value}} पूरे हुए।"
+            },
+            "workouts100": {
+                "name": "100 वर्कआउट",
+                "description": "100 सेशन पूरे करें। अब तक {{value}} पूरे हुए।"
+            },
+            "perfectWeek": {
+                "name": "परफ़ेक्ट हफ़्ता",
+                "description": "हफ़्ते का {{target}} सेशन का लक्ष्य पूरा करें। इस हफ़्ते {{value}} हुए।"
+            },
+            "sevenWorkoutWeek": {
+                "name": "7 वर्कआउट हफ़्ता",
+                "description": "एक हफ़्ते में 7 सेशन पूरे करें। इस हफ़्ते {{value}} हुए।"
+            },
+            "streak7": {
+                "name": "7 दिन की लय",
+                "description": "लगातार 7 दिन ट्रेन करें। आपकी मौजूदा लय {{value}} दिन की है।"
+            }
+        },
+        "earnedTitle": "अवॉर्ड मिला: {{name}}",
+        "earnedTimes_one": "{{date}} को मिला",
+        "earnedTimes_other": "{{count}} बार मिला · आखिरी {{date}}"
     }
 }

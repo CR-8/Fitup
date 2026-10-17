@@ -1,0 +1,199 @@
+// The admin in the app's design language: the dark redesign's surfaces
+// (#08090B page, #14161A card, #1B1E23 raised, #9A9FA8 secondary text,
+// #F5F6F7 text), the dashboard's lime accent, 22px continuous-looking cards and
+// the system font. The theme is pinned dark in payload.config.ts, as the app is.
+
+html[data-theme='dark'],
+html[data-theme='light'] {
+  --theme-bg: #08090b;
+  --theme-input-bg: #14161a;
+  --theme-text: #f5f6f7;
+  --theme-elevation-0: #08090b;
+  --theme-elevation-50: #0e1013;
+  --theme-elevation-100: #14161a;
+  --theme-elevation-150: #1b1e23;
+  --theme-elevation-200: #22252b;
+  --theme-elevation-250: #262a31;
+  --theme-elevation-300: #30343b;
+  --theme-elevation-350: #3a3e46;
+  --theme-elevation-400: #4b5059;
+  --theme-elevation-450: #5d626b;
+  --theme-elevation-500: #6f747d;
+  --theme-elevation-550: #848993;
+  --theme-elevation-600: #9a9fa8;
+  --theme-elevation-650: #afb3ba;
+  --theme-elevation-700: #c6c9cf;
+  --theme-elevation-750: #d3d5da;
+  --theme-elevation-800: #dfe1e6;
+  --theme-elevation-850: #e8eaed;
+  --theme-elevation-900: #eceef1;
+  --theme-elevation-950: #f5f6f7;
+  --theme-elevation-1000: #ffffff;
+  --theme-success-500: #d6f25a;
+  --theme-error-500: #ff3b4f;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  --style-radius-s: 8px;
+  --style-radius-m: 14px;
+  --style-radius-l: 22px;
+  color-scheme: dark;
+}
+
+$lime: #d6f25a;
+$card: #14161a;
+$raised: #1b1e23;
+$muted: #9a9fa8;
+
+body {
+  background: #08090b;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Navigation: the inset sidebar of the app's Settings.
+.nav {
+  background: #0e1013;
+  border-right: 1px solid #23262c;
+
+  .nav__link {
+    border-radius: 10px;
+  }
+
+  .nav__link.active,
+  .nav__link:hover {
+    background: $raised;
+  }
+}
+
+// Primary actions read like the app's selected pill: lime, black text.
+.btn--style-primary {
+  background: $lime;
+  color: #08090b;
+  border-radius: 999px;
+
+  &:hover:not(:disabled) {
+    background: #e3f88a;
+    color: #08090b;
+  }
+}
+
+.btn--style-secondary {
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #30343b;
+}
+
+// Cards, tables and fields as the app's raised surfaces.
+.card,
+.collections__card,
+.table,
+.field-type.group-field,
+.tabs-field__tabs-wrap {
+  background: $card;
+  border-radius: var(--style-radius-l);
+  border: 1px solid #1f2227;
+}
+
+.table table th {
+  color: $muted;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.pill--style-success,
+.status-pill--published {
+  background: rgba(214, 242, 90, 0.16);
+  color: $lime;
+}
+
+.render-title,
+.doc-header__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+// Logo and icon (src/components/Brand.tsx).
+.fitsyn-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: ui-rounded, -apple-system, 'SF Pro Rounded', system-ui, sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: #f5f6f7;
+}
+
+// Dashboard Summary (src/components/Summary.tsx): the app's Today, in the admin.
+.fitsyn-summary {
+  margin-bottom: 32px;
+
+  h1 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 41px;
+    font-weight: 700;
+  }
+
+  > p {
+    margin: 0 0 20px;
+    color: $muted;
+    font-weight: 500;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 22px;
+    background: $raised;
+    color: #f5f6f7;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  &__title {
+    display: flex;
+    justify-content: space-between;
+    font-size: 19px;
+    font-weight: 600;
+  }
+
+  &__chevron {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #262a31;
+    color: $muted;
+    font-size: 16px;
+  }
+
+  &__value {
+    font-family: ui-rounded, -apple-system, 'SF Pro Rounded', system-ui, sans-serif;
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1;
+
+    small {
+      margin-left: 4px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+  }
+
+  &__caption {
+    color: $muted;
+    font-size: 14px;
+  }
+}

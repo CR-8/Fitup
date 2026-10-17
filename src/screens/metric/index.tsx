@@ -15,10 +15,10 @@ import { ACCENT, PERIODS, axisFor, useSummary, type Period } from '@/screens/hom
 /**
  * A Today card opened into its charts, after Apple Fitness's Steps screen: the
  * period picker, then one card per figure — its total and its bars, with axes.
- * Water, distance (with steps), and sessions (with training time).
+ * Water, and distance with steps.
  */
 
-type Kind = 'water' | 'distance' | 'sessions';
+type Kind = 'water' | 'distance';
 
 interface Figure {
     key: string;
@@ -52,8 +52,7 @@ const styles = StyleSheet.create((theme) => ({
 const MetricScreen: FC = () => {
     const { t, i18n } = useTranslation(['screens']);
     const params = useLocalSearchParams<{ kind?: string; period?: string }>();
-    const kind: Kind =
-        params.kind === 'distance' || params.kind === 'sessions' ? params.kind : 'water';
+    const kind: Kind = params.kind === 'distance' ? 'distance' : 'water';
     const [period, setPeriod] = useState<Period>(
         PERIODS.find((p) => p === params.period) ?? 'week',
     );
@@ -74,41 +73,23 @@ const MetricScreen: FC = () => {
                       data: summary.water.series.map((ml) => ml / 1000),
                   },
               ]
-            : kind === 'distance'
-              ? [
-                    {
-                        key: 'steps',
-                        label: t('metric.steps', { ns: 'screens' }),
-                        value: summary.steps ? String(Math.round(summary.steps.total)) : '–',
-                        color: ACCENT.steps,
-                        data: summary.steps?.series ?? zeros,
-                    },
-                    {
-                        key: 'distance',
-                        label: t('metric.distance', { ns: 'screens' }),
-                        value: summary.distance ? summary.distance.total.toFixed(2) : '–',
-                        unit: summary.distanceUnit,
-                        color: ACCENT.distance,
-                        data: summary.distance?.series ?? zeros,
-                    },
-                ]
-              : [
-                    {
-                        key: 'done',
-                        label: t('metric.done', { ns: 'screens' }),
-                        value: String(summary.sessions.done),
-                        color: ACCENT.sessions,
-                        data: summary.sessions.series.done,
-                    },
-                    {
-                        key: 'minutes',
-                        label: t('metric.minutes', { ns: 'screens' }),
-                        value: String(summary.sessions.series.minutes.reduce((a, b) => a + b, 0)),
-                        unit: 'min',
-                        color: ACCENT.minutes,
-                        data: summary.sessions.series.minutes,
-                    },
-                ];
+            : [
+                  {
+                      key: 'steps',
+                      label: t('metric.steps', { ns: 'screens' }),
+                      value: summary.steps ? String(Math.round(summary.steps.total)) : '–',
+                      color: ACCENT.steps,
+                      data: summary.steps?.series ?? zeros,
+                  },
+                  {
+                      key: 'distance',
+                      label: t('metric.distance', { ns: 'screens' }),
+                      value: summary.distance ? summary.distance.total.toFixed(2) : '–',
+                      unit: summary.distanceUnit,
+                      color: ACCENT.distance,
+                      data: summary.distance?.series ?? zeros,
+                  },
+              ];
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={modalStyles.content}>

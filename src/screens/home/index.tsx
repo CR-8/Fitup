@@ -25,6 +25,9 @@ import { Greeting } from './components';
 import { UpNext } from './components/up-next';
 import { resolveUpNext } from './components/up-next/resolve';
 import { Bars, Line, Metric, PeriodPicker, Ring } from './components/charts';
+import { AwardTile } from '@/screens/awards/components/tile';
+import { useAwards } from '@/screens/awards/data';
+
 import { ACCENT, PERIODS, useSummary, type Period } from './summary';
 
 /**
@@ -142,6 +145,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         position: 'absolute',
         alignItems: 'center',
     },
+    awards: {
+        marginHorizontal: -theme.space(1),
+        marginBottom: -theme.space(4),
+    },
     upNextPlaceholder: {
         marginHorizontal: theme.space(4),
         height: 196,
@@ -191,7 +198,8 @@ const HomeScreen: FC = () => {
     const [period, setPeriod] = useState<Period>('today');
     const summary = useSummary(period, today);
     const setCaloriesDay = useCaloriesStore((state) => state.setDay);
-    const openMetric = (kind: 'water' | 'distance' | 'sessions') =>
+    const awards = useAwards(today);
+    const openMetric = (kind: 'water' | 'distance') =>
         router.navigate({ pathname: '/metric', params: { kind, period } } as never);
 
     const { data: workouts } = useWorkouts();
@@ -305,7 +313,7 @@ const HomeScreen: FC = () => {
 
                     <Tile
                         title={t('home.dash.sessions', { ns: 'screens' })}
-                        onPress={() => openMetric('sessions')}
+                        onPress={() => router.navigate('/sessions' as never)}
                     >
                         <HStack style={styles.segments}>
                             {sessionParts.map((part) => (
@@ -400,6 +408,19 @@ const HomeScreen: FC = () => {
                                     </Text>
                                 </VStack>
                             </Box>
+                        </HStack>
+                    </Tile>
+
+                    <Tile
+                        title={t('awards.title', { ns: 'screens' })}
+                        onPress={() => router.navigate('/awards' as never)}
+                    >
+                        <HStack style={styles.awards}>
+                            {(awards.goForIt.length ? awards.goForIt : awards.all)
+                                .slice(0, 3)
+                                .map((award) => (
+                                    <AwardTile key={award.id} award={award} size={76} />
+                                ))}
                         </HStack>
                     </Tile>
                 </VStack>

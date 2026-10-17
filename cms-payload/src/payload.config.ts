@@ -4,6 +4,7 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
+import { Awards } from './collections/Awards'
 import { Exercises } from './collections/Exercises'
 import { Foods } from './collections/Foods'
 import { Users } from './collections/Users'
@@ -14,8 +15,18 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
+    // Dark only, as the app is; custom.scss maps the app's palette onto Payload's.
+    theme: 'dark',
+    meta: { titleSuffix: ' · FitSyn CMS' },
+    components: {
+      graphics: {
+        Logo: '/components/Brand#Logo',
+        Icon: '/components/Brand#Icon',
+      },
+      beforeDashboard: ['/components/Summary#Summary'],
+    },
   },
-  collections: [Users, Exercises, Foods],
+  collections: [Users, Exercises, Foods, Awards],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

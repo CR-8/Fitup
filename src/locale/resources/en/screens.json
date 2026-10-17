@@ -1433,8 +1433,6 @@
         "total": "Total",
         "steps": "Steps",
         "distance": "Distance",
-        "done": "Sessions done",
-        "minutes": "Training time",
         "logWater": "Log water",
         "this": {
             "today": "Today",
@@ -1448,5 +1446,97 @@
             "month": "M",
             "year": "Y"
         }
+    },
+    "sessions": {
+        "title": "Sessions",
+        "all": "All",
+        "workouts": "Workouts",
+        "empty": "No sessions yet. Finished workouts show up here.",
+        "total": "Total",
+        "average": "Average",
+        "time": "Time",
+        "kcal": "Kilocalories",
+        "deleteTitle": "Delete Workout?",
+        "deleteBody": "This removes the session and its sets from your history. Health data is not changed.",
+        "deleteConfirm": "Delete Workout",
+        "details": "Workout Details",
+        "showMore": "Show More",
+        "workoutTime": "Workout Time",
+        "activeKcal": "Active Kilocalories",
+        "totalKcal": "Total Kilocalories",
+        "share": "Share",
+        "shareMessage": "{{name}}: {{time}} on {{date}}"
+    },
+    "awards": {
+        "title": "Awards",
+        "goForIt": "Go For It",
+        "goForItBody": "Awards you're close to earning, or ones you can complete now.",
+        "showAll": "Show All",
+        "share": "Share",
+        "shareMessage": "{{name}}: {{detail}}",
+        "progress": "{{value}} of {{target}} {{unit}}",
+        "groups": {
+            "daily": "Daily Goals",
+            "workouts": "Workouts"
+        },
+        "units": {
+            "kcal": "kcal",
+            "ml": "ml",
+            "days_one": "day",
+            "days_other": "days",
+            "workouts_one": "workout",
+            "workouts_other": "workouts",
+            "goals_one": "goal",
+            "goals_other": "goals"
+        },
+        "items": {
+            "calorieGoal": {
+                "name": "Calorie Goal",
+                "description": "Earn this every day you eat to your calorie goal. Your goal is {{target}} kcal and you've had {{value}} kcal so far today."
+            },
+            "calorieGoals100": {
+                "name": "100 Calorie Goals",
+                "description": "Meet your calorie goal on 100 days. You've met it on {{value}} days in the past year."
+            },
+            "waterGoal": {
+                "name": "Water Goal",
+                "description": "Earn this every day you drink your water goal. Your goal is {{target}} ml and you've had {{value}} ml so far today."
+            },
+            "waterGoals30": {
+                "name": "30 Water Goals",
+                "description": "Meet your water goal on 30 days. You've met it on {{value}} days in the past year."
+            },
+            "workouts1": {
+                "name": "First Workout",
+                "description": "Finish your first session."
+            },
+            "workouts10": {
+                "name": "10 Workouts",
+                "description": "Finish 10 sessions. You've finished {{value}} so far."
+            },
+            "workouts50": {
+                "name": "50 Workouts",
+                "description": "Finish 50 sessions. You've finished {{value}} so far."
+            },
+            "workouts100": {
+                "name": "100 Workouts",
+                "description": "Finish 100 sessions. You've finished {{value}} so far."
+            },
+            "perfectWeek": {
+                "name": "Perfect Week",
+                "description": "Meet your weekly target of {{target}} sessions. You've done {{value}} this week."
+            },
+            "sevenWorkoutWeek": {
+                "name": "7-Workout Week",
+                "description": "Finish 7 sessions in one week. You've done {{value}} this week."
+            },
+            "streak7": {
+                "name": "7-Day Streak",
+                "description": "Train 7 days in a row. Your current streak is {{value}} days."
+            }
+        },
+        "earnedTitle": "Award earned: {{name}}",
+        "earnedTimes_one": "Earned {{date}}",
+        "earnedTimes_other": "Earned {{count}} times · last {{date}}"
     }
 }

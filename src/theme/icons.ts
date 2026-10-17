@@ -54,6 +54,7 @@ export const icons = {
     appearance: { ios: 'circle.lefthalf.filled', android: 'contrast' },
     target: { ios: 'target', android: 'target' },
     timer: { ios: 'timer', android: 'timer' },
+    share: { ios: 'square.and.arrow.up', android: 'share' },
     trash: { ios: 'trash', android: 'delete' },
     'trending-up': { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' },
     trophy: { ios: 'trophy', android: 'emoji_events' },

@@ -145,3 +145,51 @@ export const deactivateFood = (id: string): Promise<void> =>
     method: 'PATCH',
     body: JSON.stringify({ is_active: false, updated_at: Date.now() }),
   })
+
+export interface CatalogueAwardFields {
+  id: string
+  metric: string
+  target: number | null
+  repeat: string
+  group: string
+  shape: string
+  symbol: string
+  color: string
+  name: Record<string, string>
+  description: Record<string, string>
+  sortOrder: number
+  isActive: boolean
+}
+
+/** Mirrors an award into catalogue_awards, which every app install reads. No embedding: awards are not searched. */
+export const syncAward = (entry: CatalogueAwardFields): Promise<void> =>
+  postgrest('catalogue_awards', {
+    method: 'POST',
+    onConflict: 'id',
+    body: JSON.stringify({
+      id: entry.id,
+      metric: entry.metric,
+      target: entry.target,
+      repeat: entry.repeat,
+      award_group: entry.group,
+      shape: entry.shape,
+      symbol: entry.symbol,
+      color: entry.color,
+      name: entry.name,
+      description: entry.description,
+      sort_order: entry.sortOrder,
+      is_active: entry.isActive,
+      updated_at: new Date().toISOString(),
+    }),
+  })
+
+/**
+ * Hides a published award in the app without touching anyone's earned history.
+ * To hide a built-in award, publish it with Active unticked instead: a built-in
+ * that was never published has no row here to patch.
+ */
+export const deactivateAward = (id: string): Promise<void> =>
+  postgrest(`catalogue_awards?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
+  })

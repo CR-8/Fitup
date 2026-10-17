@@ -3,6 +3,7 @@ import { Modal, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { CalendarClock, CalendarCog, Diff } from 'lucide-react-native';
 
+import { FrostedGlass } from '@/components/primitives/frosted-glass';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 
@@ -30,8 +31,6 @@ const styles = StyleSheet.create((theme) => ({
         minWidth: 240,
         paddingVertical: theme.space(1),
         borderRadius: theme.radius.xl,
-        backgroundColor: theme.colors.neutral[700],
-        ...theme.shadows.lift,
     },
     item: {
         minHeight: 48,
@@ -91,7 +90,7 @@ export const GoalMenu: FC<GoalMenuProps> = ({ color, labels, onAdjustToday, onCh
                     animateOnPress={false}
                 >
                     {position ? (
-                        <View style={[styles.menu, position]}>
+                        <FrostedGlass style={[styles.menu, position]}>
                             {items.map(({ key, label, Icon, onPress }) => (
                                 <Pressable
                                     key={key}
@@ -103,7 +102,7 @@ export const GoalMenu: FC<GoalMenuProps> = ({ color, labels, onAdjustToday, onCh
                                     <Icon size={18} color={theme.colors.typography} />
                                 </Pressable>
                             ))}
-                        </View>
+                        </FrostedGlass>
                     ) : null}
                 </Pressable>
             </Modal>

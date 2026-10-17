@@ -25,7 +25,6 @@ export const ACCENT = {
     distance: '#D6F25A',
     steps: '#A78BFA',
     sessions: '#FF9F0A',
-    minutes: '#FFD60A',
     calories: '#5AB0FF',
 };
 
@@ -58,7 +57,7 @@ export const bucketsFor = (period: Period, now: Dayjs = dayjs()): Bucket[] => {
  * what the day's meal plan adds up to.
  */
 export const useCalorieDays = (from: string, to: string) => {
-    const meals = useMealsBetween(from, to);
+    const { meals, isFetched } = useMealsBetween(from, to);
     const { profile } = useAiProfile();
     const overrides = useCaloriesStore((state) => state.overrides);
     const daily = profile?.dailyCalorieTarget ?? 0;
@@ -69,13 +68,14 @@ export const useCalorieDays = (from: string, to: string) => {
 
         return {
             byDate,
+            isFetched,
             daily,
             goalFor: (date: string) =>
                 overrides[date] ??
                 (daily > 0 ? daily : Math.round(sumPlanned(byDate[date] ?? []).calories)),
             consumedOn: (date: string) => Math.round(sumConsumed(byDate[date] ?? []).calories),
         };
-    }, [daily, meals, overrides]);
+    }, [daily, isFetched, meals, overrides]);
 };
 
 /**
@@ -169,19 +169,9 @@ export const useSummary = (period: Period, today: string) => {
         const inRange = (date: Date | string | null | undefined) =>
             !!date && !dayjs(date).isBefore(start) && dayjs(date).isBefore(end);
         const startOfToday = dayjs().startOf('day');
-        const completed = list.filter((w) => w.status === 'completed' && inRange(w.completedAt));
-        const done = buckets.map(() => 0);
-        const minutes = buckets.map(() => 0);
-        completed.forEach((w) => {
-            const index = indexOf(buckets, dayjs(w.completedAt));
-            if (index < 0) return;
-            done[index] += 1;
-            if (w.startedAt) minutes[index] += dayjs(w.completedAt).diff(w.startedAt, 'minute');
-        });
 
         return {
-            series: { done, minutes },
-            done: completed.length,
+            done: list.filter((w) => w.status === 'completed' && inRange(w.completedAt)).length,
             planned: list.filter(
                 (w) =>
                     (w.status === 'planned' || w.status === 'in_progress') &&
@@ -190,7 +180,7 @@ export const useSummary = (period: Period, today: string) => {
             ).length,
             missed: getMissedWorkouts(list).filter((w) => inRange(w.startAt)).length,
         };
-    }, [buckets, end, start, workouts]);
+    }, [end, start, workouts]);
 
     // Each day of the period so far, against that day's goal.
     const calories = useMemo(() => {

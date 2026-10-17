@@ -2,6 +2,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 import {
     aiProfile,
+    awardEarned,
     exercise,
     exerciseFavorite,
     exerciseSet,
@@ -364,6 +365,25 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
             id: 'id',
             userId: 'user_id',
             exerciseId: 'exercise_id',
+            createdAt: 'created_at',
+            updatedAt: 'updated_at',
+        },
+        dates: [...TIMESTAMPS],
+        deviceOnly: [],
+    },
+    {
+        local: 'award_earned',
+        remote: 'awards_earned',
+        scope: { kind: 'user', column: 'userId' },
+        table: awardEarned,
+        idColumn: 'id',
+        conflictTarget: 'id',
+        columns: {
+            id: 'id',
+            userId: 'user_id',
+            awardId: 'award_id',
+            period: 'period',
+            value: 'value',
             createdAt: 'created_at',
             updatedAt: 'updated_at',
         },

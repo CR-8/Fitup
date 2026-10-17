@@ -9,3 +9,4 @@ export * from './ai';
 export * from './nutrition';
 export * from './notification-log';
 export * from './water';
+export * from './award';

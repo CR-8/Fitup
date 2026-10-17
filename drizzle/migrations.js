@@ -33,6 +33,7 @@ import m0028 from './0028_careful_nekra.sql';
 import m0029 from './0029_training_environment.sql';
 import m0030 from './0030_notification_log.sql';
 import m0031 from './0031_water_log.sql';
+import m0032 from './0032_award_earned.sql';
 
   export default {
     journal,
@@ -68,7 +69,8 @@ m0027,
 m0028,
 m0029,
 m0030,
-m0031
+m0031,
+m0032
     }
   }
   

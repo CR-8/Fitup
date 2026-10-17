@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     exercises: Exercise;
     foods: Food;
+    awards: Award;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,6 +81,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     exercises: ExercisesSelect<false> | ExercisesSelect<true>;
     foods: FoodsSelect<false> | FoodsSelect<true>;
+    awards: AwardsSelect<false> | AwardsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -191,6 +193,57 @@ export interface Food {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * What the app awards, and for what. The app measures and records the earning itself.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "awards".
+ */
+export interface Award {
+  id: number;
+  /**
+   * What earnings are recorded under. Never change it once published.
+   */
+  awardId: string;
+  /**
+   * Untick and publish to hide it in the app.
+   */
+  active?: boolean | null;
+  nameEn: string;
+  /**
+   * May use {{value}} (where they stand) and {{target}}.
+   */
+  descriptionEn?: string | null;
+  nameHi?: string | null;
+  descriptionHi?: string | null;
+  metric:
+    | 'calories_today'
+    | 'calorie_goal_days'
+    | 'water_today'
+    | 'water_goal_days'
+    | 'workouts_total'
+    | 'workouts_week'
+    | 'streak_days';
+  /**
+   * Leave empty to use the person's own goal (calories, water, weekly sessions).
+   */
+  target?: number | null;
+  repeat: 'once' | 'daily' | 'weekly';
+  group: 'daily' | 'workouts';
+  shape: 'circle' | 'square' | 'diamond';
+  symbol: 'flame' | 'target' | 'drop' | 'dumbbell' | 'trophy' | 'calendar' | 'bolt';
+  /**
+   * The colour once earned. Lime #D6F25A, blue #5AB0FF, pink #FF6F91, orange #FF9F0A.
+   */
+  color: string;
+  /**
+   * Lower comes first.
+   */
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -225,6 +278,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'foods';
         value: number | Food;
+      } | null)
+    | ({
+        relationTo: 'awards';
+        value: number | Award;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -321,6 +378,29 @@ export interface FoodsSelect<T extends boolean = true> {
   proteinG?: T;
   carbsG?: T;
   fatG?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "awards_select".
+ */
+export interface AwardsSelect<T extends boolean = true> {
+  awardId?: T;
+  active?: T;
+  nameEn?: T;
+  descriptionEn?: T;
+  nameHi?: T;
+  descriptionHi?: T;
+  metric?: T;
+  target?: T;
+  repeat?: T;
+  group?: T;
+  shape?: T;
+  symbol?: T;
+  color?: T;
+  sortOrder?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

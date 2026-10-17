@@ -36,17 +36,19 @@ export const useMealsForDate = (date: string) => {
     return { meals: data as MealWithItems[], isLoading };
 };
 
+const EMPTY_MEALS: MealWithItems[] = [];
+
 /** Meals from `from` through `to` (inclusive day keys), for Today's charts. */
 export const useMealsBetween = (from: string, to: string) => {
     const { user } = useUser();
 
-    const { data = [] } = useQuery({
+    const { data = EMPTY_MEALS, isFetched } = useQuery({
         queryKey: [MEALS_KEY, user?.id, 'range', from, to],
         queryFn: () => getMealsBetween(user!.id, from, to),
         enabled: !!user?.id,
     });
 
-    return data;
+    return { meals: data, isFetched };
 };
 
 export interface DayMealsSummary {

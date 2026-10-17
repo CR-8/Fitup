@@ -52,11 +52,15 @@ export const ModalHeader: FC<ModalHeaderProps> = ({ title, subtitle, right }) =>
             {right}
         </HStack>
 
-        <VStack style={styles.header}>
-            <Title type="h1" accessibilityRole="header">
-                {title}
-            </Title>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </VStack>
+        {title || subtitle ? (
+            <VStack style={styles.header}>
+                {title ? (
+                    <Title type="h1" accessibilityRole="header">
+                        {title}
+                    </Title>
+                ) : null}
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </VStack>
+        ) : null}
     </>
 );

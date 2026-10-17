@@ -32,6 +32,7 @@ import { AnalyticsProvider } from '@/hooks/use-analytics';
 import { AnalyticsTracker } from '@/analytics/tracker';
 import { useHealthImporter } from '@/hooks/use-health-importer';
 import { useExerciseCatalogue } from '@/hooks/use-exercise-catalogue';
+import { useAwardTracker } from '@/hooks/use-award-tracker';
 import { AccountProvider, useAccount } from '@/hooks/use-account';
 import { isAuthConfigured } from '@/constants/auth';
 import { useFirstLaunchGate } from '@/hooks/use-first-launch-gate';
@@ -120,6 +121,7 @@ const App: FC = () => {
     useHealthImporter(user ?? undefined);
     useExerciseCatalogue();
     useFirstLaunchGate();
+    useAwardTracker();
 
     // Held until the stored session has been read as well as the user row, or the
     // splash would lift onto the blank frame below rather than onto a screen.
@@ -158,6 +160,20 @@ const App: FC = () => {
                             <Stack.Screen name="calories" options={screens.pushed} />
                             <Stack.Screen name="calorie-goal" options={screens.modal} />
                             <Stack.Screen name="calendar" options={screens.modal} />
+                            <Stack.Screen
+                                name="sessions"
+                                options={{ ...screens.pushed, headerLargeTitle: true }}
+                            />
+                            <Stack.Screen name="session/[workoutId]" options={screens.pushed} />
+                            <Stack.Screen
+                                name="awards/index"
+                                options={{ ...screens.pushed, headerLargeTitle: true }}
+                            />
+                            <Stack.Screen
+                                name="awards/[group]"
+                                options={{ ...screens.pushed, headerLargeTitle: true }}
+                            />
+                            <Stack.Screen name="award/[awardId]" options={screens.pushed} />
                             <Stack.Screen
                                 name="metric"
                                 options={{ ...screens.pushed, headerLargeTitle: true }}

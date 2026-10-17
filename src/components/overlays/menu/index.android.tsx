@@ -1,40 +1,24 @@
-import { Platform } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useKeyboard } from '@react-native-community/hooks';
 import { StyleSheet } from 'react-native-unistyles';
 
+import { FrostedGlass } from '@/components/primitives/frosted-glass';
+
 import { Tabs } from './components';
-import { Box } from '@/components/primitives/box';
+
+/**
+ * Android's tab bar, drawn to match iOS's: a frosted-glass pill floating over
+ * the content, inset from the screen edges and the gesture bar.
+ */
 
 const styles = StyleSheet.create((theme, rt) => ({
-    menuContainer: {
+    bar: {
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: rt.insets.bottom + theme.space(2),
+        left: theme.space(5),
+        right: theme.space(5),
         zIndex: 1000,
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        paddingBottom: rt.insets.bottom,
-        ...Platform.select({
-            ios: {
-                shadowOffset: {
-                    width: 0,
-                    height: 0,
-                },
-                shadowOpacity: 0.25,
-                shadowRadius: 5,
-                shadowColor: rt.themeName === 'dark' ? '#0a0a0a' : '#525252',
-            },
-            default: {
-                boxShadow:
-                    rt.themeName === 'dark'
-                        ? '0 -2px 10px 0 rgba(10, 10, 10, 0.25)'
-                        : '0 -2px 10px 0 rgba(82, 82, 82, 0.25)',
-            },
-        }),
+        borderRadius: theme.radius.full,
     },
 }));
 
@@ -48,9 +32,9 @@ const Menu = ({ state }: BottomTabBarProps) => {
     if (keyboardShown) return null;
 
     return (
-        <Box style={styles.menuContainer}>
+        <FrostedGlass style={styles.bar}>
             <Tabs state={state} />
-        </Box>
+        </FrostedGlass>
     );
 };
 

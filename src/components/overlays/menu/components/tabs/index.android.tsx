@@ -7,7 +7,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { LucideIcon, House, ChartNoAxesColumn, MessageCircle } from 'lucide-react-native';
 
 import { Pressable } from '@/components/primitives/pressable';
-import { VStack } from '@/components/primitives/vstack';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { HStack } from '@/components/primitives/hstack';
@@ -22,34 +21,27 @@ interface ItemType {
     Icon: LucideIcon;
 }
 
-const styles = StyleSheet.create((theme, rt) => ({
+// The pill iOS's tab bar draws: icon over label, the current tab on a lighter
+// capsule inside the glass, in the brand colour; the rest muted.
+const styles = StyleSheet.create((theme) => ({
     tabsContainer: {
-        justifyContent: 'space-around',
-        height: theme.space(16),
-        paddingTop: theme.space(3),
-        paddingHorizontal: theme.space(1),
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        backgroundColor:
-            rt.themeName === 'dark' ? theme.colors.neutral[925] : theme.colors.background,
+        height: 62,
+        padding: 4,
     },
     itemContainer: {
         flex: 1,
     },
-    itemWrapper: {
+    item: (isFocused: boolean) => ({
+        flex: 1,
         alignItems: 'center',
-        gap: theme.space(0.25),
-    },
-    itemIconWrapper: {
-        marginBottom: theme.space(1.5),
-        height: theme.space(5),
-        width: theme.space(5),
-    },
-    // Inactive tabs used to be `typography` faded by opacity, which reads as
-    // "slightly less faded" rather than as the place you are not. Using the
-    // muted colour at full opacity says it directly, and matches every other
-    // secondary label in the app rather than inventing a bar-specific fade.
+        justifyContent: 'center',
+        gap: 2,
+        borderRadius: theme.radius.full,
+        backgroundColor: isFocused ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+    }),
     itemText: (isFocused: boolean) => ({
+        fontSize: 11,
+        lineHeight: 13,
         color: isFocused ? theme.colors.primary : theme.colors.mutedTypography,
     }),
 }));
@@ -61,6 +53,10 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
     return (
         <Box style={styles.itemContainer}>
             <Pressable
+                style={styles.item(isFocused)}
+                animateOnPress={false}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isFocused }}
                 onPressIn={() => {
                     runInBackground(
                         () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
@@ -69,23 +65,17 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
                     onPress();
                 }}
             >
-                <VStack style={styles.itemWrapper}>
-                    <Box style={styles.itemIconWrapper}>
-                        <Icon
-                            size={theme.space(5)}
-                            color={isFocused ? theme.colors.primary : theme.colors.mutedTypography}
-                        />
-                    </Box>
-                    <Box>
-                        <Text
-                            fontSize="xs"
-                            fontWeight={isFocused ? 'semibold' : 'medium'}
-                            style={styles.itemText(isFocused)}
-                        >
-                            {t(children, { ns: 'menu' })}
-                        </Text>
-                    </Box>
-                </VStack>
+                <Icon
+                    size={22}
+                    strokeWidth={isFocused ? 2.25 : 1.75}
+                    color={isFocused ? theme.colors.primary : theme.colors.mutedTypography}
+                />
+                <Text
+                    fontWeight={isFocused ? 'semibold' : 'medium'}
+                    style={styles.itemText(isFocused)}
+                >
+                    {t(children, { ns: 'menu' })}
+                </Text>
             </Pressable>
         </Box>
     );

@@ -1,400 +1,464 @@
-import { FC, useState } from 'react';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { FC, useEffect, useState } from 'react';
+import { Platform, ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
+import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
-import { Input } from '@/components/primitives/input';
 import { Pressable } from '@/components/primitives/pressable';
 import { Button } from '@/components/buttons/base';
-import { Card, CardTitle } from '@/components/layout/card';
-import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
-import { ChoiceChips, type ChoiceOption } from '@/components/forms/choice-chips';
+import { HeaderTextButton } from '@/components/buttons/header';
+import { Stack } from '@/navigators/stack';
 import { AI_CONFIG } from '@/constants/ai';
-import type { AiProfileSelect } from '@/db/schema';
+import { MEAL_SLOTS, type MealSlot } from '@/db/schema';
 import { useAccount } from '@/hooks/use-account';
 import { useAiAvailable, useAiProfile, useSynActions } from '@/hooks/use-ai';
 import { storage } from '@/storage';
+import { ACCENT } from '@/screens/home/summary';
+import { hasSeenSynWelcome } from '@/screens/syn-welcome';
 
-import { DietFields, type Diet } from './components/diet-fields';
+import { HeaderArt } from '../build/components/header-art';
+import { MenuPicker } from '../build/components/menu-picker';
+import type { Diet } from './components/diet-fields';
+import { MealIcon } from './components/meal-icon';
 
 /**
- * D02 / D05: what a plan build will be based on, before it spends anything.
+ * Build Your Food Plan: the food chart's form, in Build Your Plan's style.
+ * Which meals, for how long, the cuisine, cooking time and budget, the diet
+ * and allergies, and a day's calories; Create sends Syn the whole brief, so it
+ * writes the chart without asking, and the meals land in Nutrition at once.
  *
- * Profile answers are prefilled and, when changed here, saved back to the
- * profile on Build — so allergies and diet stay put for every later build and
- * swap. The rest (region, cooking time, budget, focus) goes into the request's
- * wording and is remembered on this device between visits.
- *
- * The bottom bar shows the cost and what is left before the one button that
- * spends it; there is no way to build from a single stray tap.
+ * Diet, allergies and calories are saved to the profile; the rest is
+ * remembered on this device for next time.
  */
 
-type Kind = 'workout' | 'nutrition';
-type Goal = NonNullable<AiProfileSelect['goal']>;
-type Place = NonNullable<AiProfileSelect['trainingEnvironment']>;
-
-const GOALS: Goal[] = ['lose', 'gain', 'maintain', 'recomp'];
-const PLACES: Place[] = ['gym', 'home'];
-const DAYS = [2, 3, 4, 5, 6];
-const MINUTES = [30, 45, 60, 75, 90];
+const LIME = ACCENT.distance;
+/** Syn writes a short rotation (output stays small) and the app repeats it. */
+const CYCLE_DAYS = 3;
+const LENGTHS = [3, 7, 14] as const;
 const REGIONS = ['north', 'south', 'west', 'east', 'mixed'] as const;
 const COOK_TIMES = [15, 30, 45] as const;
 const BUDGETS = ['low', 'moderate', 'flexible'] as const;
+const DIETS: Diet[] = [
+    'vegetarian',
+    'eggetarian',
+    'omnivore',
+    'vegan',
+    'pescatarian',
+    'halal',
+    'kosher',
+];
+const ALLERGENS = [
+    'peanuts',
+    'tree nuts',
+    'dairy',
+    'gluten',
+    'eggs',
+    'soy',
+    'fish',
+    'shellfish',
+    'sesame',
+];
+const CALORIES = [0, 1500, 1800, 2000, 2200, 2500, 2800, 3200] as const;
 
 type Region = (typeof REGIONS)[number];
 type Budget = (typeof BUDGETS)[number];
 
 interface Draft {
-    goal?: Goal | null;
-    sessionsPerWeek?: number | null;
-    sessionMinutes?: number | null;
-    trainingEnvironment?: Place | null;
-    focus?: string;
-    dietaryPattern?: Diet | null;
-    allergens?: string[];
-    region?: Region;
-    cookMinutes?: number;
-    budget?: Budget;
+    days: number;
+    slots: MealSlot[];
+    region: Region;
+    cookMinutes: number;
+    budget: Budget;
 }
 
-const draftKey = (kind: Kind) => `coach.draft.${kind}`;
+const DRAFT_KEY = 'coach.draft.food';
+const DEFAULT_DRAFT: Draft = {
+    days: 7,
+    slots: ['breakfast', 'lunch', 'dinner'],
+    region: 'north',
+    cookMinutes: 30,
+    budget: 'moderate',
+};
 
-const readDraft = (kind: Kind): Draft => {
+const readDraft = (): Draft => {
     try {
-        const raw = storage.getString(draftKey(kind));
-        return raw ? (JSON.parse(raw) as Draft) : {};
+        const raw = storage.getString(DRAFT_KEY);
+        return raw ? { ...DEFAULT_DRAFT, ...(JSON.parse(raw) as Partial<Draft>) } : DEFAULT_DRAFT;
     } catch {
-        return {};
+        return DEFAULT_DRAFT;
     }
 };
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
+        backgroundColor: '#1c1e22',
     },
+    content: {
+        paddingHorizontal: theme.space(4),
+        paddingTop: Platform.OS === 'android' ? rt.insets.top : 0,
+        paddingBottom: theme.space(32),
+        gap: theme.space(3),
+    },
+    navRow: {
+        height: 44,
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 30,
+        lineHeight: 36,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        textAlign: 'center',
+        color: theme.colors.typography,
+        marginBottom: theme.space(2),
+    },
+    section: {
+        fontSize: 22,
+        lineHeight: 28,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+        marginTop: theme.space(4),
+    },
+    hint: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+        marginTop: -theme.space(2),
+    },
+    group: {
+        borderRadius: theme.radius.xl,
+        backgroundColor: theme.colors.elevated,
+        overflow: 'hidden',
+    },
+    row: (first: boolean) => ({
+        minHeight: 52,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: theme.space(3),
+        paddingHorizontal: theme.space(4),
+        borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+        borderTopColor: theme.colors.border,
+    }),
+    rowLabel: {
+        ...theme.fontSize.default,
+        flexShrink: 1,
+        color: theme.colors.typography,
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: theme.space(2),
+    },
+    tile: (selected: boolean, wide: boolean) => ({
+        width: wide ? '48.8%' : '31.8%',
+        minHeight: wide ? 88 : 56,
+        justifyContent: wide ? 'space-between' : 'center',
+        padding: theme.space(3),
+        borderRadius: theme.radius.xl,
+        borderWidth: 1.5,
+        borderColor: selected ? LIME : 'transparent',
+        backgroundColor: theme.colors.elevated,
+    }),
+    tileText: (selected: boolean) => ({
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: selected ? LIME : theme.colors.typography,
+    }),
     caution: {
         ...theme.fontSize.xs,
         color: theme.colors.mutedTypography,
-    },
-    input: {
-        ...theme.fontSize.default,
-        minHeight: 48,
-        paddingHorizontal: theme.space(3),
-        borderRadius: theme.radius.xl,
-        backgroundColor: theme.colors.input,
-        color: theme.colors.typography,
+        marginTop: theme.space(2),
     },
     footer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
         gap: theme.space(2),
         paddingHorizontal: theme.space(4),
         paddingTop: theme.space(3),
         paddingBottom: rt.insets.bottom + theme.space(3),
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
+        backgroundColor: 'rgba(28, 30, 34, 0.94)',
     },
-    cost: {
+    footerText: {
         ...theme.fontSize.sm,
         textAlign: 'center',
         color: theme.colors.mutedTypography,
     },
-    link: {
-        ...theme.fontSize.sm,
-        textAlign: 'center',
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: theme.colors.primary,
-    },
 }));
 
-const NewPlanScreen: FC = () => {
-    const { t } = useTranslation(['screens']);
-    const { theme } = useUnistyles();
-    const params = useLocalSearchParams<{ kind?: string }>();
-    const kind: Kind = params.kind === 'nutrition' ? 'nutrition' : 'workout';
-
+const FoodPlanScreen: FC = () => {
+    const { t } = useTranslation(['screens', 'common']);
     const available = useAiAvailable();
     const { isSignedIn } = useAccount();
     const { profile, save } = useAiProfile();
     const { generate, quota, exhausted, isBusy } = useSynActions();
 
-    const [draft, setDraftState] = useState<Draft>(() => readDraft(kind));
+    const [draft, setDraftState] = useState<Draft>(readDraft);
+    const [dietDraft, setDiet] = useState<Diet | null>(null);
+    const [allergenDraft, setAllergens] = useState<string[] | null>(null);
+    const [caloriesDraft, setCalories] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const setDraft = (updates: Draft) => {
+    const diet = dietDraft ?? profile?.dietaryPattern ?? 'vegetarian';
+    const allergens = allergenDraft ?? profile?.allergens ?? [];
+    const calories = caloriesDraft ?? profile?.dailyCalorieTarget ?? 0;
+
+    const setDraft = (updates: Partial<Draft>) =>
         setDraftState((current) => {
             const next = { ...current, ...updates };
             try {
-                storage.set(draftKey(kind), JSON.stringify(next));
+                storage.set(DRAFT_KEY, JSON.stringify(next));
             } catch {
-                // A draft that cannot be remembered is still a usable form.
+                // A form that cannot be remembered still works.
             }
             return next;
         });
-    };
-
-    // What the form shows: this visit's answer, else the profile's.
-    const goal = draft.goal !== undefined ? draft.goal : (profile?.goal ?? null);
-    const days =
-        draft.sessionsPerWeek !== undefined
-            ? draft.sessionsPerWeek
-            : (profile?.sessionsPerWeek ?? null);
-    const minutes =
-        draft.sessionMinutes !== undefined
-            ? draft.sessionMinutes
-            : (profile?.sessionMinutes ?? null);
-    const place =
-        draft.trainingEnvironment !== undefined
-            ? draft.trainingEnvironment
-            : (profile?.trainingEnvironment ?? null);
-    const diet =
-        draft.dietaryPattern !== undefined
-            ? draft.dietaryPattern
-            : (profile?.dietaryPattern ?? null);
-    const allergens = draft.allergens ?? profile?.allergens ?? [];
-    const region = draft.region ?? 'north';
-    const cookMinutes = draft.cookMinutes ?? 30;
-    const budget = draft.budget ?? 'moderate';
 
     const signInNeeded = AI_CONFIG.transport === 'proxy' && !isSignedIn;
-    const blocked = !available || signInNeeded;
-    const canSubmit = !blocked && !exhausted && !isBusy && !submitting;
+    const canCreate =
+        available &&
+        !signInNeeded &&
+        !exhausted &&
+        !isBusy &&
+        !submitting &&
+        draft.slots.length > 0;
 
-    const option = <T extends string | number>(value: T, label: string): ChoiceOption<T> => ({
-        value,
-        label,
-    });
-    const toggle = <T,>(current: T | null, value: T): T | null =>
-        current === value ? null : value;
-
-    const unknown = t('coach.new.unknown', { ns: 'screens' });
-
-    const buildIntent = () => {
-        if (kind === 'workout') {
-            const intent = t('coach.new.workoutIntent', {
-                ns: 'screens',
-                goal: goal ? t(`onboarding.goal.${goal}`, { ns: 'screens' }) : unknown,
-                days: days ?? unknown,
-                minutes: minutes ?? unknown,
-                place: place
-                    ? t(`onboarding.trainingEnvironment.${place}`, { ns: 'screens' })
-                    : unknown,
-            });
-            const focus = draft.focus?.trim();
-
-            return focus
-                ? `${intent} ${t('coach.new.focusIntent', { ns: 'screens', focus })}`
-                : intent;
-        }
-
-        return t('coach.new.mealIntent', {
-            ns: 'screens',
-            region: t(`coach.new.regions.${region}`, { ns: 'screens' }),
-            minutes: cookMinutes,
-            budget: t(`coach.new.budgets.${budget}`, { ns: 'screens' }),
+    const toggleSlot = (slot: MealSlot) =>
+        setDraft({
+            slots: draft.slots.includes(slot)
+                ? draft.slots.filter((s) => s !== slot)
+                : MEAL_SLOTS.filter((s) => s === slot || draft.slots.includes(s)),
         });
-    };
 
-    const handleBuild = async () => {
-        if (!canSubmit) return;
+    const toggleAllergen = (allergen: string) =>
+        setAllergens(
+            allergens.includes(allergen)
+                ? allergens.filter((a) => a !== allergen)
+                : [...allergens, allergen],
+        );
+
+    const create = async () => {
+        if (!canCreate) return;
         setSubmitting(true);
 
         try {
-            // Saved first, so the request is built from the answers just given.
-            await save(
-                kind === 'workout'
-                    ? {
-                          goal,
-                          sessionsPerWeek: days,
-                          sessionMinutes: minutes,
-                          trainingEnvironment: place,
-                      }
-                    : { dietaryPattern: diet, allergens },
-            );
+            await save({
+                dietaryPattern: diet,
+                allergens,
+                ...(calories > 0 ? { dailyCalorieTarget: calories } : {}),
+            });
         } catch {
-            // The build still runs on what the profile already had.
+            // The brief carries every answer anyway.
         }
 
-        const started = generate(kind, buildIntent());
-        setSubmitting(false);
+        const cycle = Math.min(draft.days, CYCLE_DAYS);
+        const intent = [
+            `A ${cycle}-day food chart that I will rotate for ${draft.days} days.`,
+            `Meals each day, and only these: ${draft.slots.join(', ')}.`,
+            `Cuisine: ${draft.region === 'mixed' ? 'mixed Indian regions' : `${draft.region} Indian`}.`,
+            `Cooking time: about ${draft.cookMinutes} minutes a meal. Budget: ${draft.budget}.`,
+            `Diet: ${diet}. Allergies: ${allergens.length ? allergens.join(', ') : 'none'}.`,
+            calories > 0
+                ? `Daily calories: about ${calories} kcal.`
+                : `Daily calories: set them from my goal${profile?.goal ? ` (${profile.goal})` : ''}.`,
+            'This is everything you need. Do not ask questions; write the chart.',
+        ].join('\n');
 
+        const started = generate('nutrition', intent, cycle, {
+            repeatDays: draft.days,
+            ready: true,
+            autoApply: true,
+        });
+        setSubmitting(false);
         if (started) router.back();
     };
 
-    const title = t(kind === 'workout' ? 'coach.new.workoutTitle' : 'coach.new.mealTitle', {
-        ns: 'screens',
-    });
+    const navButton = (
+        <HeaderTextButton title={t('cancel', { ns: 'common' })} onPress={() => router.back()} />
+    );
+
+    // Syn's AI caution comes before its first use on this device.
+    useEffect(() => {
+        if (!hasSeenSynWelcome()) router.navigate('/syn-welcome' as never);
+    }, []);
 
     return (
         <Box style={styles.container}>
-            <KeyboardAwareScrollView
-                style={styles.container}
-                contentContainerStyle={modalStyles.content}
+            {Platform.OS === 'ios' ? (
+                <Stack.Screen options={{ title: '', headerLeft: () => navButton }} />
+            ) : null}
+
+            <ScrollView
+                contentContainerStyle={styles.content}
                 contentInsetAdjustmentBehavior="automatic"
-                keyboardShouldPersistTaps="handled"
-                bottomOffset={theme.space(6)}
             >
-                <ModalHeader
-                    title={title}
-                    subtitle={t(
-                        kind === 'workout' ? 'coach.new.workoutSubtitle' : 'coach.new.mealSubtitle',
-                        { ns: 'screens' },
-                    )}
-                />
+                {Platform.OS === 'android' ? (
+                    <HStack style={styles.navRow}>{navButton}</HStack>
+                ) : null}
+                <HeaderArt />
+                <Text style={styles.title} accessibilityRole="header">
+                    {t('coach.food.title', { ns: 'screens' })}
+                </Text>
 
-                {kind === 'workout' ? (
-                    <>
-                        <Card>
-                            <CardTitle title={t('onboarding.fields.goal', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={GOALS.map((value) =>
-                                    option(value, t(`onboarding.goal.${value}`, { ns: 'screens' })),
-                                )}
-                                selected={goal ? [goal] : []}
-                                onToggle={(value) => setDraft({ goal: toggle(goal, value) })}
-                            />
-                        </Card>
+                <Text style={styles.section}>{t('coach.food.meals', { ns: 'screens' })}</Text>
+                <Box style={styles.grid}>
+                    {MEAL_SLOTS.map((slot) => {
+                        const selected = draft.slots.includes(slot);
+                        return (
+                            <Pressable
+                                key={slot}
+                                style={styles.tile(selected, true)}
+                                onPress={() => toggleSlot(slot)}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: selected }}
+                            >
+                                <MealIcon
+                                    slot={slot}
+                                    size={22}
+                                    color={selected ? LIME : '#9a9fa8'}
+                                />
+                                <Text style={styles.tileText(selected)}>
+                                    {t(`syn.plan.slots.${slot}`, { ns: 'screens' })}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </Box>
 
-                        <Card>
-                            <CardTitle title={t('onboarding.fields.sessions', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={DAYS.map((value) => option(value, String(value)))}
-                                selected={days ? [days] : []}
-                                onToggle={(value) =>
-                                    setDraft({ sessionsPerWeek: toggle(days, value) })
-                                }
-                            />
-                            <CardTitle title={t('coach.new.minutes', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={MINUTES.map((value) =>
-                                    option(
-                                        value,
-                                        t('coach.new.minutesValue', {
-                                            ns: 'screens',
-                                            count: value,
-                                        }),
-                                    ),
-                                )}
-                                selected={minutes ? [minutes] : []}
-                                onToggle={(value) =>
-                                    setDraft({ sessionMinutes: toggle(minutes, value) })
-                                }
-                            />
-                        </Card>
-
-                        <Card>
-                            <CardTitle
-                                title={t('onboarding.fields.trainingEnvironment', {
-                                    ns: 'screens',
-                                })}
-                            />
-                            <ChoiceChips
-                                options={PLACES.map((value) =>
-                                    option(
-                                        value,
-                                        t(`onboarding.trainingEnvironment.${value}`, {
-                                            ns: 'screens',
-                                        }),
-                                    ),
-                                )}
-                                selected={place ? [place] : []}
-                                onToggle={(value) =>
-                                    setDraft({ trainingEnvironment: toggle(place, value) })
-                                }
-                            />
-                        </Card>
-
-                        <Card>
-                            <CardTitle title={t('coach.new.focus', { ns: 'screens' })} />
-                            <Input
-                                style={styles.input}
-                                value={draft.focus ?? ''}
-                                onChangeText={(focus) => setDraft({ focus })}
-                                placeholder={t('coach.new.focusPlaceholder', { ns: 'screens' })}
-                                maxLength={200}
-                                returnKeyType="done"
-                                accessibilityLabel={t('coach.new.focus', { ns: 'screens' })}
-                            />
-                        </Card>
-                    </>
-                ) : (
-                    <>
-                        <DietFields diet={diet} allergens={allergens} onChange={setDraft} />
-
-                        <Card>
-                            <CardTitle title={t('coach.new.region', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={REGIONS.map((value) =>
-                                    option(
-                                        value,
-                                        t(`coach.new.regions.${value}`, { ns: 'screens' }),
-                                    ),
-                                )}
-                                selected={[region]}
-                                onToggle={(value) => setDraft({ region: value })}
-                            />
-                        </Card>
-
-                        <Card>
-                            <CardTitle title={t('coach.new.cooking', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={COOK_TIMES.map((value) =>
-                                    option<number>(
-                                        value,
-                                        t('coach.new.cookingValue', {
-                                            ns: 'screens',
-                                            count: value,
-                                        }),
-                                    ),
-                                )}
-                                selected={[cookMinutes]}
-                                onToggle={(value) => setDraft({ cookMinutes: value })}
-                            />
-                            <CardTitle title={t('coach.new.budget', { ns: 'screens' })} />
-                            <ChoiceChips
-                                options={BUDGETS.map((value) =>
-                                    option(
-                                        value,
-                                        t(`coach.new.budgets.${value}`, { ns: 'screens' }),
-                                    ),
-                                )}
-                                selected={[budget]}
-                                onToggle={(value) => setDraft({ budget: value })}
-                            />
-                        </Card>
-
-                        <Text style={styles.caution}>
-                            {t('coach.new.mealCaution', { ns: 'screens' })}
+                <VStack style={styles.group}>
+                    <HStack style={styles.row(true)}>
+                        <Text style={styles.rowLabel}>
+                            {t('coach.food.length', { ns: 'screens' })}
                         </Text>
-                    </>
-                )}
+                        <MenuPicker
+                            value={draft.days}
+                            options={LENGTHS.map((value) => ({
+                                value,
+                                label: t('coach.food.daysValue', { ns: 'screens', count: value }),
+                            }))}
+                            onChange={(days) => setDraft({ days })}
+                            accessibilityLabel={t('coach.food.length', { ns: 'screens' })}
+                        />
+                    </HStack>
+                    <HStack style={styles.row(false)}>
+                        <Text style={styles.rowLabel}>
+                            {t('coach.food.calories', { ns: 'screens' })}
+                        </Text>
+                        <MenuPicker
+                            value={calories}
+                            options={CALORIES.map((value) => ({
+                                value,
+                                label: value
+                                    ? t('coach.food.kcalValue', { ns: 'screens', value })
+                                    : t('coach.food.fromGoal', { ns: 'screens' }),
+                            }))}
+                            onChange={setCalories}
+                            accessibilityLabel={t('coach.food.calories', { ns: 'screens' })}
+                        />
+                    </HStack>
+                    <HStack style={styles.row(false)}>
+                        <Text style={styles.rowLabel}>
+                            {t('coach.new.region', { ns: 'screens' })}
+                        </Text>
+                        <MenuPicker
+                            value={draft.region}
+                            options={REGIONS.map((value) => ({
+                                value,
+                                label: t(`coach.new.regions.${value}`, { ns: 'screens' }),
+                            }))}
+                            onChange={(region) => setDraft({ region })}
+                            accessibilityLabel={t('coach.new.region', { ns: 'screens' })}
+                        />
+                    </HStack>
+                    <HStack style={styles.row(false)}>
+                        <Text style={styles.rowLabel}>
+                            {t('coach.new.cooking', { ns: 'screens' })}
+                        </Text>
+                        <MenuPicker
+                            value={draft.cookMinutes}
+                            options={COOK_TIMES.map((value) => ({
+                                value,
+                                label: t('coach.new.cookingValue', { ns: 'screens', count: value }),
+                            }))}
+                            onChange={(cookMinutes) => setDraft({ cookMinutes })}
+                            accessibilityLabel={t('coach.new.cooking', { ns: 'screens' })}
+                        />
+                    </HStack>
+                    <HStack style={styles.row(false)}>
+                        <Text style={styles.rowLabel}>
+                            {t('coach.new.budget', { ns: 'screens' })}
+                        </Text>
+                        <MenuPicker
+                            value={draft.budget}
+                            options={BUDGETS.map((value) => ({
+                                value,
+                                label: t(`coach.new.budgets.${value}`, { ns: 'screens' }),
+                            }))}
+                            onChange={(budget) => setDraft({ budget })}
+                            accessibilityLabel={t('coach.new.budget', { ns: 'screens' })}
+                        />
+                    </HStack>
+                </VStack>
 
-                <Text style={styles.caution}>{t('coach.new.review', { ns: 'screens' })}</Text>
-            </KeyboardAwareScrollView>
+                <Text style={styles.section}>{t('coach.new.diet', { ns: 'screens' })}</Text>
+                <Box style={styles.grid}>
+                    {DIETS.map((value) => (
+                        <Pressable
+                            key={value}
+                            style={styles.tile(diet === value, false)}
+                            onPress={() => setDiet(value)}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: diet === value }}
+                        >
+                            <Text style={styles.tileText(diet === value)} numberOfLines={1}>
+                                {t(`coach.new.diets.${value}`, { ns: 'screens' })}
+                            </Text>
+                        </Pressable>
+                    ))}
+                </Box>
+
+                <Text style={styles.section}>{t('coach.new.allergies', { ns: 'screens' })}</Text>
+                <Text style={styles.hint}>{t('coach.food.allergiesHint', { ns: 'screens' })}</Text>
+                <Box style={styles.grid}>
+                    {ALLERGENS.map((value) => {
+                        const selected = allergens.includes(value);
+                        return (
+                            <Pressable
+                                key={value}
+                                style={styles.tile(selected, false)}
+                                onPress={() => toggleAllergen(value)}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: selected }}
+                            >
+                                <Text style={styles.tileText(selected)} numberOfLines={1}>
+                                    {t(`coach.new.allergens.${value.replace(' ', '_')}`, {
+                                        ns: 'screens',
+                                    })}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </Box>
+
+                <Text style={styles.caution}>{t('coach.new.mealCaution', { ns: 'screens' })}</Text>
+            </ScrollView>
 
             <VStack style={styles.footer}>
-                {blocked ? (
-                    <Text style={styles.cost}>
-                        {t(
-                            signInNeeded ? 'syn.signInRequired.message' : 'syn.unavailable.message',
-                            {
-                                ns: 'screens',
-                            },
-                        )}
-                    </Text>
-                ) : exhausted ? (
-                    <Text style={styles.cost}>
-                        {t('coach.new.usedUp', { ns: 'screens', limit: quota.limit })}
-                    </Text>
-                ) : (
-                    <Text style={styles.cost}>
-                        {t('coach.new.cost', { ns: 'screens', count: quota.remaining })}
-                    </Text>
-                )}
-
+                <Text style={styles.footerText}>
+                    {!available
+                        ? t('syn.unavailable.message', { ns: 'screens' })
+                        : signInNeeded
+                          ? t('syn.signInRequired.message', { ns: 'screens' })
+                          : exhausted
+                            ? t('coach.new.usedUp', { ns: 'screens', limit: quota.limit })
+                            : isBusy
+                              ? t('coach.new.busy', { ns: 'screens' })
+                              : t('coach.new.cost', { ns: 'screens', count: quota.remaining })}
+                </Text>
                 {signInNeeded ? (
                     <Button
                         type="primary"
@@ -404,27 +468,15 @@ const NewPlanScreen: FC = () => {
                 ) : (
                     <Button
                         type="primary"
-                        title={t('coach.new.build', { ns: 'screens' })}
-                        disabled={!canSubmit}
+                        title={t('coach.food.create', { ns: 'screens' })}
+                        disabled={!canCreate}
                         loading={submitting}
-                        onPress={() => void handleBuild()}
-                        accessibilityState={{ disabled: !canSubmit }}
+                        onPress={() => void create()}
                     />
                 )}
-
-                {exhausted ? (
-                    <Pressable
-                        onPress={() => router.navigate('/quota' as never)}
-                        accessibilityRole="button"
-                    >
-                        <Text style={styles.link}>{t('quota.open', { ns: 'screens' })}</Text>
-                    </Pressable>
-                ) : isBusy ? (
-                    <Text style={styles.cost}>{t('coach.new.busy', { ns: 'screens' })}</Text>
-                ) : null}
             </VStack>
         </Box>
     );
 };
 
-export default NewPlanScreen;
+export default FoodPlanScreen;

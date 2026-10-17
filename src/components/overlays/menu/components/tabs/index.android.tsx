@@ -83,7 +83,7 @@ const Item: FC<ItemType> = ({ isFocused, onPress, children, Icon }) => {
 
 const Tabs: FC<TabsType> = ({ state }) => {
     const menu = useMemo(() => {
-        // Today, Coach, Progress. Each tab is a route group, so
+        // Today, Syn, Progress. Each tab is a route group, so
         // `screen` is the group's name.
         const items = [
             {

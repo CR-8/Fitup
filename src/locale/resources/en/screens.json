@@ -726,7 +726,7 @@
         }
     },
     "syn": {
-        "title": "Coach",
+        "title": "Syn",
         "eyebrow": "Your AI coach",
         "empty": {
             "title": "Ask Syn",
@@ -1383,7 +1383,7 @@
         "plans": {
             "title": "Your plans",
             "subtitle": "A draft changes nothing until you review it and add it.",
-            "empty": "No plans yet. Build one from Coach.",
+            "empty": "No plans yet. Build one with Syn.",
             "sections": {
                 "active": "Active",
                 "draft": "Drafts",
@@ -1446,6 +1446,18 @@
                 "mobility": "Mobility",
                 "yoga": "Yoga"
             }
+        },
+        "food": {
+            "title": "Build Your Food Plan",
+            "meals": "Meals",
+            "length": "Length of Plan",
+            "daysValue_one": "{{count}} Day",
+            "daysValue_other": "{{count}} Days",
+            "calories": "Daily Calories",
+            "kcalValue": "{{value}} kcal",
+            "fromGoal": "From my goal",
+            "allergiesHint": "Pick any to keep out.",
+            "create": "Create Food Plan"
         }
     },
     "calories": {

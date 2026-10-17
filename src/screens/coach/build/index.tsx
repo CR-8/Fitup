@@ -341,7 +341,13 @@ const BuildPlanScreen: FC = () => {
             conditions,
         });
 
-        if (generate('workout', intent, horizonDays, { repeatWeeks: plan.weeks, ready: true })) {
+        if (
+            generate('workout', intent, horizonDays, {
+                repeatWeeks: plan.weeks,
+                ready: true,
+                autoApply: true,
+            })
+        ) {
             router.back();
         }
     };

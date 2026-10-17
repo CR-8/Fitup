@@ -7,8 +7,9 @@ import { isReportableAiError, requestCompletion, useAiUsageStore } from '@/api/a
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
 import { extractJsonObject, parseAssessment } from '@/ai/validate';
-import { applyPlanToSchedule, revertAppliedPlan } from '@/ai/apply-plan';
-import type { PlanDiffRow } from '@/helpers/plan-diff';
+import { applyPlanToSchedule, createdWorkoutIds, revertAppliedPlan } from '@/ai/apply-plan';
+import { diffPlanAgainstSchedule, type PlanDiffRow } from '@/helpers/plan-diff';
+import { getWorkouts } from '@/crud/workout';
 import { useAiProgressStore } from '@/stores/ai-progress';
 import { logPlanUpdated } from '@/services/notification-events';
 import {
@@ -88,9 +89,37 @@ const GENERATE_MUTATION_KEY = ['ai-generate'] as const;
 export interface PlanBriefOptions {
     /** The plan is one week of sessions, repeated this many weeks. */
     repeatWeeks?: number;
+    /** The meals are a short rotation, repeated to fill this many days. */
+    repeatDays?: number;
     /** Everything the intake would ask is already in the intent: generate, don't ask. */
     ready?: boolean;
+    /**
+     * Put the plan on the schedule as soon as it is written, as Create Plan
+     * promises. It replaces sessions earlier Syn plans made on the same days,
+     * never ones built by hand; Undo on the plan in Syn takes it back off.
+     */
+    autoApply?: boolean;
 }
+
+/** A short rotation of meals (and their day targets) laid end to end to fill `days`. */
+const repeatDays = (payload: AiPlanPayload, days: number): AiPlanPayload => {
+    const cycle = Math.max(1, payload.horizonDays);
+    if (days <= cycle) return payload;
+    const rounds = Math.ceil(days / cycle);
+    const spread = <T extends { dayOffset: number }>(rows: T[]) =>
+        Array.from({ length: rounds }, (_, round) =>
+            rows.map((row) => ({ ...row, dayOffset: row.dayOffset + cycle * round })),
+        )
+            .flat()
+            .filter((row) => row.dayOffset < days);
+
+    return {
+        ...payload,
+        horizonDays: days,
+        meals: spread(payload.meals),
+        targets: spread(payload.targets),
+    };
+};
 
 /** One week of workouts, copied a week apart for `weeks` weeks. Meals and targets stay as written. */
 const repeatWeek = (payload: AiPlanPayload, weeks: number): AiPlanPayload =>
@@ -383,7 +412,9 @@ export const useAiChat = (conversationId: string | undefined) => {
             intent,
             horizonDays: requestedDays = 7,
             repeatWeeks = 1,
+            repeatDays: fillDays = 0,
             ready = false,
+            autoApply = false,
         }: {
             kind: AiPlanKind;
             intent: string;
@@ -496,7 +527,7 @@ export const useAiChat = (conversationId: string | undefined) => {
                 }
 
                 const { repairs } = assessment;
-                const payload = repeatWeek(assessment.payload, repeatWeeks);
+                const payload = repeatDays(repeatWeek(assessment.payload, repeatWeeks), fillDays);
                 progress.setStage('save');
 
                 const plan = await createPlan({
@@ -520,6 +551,45 @@ export const useAiChat = (conversationId: string | undefined) => {
                     model: result.model,
                     repairs: repairs.length,
                 });
+
+                if (autoApply) {
+                    try {
+                        const [scheduled, applied] = await Promise.all([
+                            getWorkouts(),
+                            getAppliedPlans(user.id),
+                        ]);
+                        const removableIds = new Set(
+                            applied.flatMap((p) => createdWorkoutIds(p.appliedWorkoutIds)),
+                        );
+                        // A food chart has no sessions, so it touches no workout.
+                        const rows = payload.workouts.length
+                            ? diffPlanAgainstSchedule(
+                                  payload,
+                                  scheduled.filter((w) => w.status === 'planned'),
+                                  new Date(),
+                                  { removableIds },
+                              )
+                            : undefined;
+                        const applyResult = await applyPlanToSchedule(
+                            plan.id,
+                            payload,
+                            user.id,
+                            new Date(),
+                            rows,
+                        );
+
+                        track('ai:plan_applied', {
+                            kind,
+                            workouts: applyResult.workoutIds.length,
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['workouts'] });
+                        queryClient.invalidateQueries({ queryKey: [ACTIVE_PLAN_KEY, user.id] });
+                        void logPlanUpdated(user.id);
+                    } catch (error) {
+                        // Left as a draft: the plan card in Syn can still add it.
+                        reportError(error, 'Failed to add a form-built plan to the schedule');
+                    }
+                }
 
                 progress.finish();
 

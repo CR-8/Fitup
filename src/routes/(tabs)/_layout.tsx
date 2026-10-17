@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 
 /**
- * The system tab bar (Liquid Glass): Today, Coach, Progress. Plan and You are
+ * The system tab bar (Liquid Glass): Today, Syn, Progress. Plan and You are
  * off the navigation; settings opens from Today's avatar. Android keeps its
  * pre-native tab bar: `_layout.android.tsx`.
  */

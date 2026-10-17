@@ -1138,6 +1138,18 @@
                 "mobility": "मोबिलिटी",
                 "yoga": "योग"
             }
+        },
+        "food": {
+            "title": "अपना फ़ूड प्लान बनाएं",
+            "meals": "खाने",
+            "length": "प्लान की अवधि",
+            "daysValue_one": "{{count}} दिन",
+            "daysValue_other": "{{count}} दिन",
+            "calories": "रोज़ की कैलोरी",
+            "kcalValue": "{{value}} kcal",
+            "fromGoal": "मेरे लक्ष्य से",
+            "allergiesHint": "जिन्हें बाहर रखना है, चुनें।",
+            "create": "फ़ूड प्लान बनाएं"
         }
     },
     "synWelcome": {

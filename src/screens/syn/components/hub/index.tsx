@@ -101,7 +101,13 @@ const Choice: FC<{ kind: 'workout' | 'nutrition'; icon: IconName }> = ({ kind, i
 
     return (
         <Card
-            onPress={() => router.navigate({ pathname: '/coach/new', params: { kind } } as never)}
+            onPress={() =>
+                router.navigate(
+                    (kind === 'workout'
+                        ? '/coach/build'
+                        : { pathname: '/coach/new', params: { kind } }) as never,
+                )
+            }
             accessibilityLabel={title}
             accessibilityHint={t('coach.hub.hint', { ns: 'screens' })}
         >

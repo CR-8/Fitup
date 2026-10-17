@@ -12,7 +12,7 @@ import { AuthHero } from '@/screens/auth/components/hero';
 import { Button } from '@/components/buttons/base';
 import { AI_CONFIG } from '@/constants/ai';
 import { useAccount } from '@/hooks/use-account';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import type { AiMessageSelect } from '@/db/schema';
 import {
     useAiAvailable,
@@ -27,6 +27,7 @@ import { Pending } from './components/pending';
 import { Message } from './components/message';
 import { SynFrame, UnavailableFrame } from './components/frame';
 import { CoachHub } from './components/hub';
+import { hasSeenSynWelcome } from '@/screens/syn-welcome';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -128,8 +129,19 @@ const SynScreen = () => {
     // Building a plan always goes through the form, which shows what it is
     // based on and what it costs before anything is spent.
     const openForm = useCallback((kind: 'workout' | 'nutrition') => {
-        router.navigate({ pathname: '/coach/new', params: { kind } } as never);
+        router.navigate(
+            (kind === 'workout'
+                ? '/coach/build'
+                : { pathname: '/coach/new', params: { kind } }) as never,
+        );
     }, []);
+
+    // Syn's AI caution comes before its first use on this device.
+    useFocusEffect(
+        useCallback(() => {
+            if (!hasSeenSynWelcome()) router.navigate('/syn-welcome' as never);
+        }, []),
+    );
 
     const handleClear = useCallback(() => {
         if (!conversationId) return;

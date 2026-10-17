@@ -1399,6 +1399,53 @@
                 "nutrition": "Meal plan",
                 "combined": "Training and meals"
             }
+        },
+        "build": {
+            "back": "Back",
+            "title": "Build Your Plan",
+            "schedule": "Weekly Schedule",
+            "timePerDay": "Total Time Per Day",
+            "length": "Length of Plan",
+            "minutesValue_one": "{{count}}min",
+            "minutesValue_other": "{{count}}min",
+            "weeksValue_one": "{{count}} Week",
+            "weeksValue_other": "{{count}} Weeks",
+            "activities": "Activity Types",
+            "activitiesHint": "Pick all that apply.",
+            "review": "Review Plan",
+            "reviewTitle": "Review Plan",
+            "starts": "Starts",
+            "today": "Today, {{date}}",
+            "scheduleHint": "Change any session, or add one. Sessions you miss can be done later in the week.",
+            "rest": "Rest",
+            "add": "Add",
+            "done": "Done",
+            "preferences": "Preferences",
+            "goal": "Goal",
+            "place": "Where You Train",
+            "injuries": "Injuries or Conditions",
+            "injuriesNone": "None",
+            "injuriesSome": "Something to work around",
+            "injuriesPlaceholder": "e.g. sore left knee, lower back",
+            "create": "Create Plan",
+            "activity": "Activity",
+            "time": "Time",
+            "minUnit": "MIN",
+            "remove": "Remove Session",
+            "types": {
+                "fullBody": "Full Body",
+                "upper": "Upper Body",
+                "lower": "Lower Body",
+                "core": "Core",
+                "functional": "Functional",
+                "hiit": "HIIT",
+                "cardio": "Cardio",
+                "running": "Running",
+                "cycling": "Cycling",
+                "crossTraining": "Cross Training",
+                "mobility": "Mobility",
+                "yoga": "Yoga"
+            }
         }
     },
     "calories": {
@@ -1538,5 +1585,27 @@
         "earnedTitle": "Award earned: {{name}}",
         "earnedTimes_one": "Earned {{date}}",
         "earnedTimes_other": "Earned {{count}} times · last {{date}}"
+    },
+    "synWelcome": {
+        "title": "Welcome to Syn",
+        "rows": {
+            "plans": {
+                "title": "Plans Built Around You",
+                "body": "Pick your days, your time and the training you like. Syn writes the week from that, no back and forth."
+            },
+            "review": {
+                "title": "You Stay in Charge",
+                "body": "Every plan is a draft until you add it to your schedule, and you can change any session first."
+            },
+            "caution": {
+                "title": "Syn Can Get Things Wrong",
+                "body": "Syn is an AI, not a doctor or a coach who has watched you train. Stop if something hurts, and check with a professional if you have an injury or condition."
+            }
+        },
+        "data": "To write a plan, Syn sends your profile, your answers and a summary of your recent training to the AI service that writes it. Plans count against your monthly allowance.",
+        "dataLink": "See what Syn sends…",
+        "dataTitle": "What Syn sends",
+        "dataDetail": "Your goal, schedule and where you train; body weight, height, diet, allergens and any conditions from your profile; a summary of your recent workouts; and the exercises it can choose from. It does not send your name or email.",
+        "continue": "Continue"
     }
 }

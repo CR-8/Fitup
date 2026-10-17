@@ -316,6 +316,8 @@ export type AnalyticsScreenName =
     | 'awards'
     | 'award_list'
     | 'award'
+    | 'coach_build'
+    | 'syn_welcome'
     | 'workout_hub'
     | 'plan'
     | 'welcome'

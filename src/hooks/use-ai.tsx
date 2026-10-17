@@ -31,7 +31,7 @@ import {
     upsertProfile,
 } from '@/crud/ai';
 import type { AiMessageSelect, AiPlanSelect, AiProfileSelect } from '@/db/schema';
-import { AiError } from '@/types/ai';
+import { AiError, type AiPlanPayload } from '@/types/ai';
 import { reportError } from '@/services/error-reporting';
 
 import { useUser } from './use-user';
@@ -84,6 +84,28 @@ const ACTIVE_PLAN_KEY = 'ai-active-plan';
  */
 const SEND_MUTATION_KEY = ['ai-send'] as const;
 const GENERATE_MUTATION_KEY = ['ai-generate'] as const;
+
+export interface PlanBriefOptions {
+    /** The plan is one week of sessions, repeated this many weeks. */
+    repeatWeeks?: number;
+    /** Everything the intake would ask is already in the intent: generate, don't ask. */
+    ready?: boolean;
+}
+
+/** One week of workouts, copied a week apart for `weeks` weeks. Meals and targets stay as written. */
+const repeatWeek = (payload: AiPlanPayload, weeks: number): AiPlanPayload =>
+    weeks <= 1
+        ? payload
+        : {
+              ...payload,
+              horizonDays: payload.horizonDays + 7 * (weeks - 1),
+              workouts: Array.from({ length: weeks }, (_, week) =>
+                  payload.workouts.map((workout) => ({
+                      ...workout,
+                      dayOffset: workout.dayOffset + 7 * week,
+                  })),
+              ).flat(),
+          };
 
 export const useAiAvailable = (): boolean => useMemo(() => isAiEnabled(), []);
 
@@ -360,11 +382,13 @@ export const useAiChat = (conversationId: string | undefined) => {
             kind,
             intent,
             horizonDays: requestedDays = 7,
+            repeatWeeks = 1,
+            ready = false,
         }: {
             kind: AiPlanKind;
             intent: string;
             horizonDays?: number;
-        }) => {
+        } & PlanBriefOptions) => {
             if (!conversationId || !user?.id) return;
 
             const horizonDays =
@@ -397,7 +421,9 @@ export const useAiChat = (conversationId: string | undefined) => {
             );
             const priorHistory = buildChatHistory(recentMessages.slice(0, -1));
             const priorIntakeTurns = recentMessages.filter((message) => message.isIntake).length;
-            const forceReady = priorIntakeTurns >= INTAKE_QUESTION_LIMIT;
+            // A request from the Build Your Plan form has already answered what the
+            // intake would ask, so it goes straight to a plan.
+            const forceReady = ready || priorIntakeTurns >= INTAKE_QUESTION_LIMIT;
 
             /**
              * One attempt at the requested horizon, then a shorter one if the reply
@@ -469,7 +495,8 @@ export const useAiChat = (conversationId: string | undefined) => {
                     return undefined;
                 }
 
-                const { payload, repairs } = assessment;
+                const { repairs } = assessment;
+                const payload = repeatWeek(assessment.payload, repeatWeeks);
                 progress.setStage('save');
 
                 const plan = await createPlan({
@@ -562,13 +589,18 @@ export const useSynActions = () => {
     const exhausted = quota.remaining <= 0;
 
     const generate = useCallback(
-        (kind: AiPlanKind, intent: string, horizonDays?: number): boolean => {
+        (
+            kind: AiPlanKind,
+            intent: string,
+            horizonDays?: number,
+            options?: PlanBriefOptions,
+        ): boolean => {
             if (exhausted) {
                 Alert.alert(t('syn.quota.title'), t('syn.quota.message', { limit: quota.limit }));
                 return false;
             }
 
-            generatePlan({ kind, intent, horizonDays }).catch(() => undefined);
+            generatePlan({ kind, intent, horizonDays, ...options }).catch(() => undefined);
 
             return true;
         },

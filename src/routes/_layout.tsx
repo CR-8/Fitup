@@ -182,6 +182,7 @@ const App: FC = () => {
                             <Stack.Screen name="coach/new" options={screens.modal} />
                             <Stack.Screen name="coach/build" options={screens.modal} />
                             <Stack.Screen name="syn-welcome" options={screens.modal} />
+                            <Stack.Screen name="summary-edit" options={screens.modal} />
                             {/* Pushed, not sheets: the plan screen opens Preview changes,
                                 a root-level sheet that a native modal would cover. */}
                             <Stack.Screen name="coach/plans" options={screens.pushed} />

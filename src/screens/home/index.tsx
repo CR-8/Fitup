@@ -26,7 +26,9 @@ import {
     ProgressCard,
     SessionsCard,
     WaterCard,
+    SummaryIntro,
 } from './components/cards';
+import { toRows, useSummaryLayout, type SummaryCard } from '@/stores/summary-layout';
 import { ACCENT } from './summary';
 
 /**
@@ -67,6 +69,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     row: {
         gap: theme.space(3),
+    },
+    cell: {
+        flex: 1,
     },
     upNextPlaceholder: {
         height: 196,
@@ -127,6 +132,50 @@ const HomeScreen: FC = () => {
         openMissed(latestMissed.id);
     }, [openMissed, workouts]);
 
+    const { cards, introDismissed, dismissIntro } = useSummaryLayout();
+    const rows = useMemo(() => toRows(cards), [cards]);
+
+    const renderCard = (card: SummaryCard) => {
+        switch (card) {
+            case 'workout':
+                return workouts ? (
+                    <UpNext
+                        state={upNext}
+                        overviewMeta={
+                            upNext.kind === 'create'
+                                ? undefined
+                                : workoutsOverviewMeta[upNext.workout.id]
+                        }
+                        displayName={
+                            upNext.kind === 'create' ? undefined : nameWithWeek(upNext.workout)
+                        }
+                        elapsedFormatted={
+                            upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
+                                ? elapsedFormated
+                                : null
+                        }
+                    />
+                ) : (
+                    <Box
+                        style={styles.upNextPlaceholder}
+                        accessibilityLabel={t('home.loading', { ns: 'screens' })}
+                    />
+                );
+            case 'water':
+                return <WaterCard today={today} />;
+            case 'distance':
+                return <DistanceCard today={today} />;
+            case 'sessions':
+                return <SessionsCard today={today} />;
+            case 'progress':
+                return <ProgressCard />;
+            case 'calories':
+                return <CaloriesCard today={today} />;
+            case 'awards':
+                return <AwardsCard today={today} />;
+        }
+    };
+
     return (
         <Box style={styles.container}>
             <ScrollView
@@ -138,38 +187,17 @@ const HomeScreen: FC = () => {
                 <Greeting accent={ACCENT.distance} />
 
                 <VStack style={styles.section}>
-                    {workouts ? (
-                        <UpNext
-                            state={upNext}
-                            overviewMeta={
-                                upNext.kind === 'create'
-                                    ? undefined
-                                    : workoutsOverviewMeta[upNext.workout.id]
-                            }
-                            displayName={
-                                upNext.kind === 'create' ? undefined : nameWithWeek(upNext.workout)
-                            }
-                            elapsedFormatted={
-                                upNext.kind === 'resume' && upNext.workout.id === runningWorkout?.id
-                                    ? elapsedFormated
-                                    : null
-                            }
-                        />
-                    ) : (
-                        <Box
-                            style={styles.upNextPlaceholder}
-                            accessibilityLabel={t('home.loading', { ns: 'screens' })}
-                        />
-                    )}
+                    {introDismissed ? null : <SummaryIntro onDismiss={dismissIntro} />}
 
-                    <HStack style={styles.row}>
-                        <WaterCard today={today} />
-                        <DistanceCard today={today} />
-                    </HStack>
-                    <SessionsCard today={today} />
-                    <ProgressCard />
-                    <CaloriesCard today={today} />
-                    <AwardsCard today={today} />
+                    {rows.map((row) => (
+                        <HStack key={row.join('+')} style={styles.row}>
+                            {row.map((card) => (
+                                <Box key={card} style={styles.cell}>
+                                    {renderCard(card)}
+                                </Box>
+                            ))}
+                        </HStack>
+                    ))}
                 </VStack>
             </ScrollView>
             <Box style={styles.statusBarScrim} pointerEvents="none" />

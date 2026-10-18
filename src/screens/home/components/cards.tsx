@@ -115,6 +115,32 @@ const styles = StyleSheet.create((theme) => ({
     progressFigure: {
         flex: 1,
     },
+    intro: {
+        flex: 0,
+        gap: theme.space(3),
+    },
+    introRow: {
+        alignItems: 'flex-start',
+        gap: theme.space(3),
+    },
+    introText: {
+        flex: 1,
+        gap: theme.space(1),
+    },
+    introTitle: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.typography,
+    },
+    introDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: theme.colors.border,
+    },
+    introLink: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: ACCENT.distance,
+    },
     awards: {
         marginHorizontal: -theme.space(1),
         marginBottom: -theme.space(4),
@@ -410,5 +436,42 @@ export const ProgressCard: FC = () => {
                 ))}
             </HStack>
         </Tile>
+    );
+};
+
+/** "A Customizable Summary", Apple Fitness's intro: what the Summary can be, and the way to edit it. */
+export const SummaryIntro: FC<{ onDismiss: () => void }> = ({ onDismiss }) => {
+    const { t } = useTranslation(['screens']);
+    const { theme } = useUnistyles();
+
+    return (
+        <VStack style={[styles.tile, styles.intro]}>
+            <HStack style={styles.introRow}>
+                <Ring progress={0.66} color={ACCENT.distance} size={40} />
+                <VStack style={styles.introText}>
+                    <Text style={styles.introTitle}>
+                        {t('home.dash.intro.title', { ns: 'screens' })}
+                    </Text>
+                    <Text style={styles.caption}>
+                        {t('home.dash.intro.body', { ns: 'screens' })}
+                    </Text>
+                </VStack>
+                <Pressable
+                    onPress={onDismiss}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.dash.intro.dismiss', { ns: 'screens' })}
+                >
+                    <Icon name="x" size={16} color={theme.colors.mutedTypography} />
+                </Pressable>
+            </HStack>
+            <Box style={styles.introDivider} />
+            <Pressable
+                onPress={() => router.navigate('/summary-edit' as never)}
+                accessibilityRole="button"
+            >
+                <Text style={styles.introLink}>{t('home.dash.intro.edit', { ns: 'screens' })}</Text>
+            </Pressable>
+        </VStack>
     );
 };

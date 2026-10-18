@@ -158,7 +158,54 @@
             "periodLabel": "{{title}} period",
             "calorieTarget": "Calorie Target",
             "backToSummary": "Back to Summary",
-            "openSyn": "Open Syn"
+            "openSyn": "Open Syn",
+            "intro": {
+                "title": "A Customizable Summary",
+                "body": "Make Today your own: choose which cards it shows, and in what order.",
+                "edit": "Edit Your Summary",
+                "dismiss": "Dismiss"
+            },
+            "edit": {
+                "title": "Edit Summary",
+                "subtitle": "Choose the cards on Today, and their order.",
+                "shown": "On Your Summary",
+                "addTitle": "Add a Card",
+                "none": "No cards. Add one below.",
+                "up": "Move {{name}} up",
+                "down": "Move {{name}} down",
+                "remove": "Remove {{name}}",
+                "add": "Add {{name}}"
+            },
+            "cards": {
+                "workout": {
+                    "name": "Today's Workout",
+                    "detail": "The session to start or resume, and its size."
+                },
+                "water": {
+                    "name": "Water",
+                    "detail": "What you have drunk, by hour, day or month."
+                },
+                "distance": {
+                    "name": "Distance",
+                    "detail": "Walking and running distance from Health."
+                },
+                "sessions": {
+                    "name": "Sessions",
+                    "detail": "Sessions done, planned and missed."
+                },
+                "progress": {
+                    "name": "Progress",
+                    "detail": "This week against your goal, your streak, and all time."
+                },
+                "calories": {
+                    "name": "Calorie Target",
+                    "detail": "Calories eaten against your goal."
+                },
+                "awards": {
+                    "name": "Awards",
+                    "detail": "The awards you are closest to earning."
+                }
+            }
         }
     },
     "results": {
@@ -1021,6 +1068,54 @@
             "weekOne": "Week 1",
             "use": "Use this plan",
             "regenerate": "Regenerate ({{count}} left)"
+        },
+        "flow": {
+            "continue": "Continue",
+            "notSet": "Not Set",
+            "saveFailed": "Could not save your details. Try again.",
+            "welcome": {
+                "title": "Welcome to FitSyn",
+                "activity": {
+                    "title": "See Your Activity",
+                    "body": "Keep up with your calories, water, workouts, awards and progress."
+                },
+                "syn": {
+                    "title": "Train with Syn",
+                    "body": "Plans built around your days, your time and your goal."
+                },
+                "awards": {
+                    "title": "Earn Awards",
+                    "body": "Meet your goals and collect awards along the way."
+                }
+            },
+            "personalize": {
+                "title": "Personalize FitSyn",
+                "body": "This makes your calories, heart-rate zones and plans as accurate as possible. It stays on your phone and in your backup.",
+                "name": "Name",
+                "birthday": "Date of Birth",
+                "sex": "Sex",
+                "height": "Height ({{unit}})",
+                "weight": "Weight ({{unit}})"
+            },
+            "sex": {
+                "female": "Female",
+                "male": "Male",
+                "other": "Other"
+            },
+            "goal": {
+                "title": "Daily Calorie Goal",
+                "body": "Set a goal based on how active you are, or how active you'd like to be, each day.",
+                "levels": {
+                    "light": "Lightly",
+                    "moderate": "Moderately",
+                    "active": "Highly"
+                },
+                "set": "Set Calorie Goal"
+            },
+            "notifications": {
+                "title": "Stay Motivated with Notifications",
+                "body": "Reminders for your workouts, a nudge when you are close to a goal, and the awards you earn."
+            }
         }
     },
     "timer": {

@@ -33,11 +33,11 @@
         },
         "upNext": {
             "eyebrow": {
-                "resume": "In progress",
-                "start": "Today's workout",
-                "create": "Get started",
-                "done": "Done for today",
-                "rest": "Rest day"
+                "resume": "In Progress",
+                "start": "Today's Workout",
+                "create": "Get Started",
+                "done": "Done for Today",
+                "rest": "Rest Day"
             },
             "action": {
                 "resume": "Resume workout",
@@ -55,7 +55,12 @@
             "restTitle": "Rest day",
             "restHint": "Next: {{name}}, {{day}}",
             "minutes": "~{{count}} min",
-            "coachHint": "Let Syn build your first week, or plan a workout yourself."
+            "coachHint": "Let Syn build your first week, or plan a workout yourself.",
+            "elapsed": "Elapsed",
+            "exercisesLabel_one": "Exercise",
+            "exercisesLabel_other": "Exercises",
+            "estimate": "Estimated",
+            "logged": "Logged"
         },
         "streak_one": "{{count}} week streak",
         "streak_other": "{{count}} week streak",
@@ -139,7 +144,7 @@
                 "year": "Yearly"
             },
             "water": "Water",
-            "distance": "Total distance",
+            "distance": "Distance",
             "noHealth": "No Health data yet",
             "sessions": "Sessions",
             "done": "Done",
@@ -149,7 +154,11 @@
             "calories": "Calories",
             "remaining": "Remaining",
             "consumed": "Consumed",
-            "newWorkout": "New workout"
+            "newWorkout": "New workout",
+            "periodLabel": "{{title}} period",
+            "calorieTarget": "Calorie Target",
+            "backToSummary": "Back to Summary",
+            "openSyn": "Open Syn"
         }
     },
     "results": {
@@ -1524,7 +1533,13 @@
         "activeKcal": "Active Kilocalories",
         "totalKcal": "Total Kilocalories",
         "share": "Share",
-        "shareMessage": "{{name}}: {{time}} on {{date}}"
+        "shareMessage": "{{name}}: {{time}} on {{date}}",
+        "exercises": "Exercises",
+        "sets": "Sets",
+        "volume": "Volume",
+        "avgHeartRate": "Avg Heart Rate",
+        "setsDone_one": "{{done}} of {{count}} set",
+        "setsDone_other": "{{done}} of {{count}} sets"
     },
     "awards": {
         "title": "Awards",

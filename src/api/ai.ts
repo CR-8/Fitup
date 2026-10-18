@@ -27,6 +27,8 @@ export interface AiCompletionOptions {
     /** Ask the provider for a JSON object rather than prose. */
     json?: boolean;
     signal?: AbortSignal;
+    /** Overrides EXPO_PUBLIC_AI_TIMEOUT_MS for this request (plans take longer than chat). */
+    timeoutMs?: number;
 }
 
 export interface AiCompletionResult {
@@ -175,6 +177,7 @@ export const requestCompletion = async ({
     messages,
     json = false,
     signal,
+    timeoutMs,
 }: AiCompletionOptions): Promise<AiCompletionResult> => {
     if (!isAiEnabled()) {
         throw new AiError('DISABLED', 'AI is not configured for this build');
@@ -202,7 +205,7 @@ export const requestCompletion = async ({
         const { data, headers } = await aiClient.post<ChatCompletionResponse>(
             buildCompletionsUrl(),
             body,
-            { headers: request.headers, signal },
+            { headers: request.headers, signal, timeout: timeoutMs ?? AI_CONFIG.timeoutMs },
         );
         recordUsage(headers, userId);
 

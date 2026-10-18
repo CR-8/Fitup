@@ -10,7 +10,14 @@ import { HeaderButton } from '@/components/buttons/header';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useTodayKey } from '@/hooks/use-water';
 import { AxisBars, Metric, PeriodPicker } from '@/screens/home/components/charts';
-import { ACCENT, PERIODS, axisFor, useSummary, type Period } from '@/screens/home/summary';
+import {
+    ACCENT,
+    PERIODS,
+    axisFor,
+    useMovementSummary,
+    useWaterSummary,
+    type Period,
+} from '@/screens/home/summary';
 
 /**
  * A Today card opened into its charts, after Apple Fitness's Steps screen: the
@@ -39,7 +46,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
         borderRadius: 22,
         borderCurve: 'continuous' as const,
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: theme.colors.foreground,
     },
     label: {
         ...theme.typography.eyebrow,
@@ -57,7 +64,7 @@ const MetricScreen: FC = () => {
         PERIODS.find((p) => p === params.period) ?? 'week',
     );
     const today = useTodayKey();
-    const summary = useSummary(period, today);
+    const summary = { ...useWaterSummary(period, today), ...useMovementSummary(period, today) };
     const { x, ticks } = axisFor(period, summary.buckets, i18n.language);
     const zeros = summary.buckets.map(() => 0);
 

@@ -1,8 +1,7 @@
-import { FC, useMemo, useState } from 'react';
+import { FC, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Image as ExpoImage } from 'expo-image';
 
 import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
@@ -19,6 +18,7 @@ import {
     EXERCISE_MEDIA_ATTRIBUTION,
 } from '@/constants/fitup';
 import { Icon } from '@/components/primitives/icon';
+import { ExercisePlayer } from '@/components/media/exercise-player';
 
 /**
  * What a user reads mid-set when they do not know the movement.
@@ -65,20 +65,17 @@ const styles = StyleSheet.create((theme, rt) => ({
     // the media itself is drawn on.
     hero: {
         backgroundColor: theme.colors.white,
-        borderRadius: theme.radius['4xl'],
+        borderRadius: 22,
         borderCurve: 'continuous',
         borderColor: theme.colors.border,
         borderWidth: rt.themeName === 'dark' ? 0 : StyleSheet.hairlineWidth,
-        padding: theme.space(5),
-        gap: theme.space(5),
+        padding: theme.space(4),
+        gap: theme.space(3),
     },
     // On the white plate, so always dark text (the light theme colour on
     // white was invisible on iOS in dark mode).
     heroTitle: {
         color: theme.colors.neutral[950],
-    },
-    heroImage: {
-        width: '100%',
     },
     // The media licence requires this notice wherever the animation is shown.
     attribution: {
@@ -218,7 +215,6 @@ const styles = StyleSheet.create((theme, rt) => ({
 export const Guide: FC<GuideProps> = ({ exercise, showHero = true }) => {
     const { t } = useTranslation(['screens', 'common']);
     const { theme } = useUnistyles();
-    const [aspectRatio, setAspectRatio] = useState(1);
 
     const gifUrl = useMemo(() => {
         if (!exercise.gifFilename) return null;
@@ -282,13 +278,7 @@ export const Guide: FC<GuideProps> = ({ exercise, showHero = true }) => {
                     <Title type="h3" style={styles.heroTitle}>
                         {exerciseDisplayName(exercise)}
                     </Title>
-                    <ExpoImage
-                        source={{ uri: gifUrl! }}
-                        style={[styles.heroImage, { aspectRatio }]}
-                        contentFit="contain"
-                        autoplay
-                        onLoad={(e) => setAspectRatio(e.source.width / e.source.height)}
-                    />
+                    <ExercisePlayer uri={gifUrl!} title={exerciseDisplayName(exercise)} />
                     <Text fontSize="2xs" style={styles.attribution}>
                         {EXERCISE_MEDIA_ATTRIBUTION}
                     </Text>

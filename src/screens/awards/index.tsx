@@ -33,7 +33,7 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(3),
         borderRadius: 22,
         borderCurve: 'continuous' as const,
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: theme.colors.foreground,
     },
     goRow: {
         alignItems: 'center',

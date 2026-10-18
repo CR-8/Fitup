@@ -23,7 +23,7 @@ import { hasSeenSynWelcome } from '@/screens/syn-welcome';
 
 import { ActivityIcon } from './components/activity-icon';
 import { HeaderArt } from './components/header-art';
-import { MenuPicker } from './components/menu-picker';
+import { MenuPicker } from '@/components/forms/menu-picker';
 import { SessionSheet } from './components/session-sheet';
 import {
     ACTIVITIES,
@@ -249,7 +249,7 @@ const BuildPlanScreen: FC = () => {
     const available = useAiAvailable();
     const { isSignedIn } = useAccount();
     const { profile, save } = useAiProfile();
-    const { generate, quota, exhausted, isBusy } = useSynActions();
+    const { generate, quota, exhausted, isBusy, conversation } = useSynActions();
 
     // Prefilled from the profile, and saved back to it on Create Plan.
     const [goalDraft, setGoal] = useState<Goal | null>(null);
@@ -287,6 +287,7 @@ const BuildPlanScreen: FC = () => {
     const canReview = plan.days.length > 0 && plan.activities.length > 0;
     const canCreate =
         available &&
+        !!conversation &&
         !signInNeeded &&
         !exhausted &&
         !isBusy &&

@@ -28,6 +28,7 @@ import { DistanceInput } from '@/components/primitives/distance-input';
 import { normalizeSetType } from '@/helpers/set-type';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/primitives/icon';
+import { ACCENT } from '@/screens/home/summary';
 
 interface SetItemProps {
     set: ExerciseSetSelect;
@@ -85,7 +86,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         justifyContent: 'center' as const,
         borderWidth: completed ? 0 : theme.space(0.5),
         borderColor: active ? theme.colors.primary : theme.colors.border,
-        backgroundColor: completed ? theme.colors.primary : 'transparent',
+        // Done is the Summary's lime; the set under way stays coral.
+        backgroundColor: completed ? ACCENT.distance : 'transparent',
     }),
     statusDotCore: {
         height: theme.space(2),
@@ -230,11 +232,7 @@ const SetStatus: FC<{ active: boolean; completed: boolean }> = ({ active, comple
         <Box style={styles.statusDot(active, completed)}>
             {completed ? (
                 <Reanimated.View style={checkStyle}>
-                    <Icon
-                        name="check"
-                        size={theme.space(3.5)}
-                        color={theme.colors.primaryTypography}
-                    />
+                    <Icon name="check" size={theme.space(3.5)} color={theme.colors.neutral[950]} />
                 </Reanimated.View>
             ) : active ? (
                 <Box style={styles.statusDotCore} />

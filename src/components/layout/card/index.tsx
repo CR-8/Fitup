@@ -2,6 +2,7 @@ import { FC, PropsWithChildren, ReactNode } from 'react';
 import type { ColorValue, StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
@@ -15,12 +16,11 @@ import { Icon, type IconName } from '@/components/primitives/icon';
  */
 
 const styles = StyleSheet.create((theme) => ({
+    // The Summary card: no outline, 22pt continuous corners, as Apple Fitness's.
     card: {
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: 22,
         borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: theme.colors.border,
         padding: theme.space(4),
         gap: theme.space(3),
     },
@@ -29,9 +29,18 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
         minHeight: theme.space(6),
     },
+    chevron: {
+        height: 26,
+        width: 26,
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.elevated,
+    },
     title: {
-        ...theme.fontSize.default,
         flex: 1,
+        fontSize: 19,
+        lineHeight: 24,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },
@@ -94,7 +103,9 @@ export const CardTitle: FC<CardTitleProps> = ({ title, icon, color, chevron, tra
             </Text>
             {trailing}
             {chevron ? (
-                <Icon name="chevron-right" size={16} color={theme.colors.mutedTypography} />
+                <Box style={styles.chevron}>
+                    <Icon name="chevron-right" size={12} color={theme.colors.mutedTypography} />
+                </Box>
             ) : null}
         </HStack>
     );

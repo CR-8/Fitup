@@ -9,8 +9,11 @@ import { useUnistyles } from 'react-native-unistyles';
 
 /** Sheets that rise over the app as a page sheet. */
 const modal = { presentation: 'modal', headerShown: true } as const;
-/** Pushed screens show the native bar, and with it the platform back button. */
-const pushed = { headerShown: true } as const;
+/**
+ * Pushed screens show the native bar, and with it the platform back button,
+ * and go back on a swipe from anywhere on the screen, not only the edge.
+ */
+const pushed = { headerShown: true, fullScreenGestureEnabled: true } as const;
 
 /** System font: nothing to load. */
 export const useAppFonts = () => ({ fontsLoaded: true, fontsError: null });

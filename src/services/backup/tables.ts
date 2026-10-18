@@ -65,6 +65,13 @@ export interface BackupTableSpec {
     deviceOnly: readonly string[];
     /** Rows that must not leave the device. */
     include?: (row: LocalRow) => boolean;
+    /**
+     * Created by a later migration than the backup's own (named here), so a
+     * project that has not run it yet is missing just this table. The backup
+     * skips it until then (its changes wait in the queue) instead of standing
+     * down altogether, which is what a missing table otherwise means.
+     */
+    optional?: string;
 }
 
 const TIMESTAMPS = ['createdAt', 'updatedAt'] as const;
@@ -374,6 +381,7 @@ export const BACKUP_TABLES: readonly BackupTableSpec[] = [
     {
         local: 'award_earned',
         remote: 'awards_earned',
+        optional: 'supabase/migrations/0013_awards.sql',
         scope: { kind: 'user', column: 'userId' },
         table: awardEarned,
         idColumn: 'id',

@@ -1,21 +1,11 @@
 import { FC } from 'react';
-import type { SFSymbol } from 'sf-symbols-typescript';
-import { Circle, Host, Image, ProgressView, RoundedRectangle, ZStack } from '@expo/ui/swift-ui';
-import {
-    foregroundStyle,
-    frame,
-    rotationEffect,
-    strokeBorder,
-    tint,
-} from '@expo/ui/swift-ui/modifiers';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import type { AwardSymbol } from '../../data';
-import { UNEARNED, type BadgeProps, type ProgressLineProps } from './types';
+import { BadgeFrame } from './frame';
+import { UNEARNED, type BadgeProps } from './types';
 
-/**
- * Award art on iOS, drawn in SwiftUI: two nested outlines in the award's shape
- * around an SF Symbol. Android draws the same in SVG (`index.android.tsx`).
- */
+/** Award art on iOS: the shared vector frame around an SF Symbol. Android: `index.android.tsx`. */
 
 const SYMBOLS: Record<AwardSymbol, SFSymbol> = {
     flame: 'flame',
@@ -27,50 +17,14 @@ const SYMBOLS: Record<AwardSymbol, SFSymbol> = {
     bolt: 'bolt',
 };
 
-export const Badge: FC<BadgeProps> = ({ shape, symbol, color, earned, size }) => {
-    const ink = earned ? color : UNEARNED;
-    const line = { lineWidth: Math.max(2, size * 0.03) };
-    // A diamond is a rounded square turned 45°, so it is drawn smaller to fit.
-    const scale = shape === 'diamond' ? 0.7 : 1;
-
-    const outline = (fraction: number, filled: boolean) => {
-        const side = size * scale * fraction;
-        const modifiers = [
-            foregroundStyle(filled && earned ? `${color}26` : 'transparent'),
-            frame({ width: side, height: side }),
-            strokeBorder(
-                shape === 'circle'
-                    ? { content: ink, style: line, shape: 'circle' }
-                    : {
-                          content: ink,
-                          style: line,
-                          shape: 'roundedRectangle',
-                          cornerRadius: side * 0.24,
-                      },
-            ),
-            ...(shape === 'diamond' ? [rotationEffect(45)] : []),
-        ];
-
-        return shape === 'circle' ? (
-            <Circle modifiers={modifiers} />
-        ) : (
-            <RoundedRectangle cornerRadius={side * 0.24} modifiers={modifiers} />
-        );
-    };
-
-    return (
-        <Host style={{ width: size, height: size }}>
-            <ZStack>
-                {outline(1, true)}
-                {outline(0.74, false)}
-                <Image systemName={SYMBOLS[symbol]} size={size * 0.26} color={ink} />
-            </ZStack>
-        </Host>
-    );
-};
-
-export const ProgressLine: FC<ProgressLineProps> = ({ progress, color }) => (
-    <Host matchContents={{ vertical: true }}>
-        <ProgressView value={Math.min(Math.max(progress, 0), 1)} modifiers={[tint(color)]} />
-    </Host>
+export const Badge: FC<BadgeProps> = ({ symbol, ...frame }) => (
+    <BadgeFrame {...frame}>
+        <SymbolView
+            name={SYMBOLS[symbol]}
+            size={frame.size * 0.26}
+            tintColor={frame.earned ? frame.color : UNEARNED}
+        />
+    </BadgeFrame>
 );
+
+export { ProgressLine } from './frame';

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { Title } from '@/components/typography/title';
@@ -14,6 +14,8 @@ import { useWorkoutStats } from '@/hooks/use-workouts';
 import { useUser } from '@/hooks/use-user';
 import { useWeeklyStreak } from '@/hooks/use-weekly-streak';
 import { resolveFitnessLevel } from '@/helpers/fitness-level';
+import { ACCENT } from '@/screens/home/summary';
+import { SESSION_COLORS } from '@/screens/sessions/components/list/types';
 
 import { ActivitySummary } from './components/activity-summary';
 import { PersonalBests } from './components/personal-bests';
@@ -36,7 +38,8 @@ const styles = StyleSheet.create((theme) => ({
     statsContainer: {
         flex: 1,
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['4xl'],
+        borderRadius: 22,
+        borderCurve: 'continuous' as const,
         padding: theme.space(4),
     },
     statsWrapper: {
@@ -72,7 +75,6 @@ const styles = StyleSheet.create((theme) => ({
 
 const ResultsScreen = () => {
     const { t } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
     const { user } = useUser();
     const stats = useWorkoutStats();
     const [isChartScrubbing, setIsChartScrubbing] = useState(false);
@@ -113,14 +115,14 @@ const ResultsScreen = () => {
             title: t('results.tiles.week', { ns: 'screens' }),
             caption: t('results.tiles.thisWeek', { ns: 'screens' }),
             value: `${weekDone}/${weekTarget}`,
-            color: theme.colors.primary,
+            color: ACCENT.sessions,
         },
         {
             key: 'streak',
             title: t('results.hero.streak', { ns: 'screens' }),
             caption: t('results.tiles.weeksInRow', { ns: 'screens' }),
             value: String(streak),
-            color: theme.colors.success,
+            color: ACCENT.distance,
         },
         {
             key: 'workouts',
@@ -129,7 +131,7 @@ const ResultsScreen = () => {
             value: stats.workoutsCount
                 ? t('number', { value: stats.workoutsCount, ns: 'common' })
                 : '—',
-            color: theme.colors.typography,
+            color: ACCENT.calories,
         },
         {
             key: 'time',
@@ -137,7 +139,7 @@ const ResultsScreen = () => {
             caption: t('results.tiles.allTime', { ns: 'screens' }),
             value: stats.trainingHours ? String(stats.trainingHours) : '—',
             unit: stats.trainingHours ? t('results.tiles.hoursUnit', { ns: 'screens' }) : undefined,
-            color: theme.colors.amber[400],
+            color: SESSION_COLORS.time,
         },
     ];
 

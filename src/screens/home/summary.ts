@@ -98,33 +98,50 @@ export const axisFor = (period: Period, buckets: Bucket[], locale: string) => {
 const indexOf = (buckets: Bucket[], at: Dayjs) =>
     buckets.findIndex((bucket) => !at.isBefore(bucket.start) && at.isBefore(bucket.end));
 
-export const useSummary = (period: Period, today: string) => {
-    const { user } = useUser();
-    const { data: workouts } = useWorkouts();
+/** The period's buckets and date range; `today` re-splits them when the day rolls over. */
+const usePeriodRange = (period: Period, today: string) =>
+    useMemo(() => {
+        const buckets = bucketsFor(period);
+        const start = buckets[0].start;
+        const end = buckets[buckets.length - 1].end;
 
-    // `today` re-splits the buckets when the day rolls over.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const buckets = useMemo(() => bucketsFor(period), [period, today]);
-    const start = buckets[0].start;
-    const end = buckets[buckets.length - 1].end;
-    const from = toDateKey(start.toDate());
-    const to = toDateKey(end.subtract(1, 'day').toDate());
-    const current = Math.max(indexOf(buckets, dayjs()), 0);
+        return {
+            buckets,
+            start,
+            end,
+            from: toDateKey(start.toDate()),
+            to: toDateKey(end.subtract(1, 'day').toDate()),
+            current: Math.max(indexOf(buckets, dayjs()), 0),
+        };
+        // `today` is not read, but it is what moves the buckets on at midnight.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [period, today]);
 
-    const { data: logs } = useWaterBetween(from, to);
-    const calorieDays = useCalorieDays(from, to);
+/** Litres drunk in the period, by bucket. */
+export const useWaterSummary = (period: Period, today: string) => {
+    const range = usePeriodRange(period, today);
+    const { data: logs } = useWaterBetween(range.from, range.to);
 
     const water = useMemo(() => {
-        const series = buckets.map(() => 0);
+        const series = range.buckets.map(() => 0);
         (logs ?? []).forEach((log) => {
             // Hours come from when it was logged; anything longer from the day it counts for.
             const at = period === 'today' ? dayjs(log.createdAt) : dayjs(log.date);
-            const index = indexOf(buckets, at);
+            const index = indexOf(range.buckets, at);
             if (index >= 0) series[index] += log.amountMl;
         });
 
         return { series, litres: series.reduce((sum, ml) => sum + ml, 0) / 1000 };
-    }, [buckets, logs, period]);
+    }, [range, logs, period]);
+
+    return { ...range, water };
+};
+
+/** Distance and steps from Health, by bucket; null where Health has nothing. */
+export const useMovementSummary = (period: Period, today: string) => {
+    const { user } = useUser();
+    const range = usePeriodRange(period, today);
+    const { buckets, from } = range;
 
     // One Health read per bucket and figure; buckets still ahead are zero without asking.
     // `period` and `from` fix the buckets, which are dates and so not a key of their own.
@@ -158,13 +175,31 @@ export const useSummary = (period: Period, today: string) => {
         },
         staleTime: 5 * 60_000,
     });
-    const distance = health?.meters;
-    const steps = health?.steps;
 
     const miles = user?.distanceUnits === 'mi';
     const perUnit = miles ? 1609.344 : 1000;
+    const meters = health?.meters;
+    const steps = health?.steps;
 
-    const sessions = useMemo(() => {
+    return {
+        ...range,
+        distance: meters
+            ? {
+                  series: meters.map((m) => m / perUnit),
+                  total: meters.reduce((sum, m) => sum + m, 0) / perUnit,
+              }
+            : null,
+        steps: steps ? { series: steps, total: steps.reduce((sum, n) => sum + n, 0) } : null,
+        distanceUnit: miles ? 'mi' : 'km',
+    };
+};
+
+/** Sessions done, still planned, and missed, in the period. */
+export const useSessionsSummary = (period: Period, today: string) => {
+    const { data: workouts } = useWorkouts();
+    const { start, end } = usePeriodRange(period, today);
+
+    return useMemo(() => {
         const list = workouts ?? [];
         const inRange = (date: Date | string | null | undefined) =>
             !!date && !dayjs(date).isBefore(start) && dayjs(date).isBefore(end);
@@ -181,9 +216,14 @@ export const useSummary = (period: Period, today: string) => {
             missed: getMissedWorkouts(list).filter((w) => inRange(w.startAt)).length,
         };
     }, [end, start, workouts]);
+};
 
-    // Each day of the period so far, against that day's goal.
-    const calories = useMemo(() => {
+/** Calories eaten against the goal, each day of the period so far. */
+export const useCaloriesSummary = (period: Period, today: string) => {
+    const { start, from, to } = usePeriodRange(period, today);
+    const calorieDays = useCalorieDays(from, to);
+
+    return useMemo(() => {
         const days = dayjs().startOf('day').diff(start, 'day') + 1;
         let target = 0;
         let consumed = 0;
@@ -195,20 +235,4 @@ export const useSummary = (period: Period, today: string) => {
 
         return { consumed, target, remaining: Math.max(target - consumed, 0) };
     }, [calorieDays, start]);
-
-    return {
-        current,
-        water,
-        distance: distance
-            ? {
-                  series: distance.map((meters) => meters / perUnit),
-                  total: distance.reduce((sum, meters) => sum + meters, 0) / perUnit,
-              }
-            : null,
-        steps: steps ? { series: steps, total: steps.reduce((sum, n) => sum + n, 0) } : null,
-        distanceUnit: miles ? 'mi' : 'km',
-        buckets,
-        sessions,
-        calories,
-    };
 };

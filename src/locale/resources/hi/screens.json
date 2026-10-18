@@ -47,7 +47,12 @@
             "createHint": "वर्कआउट बनाएँ, वह यहाँ दिखेगा।",
             "exerciseCount_one": "{{count}} व्यायाम",
             "exerciseCount_other": "{{count}} व्यायाम",
-            "startFailed": "वर्कआउट शुरू नहीं हो सका। दोबारा कोशिश करें।"
+            "startFailed": "वर्कआउट शुरू नहीं हो सका। दोबारा कोशिश करें।",
+            "elapsed": "बीता समय",
+            "exercisesLabel_one": "एक्सरसाइज़",
+            "exercisesLabel_other": "एक्सरसाइज़",
+            "estimate": "अनुमानित",
+            "logged": "दर्ज"
         },
         "streak_one": "{{count}} दिन की लय",
         "streak_other": "{{count}} दिन की लय",
@@ -112,7 +117,11 @@
             "calories": "कैलोरी",
             "remaining": "बाकी",
             "consumed": "खाई",
-            "newWorkout": "नया वर्कआउट"
+            "newWorkout": "नया वर्कआउट",
+            "periodLabel": "{{title}} की अवधि",
+            "calorieTarget": "कैलोरी लक्ष्य",
+            "backToSummary": "सारांश पर वापस",
+            "openSyn": "Syn खोलें"
         }
     },
     "results": {
@@ -1017,7 +1026,13 @@
         "activeKcal": "एक्टिव किलोकैलोरी",
         "totalKcal": "कुल किलोकैलोरी",
         "share": "शेयर करें",
-        "shareMessage": "{{name}}: {{date}} को {{time}}"
+        "shareMessage": "{{name}}: {{date}} को {{time}}",
+        "exercises": "एक्सरसाइज़",
+        "sets": "सेट",
+        "volume": "वॉल्यूम",
+        "avgHeartRate": "औसत हार्ट रेट",
+        "setsDone_one": "{{count}} में से {{done}} सेट",
+        "setsDone_other": "{{count}} में से {{done}} सेट"
     },
     "awards": {
         "title": "अवॉर्ड",

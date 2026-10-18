@@ -87,12 +87,12 @@ const common = {
             lineHeight: 16,
             fontWeight: 600 as const,
         },
-        // Any figure that changes in place (timers, weights, reps, volume),
-        // set in Barlow Condensed SemiBold with tabular figures, so a running
-        // clock does not jitter and stat columns line up. The face is bundled
-        // by the expo-font plugin in app.config.js.
+        // Any figure that changes in place (timers, weights, reps, volume), in
+        // the Summary's numerals: SF Rounded on iOS, as Apple Fitness sets its
+        // figures, and Space Grotesk on Android (bundled, see theme/fonts).
+        // Tabular, so a running clock does not jitter and columns line up.
         metric: {
-            fontFamily: 'BarlowCondensed-SemiBold',
+            fontFamily: Platform.OS === 'ios' ? 'ui-rounded' : 'SpaceGrotesk_600SemiBold',
             fontWeight: 600 as const,
             fontVariant: ['tabular-nums' as const],
         },
@@ -248,22 +248,26 @@ const semantic = (scheme: Scheme): SemanticColors => {
 
     return {
         background: dark ? colors.neutral[950] : colors.neutral[50],
-        foreground: dark ? colors.neutral[900] : colors.white,
+        // The Summary redesign's card (#1B1E23) on the near-black page, as
+        // Apple Fitness sets #1C1C1E on black. Every screen's cards use it.
+        foreground: dark ? colors.neutral[800] : colors.white,
         // A section set into the page: a raised card on iOS, flush on Android,
         // as the pre-native design drew it.
         inset: ios
             ? dark
-                ? colors.neutral[900]
+                ? colors.neutral[800]
                 : colors.white
             : dark
               ? colors.neutral[950]
               : colors.neutral[50],
-        elevated: dark ? colors.neutral[800] : colors.neutral[100],
+        // Raised on a card or a sheet (a chip, a stepper button, a grouped row
+        // in a sheet), one step lighter than the card, as Apple's #2C2C2E.
+        elevated: dark ? colors.neutral[700] : colors.neutral[100],
         typography: dark ? colors.neutral[50] : colors.neutral[950],
         mutedTypography: dark ? colors.neutral[400] : colors.neutral[600],
         // A hairline you notice only when you look for it, as the brief asks.
         border: dark ? '#23262c' : colors.neutral[200],
-        input: dark ? colors.neutral[800] : colors.neutral[100],
+        input: dark ? colors.neutral[700] : colors.neutral[100],
         primary: colors.brand[500],
         primaryTypography: colors.white,
         primarySoft: dark ? 'rgba(255, 59, 79, 0.16)' : colors.brand[100],

@@ -1,9 +1,8 @@
 import { FC, useMemo } from 'react';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 
+import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
@@ -12,51 +11,50 @@ import { Title } from '@/components/typography/title';
 import { useWorkoutsOverviewMeta, useWorkouts } from '@/hooks/use-workouts';
 import { getPlanWeekByWorkoutId } from '@/helpers/ai-plan';
 import { useAppliedPlans } from '@/hooks/use-ai';
+import { Metric } from '@/screens/home/components/charts';
+import { ACCENT } from '@/screens/home/summary';
+import { SESSION_COLORS } from '@/screens/sessions/components/list/types';
 
 /**
- * The session's hero, full-bleed as the reference's workout page: photograph,
- * the name set over it, and what is in it. Placeholder imagery until the team
- * supplies licensed photos; swap the file, not the code.
+ * The session's header in the Summary's language: its icon tile and name, the
+ * muscles it works, and its size in rounded figures (exercises, estimated
+ * minutes), the way Today's Workout card shows it.
  */
-const PLACEHOLDER_PHOTO = require('../../../../../../assets/images/placeholders/hero-gym.jpg');
 
 const styles = StyleSheet.create((theme) => ({
     container: {
-        backgroundColor: theme.colors.foreground,
-        overflow: 'hidden',
-    },
-    fill: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-    },
-    content: {
         paddingHorizontal: theme.space(4),
-        paddingTop: theme.space(36),
+        paddingTop: theme.space(4),
         paddingBottom: theme.space(5),
-        gap: theme.space(2),
+        gap: theme.space(4),
     },
-    // Always light: it sits on a photograph under a dark scrim, in either theme.
-    title: {
-        color: theme.colors.white,
+    row: {
+        alignItems: 'center',
+        gap: theme.space(3),
+    },
+    icon: {
+        height: 56,
+        width: 56,
+        borderRadius: 16,
+        borderCurve: 'continuous' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: `${ACCENT.distance}26`,
+    },
+    text: {
+        flex: 1,
+        gap: theme.space(0.5),
     },
     muscles: {
         ...theme.fontSize.sm,
-        color: theme.colors.neutral[300],
+        color: theme.colors.mutedTypography,
     },
-    metaRow: {
-        alignItems: 'center',
-        gap: theme.space(4),
+    figures: {
+        gap: theme.space(8),
     },
-    metaItem: {
-        alignItems: 'center',
-        gap: theme.space(1.5),
-    },
-    meta: {
-        ...theme.fontSize.sm,
-        color: theme.colors.neutral[300],
+    label: {
+        ...theme.fontSize.xs,
+        color: theme.colors.mutedTypography,
     },
 }));
 
@@ -66,7 +64,6 @@ const estimateMinutes = (exercisesCount: number): number =>
 
 export const SessionHero: FC<{ workoutId: string; name: string }> = ({ workoutId, name }) => {
     const { t } = useTranslation(['common', 'screens']);
-    const { theme } = useUnistyles();
     const { data: meta } = useWorkoutsOverviewMeta([workoutId]);
     const { data: workouts } = useWorkouts();
     const { plans } = useAppliedPlans();
@@ -86,50 +83,38 @@ export const SessionHero: FC<{ workoutId: string; name: string }> = ({ workoutId
 
     return (
         <VStack style={styles.container}>
-            <Image
-                source={PLACEHOLDER_PHOTO}
-                style={styles.fill}
-                contentFit="cover"
-                accessibilityIgnoresInvertColors
-            />
-            <LinearGradient
-                colors={['rgba(8, 9, 11, 0)', 'rgba(8, 9, 11, 0.55)', 'rgba(8, 9, 11, 1)']}
-                locations={[0, 0.55, 1]}
-                style={styles.fill}
-            />
-            <VStack style={styles.content}>
-                <Title type="h1" style={styles.title} accessibilityRole="header">
-                    {displayName}
-                </Title>
-                {muscles ? <Text style={styles.muscles}>{muscles}</Text> : null}
-                {count > 0 ? (
-                    <HStack style={styles.metaRow}>
-                        <HStack style={styles.metaItem}>
-                            <Icon
-                                name="dumbbell"
-                                size={theme.space(4)}
-                                color={theme.colors.neutral[300]}
-                            />
-                            <Text style={styles.meta}>
-                                {t('home.upNext.exerciseCount', { ns: 'screens', count })}
-                            </Text>
-                        </HStack>
-                        <HStack style={styles.metaItem}>
-                            <Icon
-                                name="clock"
-                                size={theme.space(4)}
-                                color={theme.colors.neutral[300]}
-                            />
-                            <Text style={styles.meta}>
-                                {t('home.upNext.minutes', {
-                                    ns: 'screens',
-                                    count: estimateMinutes(count),
-                                })}
-                            </Text>
-                        </HStack>
-                    </HStack>
-                ) : null}
-            </VStack>
+            <HStack style={styles.row}>
+                <Box style={styles.icon}>
+                    <Icon name="dumbbell" size={26} color={ACCENT.distance} />
+                </Box>
+                <VStack style={styles.text}>
+                    <Title type="h1" accessibilityRole="header" numberOfLines={2}>
+                        {displayName}
+                    </Title>
+                    {muscles ? <Text style={styles.muscles}>{muscles}</Text> : null}
+                </VStack>
+            </HStack>
+            {count > 0 ? (
+                <HStack style={styles.figures}>
+                    <VStack>
+                        <Metric value={String(count)} color={ACCENT.distance} size={30} />
+                        <Text style={styles.label}>
+                            {t('home.upNext.exercisesLabel', { ns: 'screens', count })}
+                        </Text>
+                    </VStack>
+                    <VStack>
+                        <Metric
+                            value={String(estimateMinutes(count))}
+                            unit="min"
+                            color={SESSION_COLORS.time}
+                            size={30}
+                        />
+                        <Text style={styles.label}>
+                            {t('home.upNext.estimate', { ns: 'screens' })}
+                        </Text>
+                    </VStack>
+                </HStack>
+            ) : null}
         </VStack>
     );
 };

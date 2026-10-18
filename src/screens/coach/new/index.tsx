@@ -21,7 +21,7 @@ import { ACCENT } from '@/screens/home/summary';
 import { hasSeenSynWelcome } from '@/screens/syn-welcome';
 
 import { HeaderArt } from '../build/components/header-art';
-import { MenuPicker } from '../build/components/menu-picker';
+import { MenuPicker } from '@/components/forms/menu-picker';
 import type { Diet } from './components/diet-fields';
 import { MealIcon } from './components/meal-icon';
 
@@ -195,7 +195,7 @@ const FoodPlanScreen: FC = () => {
     const available = useAiAvailable();
     const { isSignedIn } = useAccount();
     const { profile, save } = useAiProfile();
-    const { generate, quota, exhausted, isBusy } = useSynActions();
+    const { generate, quota, exhausted, isBusy, conversation } = useSynActions();
 
     const [draft, setDraftState] = useState<Draft>(readDraft);
     const [dietDraft, setDiet] = useState<Diet | null>(null);
@@ -221,6 +221,7 @@ const FoodPlanScreen: FC = () => {
     const signInNeeded = AI_CONFIG.transport === 'proxy' && !isSignedIn;
     const canCreate =
         available &&
+        !!conversation &&
         !signInNeeded &&
         !exhausted &&
         !isBusy &&

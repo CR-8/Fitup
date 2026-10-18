@@ -10,13 +10,13 @@ import { Icon } from '@/components/primitives/icon';
 import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
-import { useAnalytics } from '@/hooks/use-analytics';
-import { useEditor } from '@/hooks/use-editor';
 import { useUnreadNotifications } from '@/hooks/use-notification-log';
+import { ACCENT } from '@/screens/home/summary';
 
 /**
  * Today's header, after Apple Fitness's Summary: a large title over the date,
- * and on the trailing edge a new workout, the inbox and the profile (settings).
+ * and on the trailing edge Syn, the inbox and the profile (settings). With no
+ * tab bar, this is where Syn opens from: plans are built by Syn, not by hand.
  */
 
 const styles = StyleSheet.create((theme) => ({
@@ -76,8 +76,6 @@ export const Greeting: FC<{ accent: string }> = ({ accent }) => {
     const { t, i18n } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const unread = useUnreadNotifications();
-    const { navigate } = useEditor();
-    const { track } = useAnalytics();
 
     return (
         <HStack style={styles.container}>
@@ -93,14 +91,11 @@ export const Greeting: FC<{ accent: string }> = ({ accent }) => {
             <HStack style={styles.actions}>
                 <Pressable
                     style={styles.round}
-                    onPress={() => {
-                        track('workout:create_requested', { surface: 'home_header' });
-                        navigate({ type: 'workout__create' });
-                    }}
+                    onPress={() => router.navigate('/syn' as never)}
                     accessibilityRole="button"
-                    accessibilityLabel={t('home.dash.newWorkout', { ns: 'screens' })}
+                    accessibilityLabel={t('home.dash.openSyn', { ns: 'screens' })}
                 >
-                    <Icon name="plus" size={20} color={theme.colors.typography} />
+                    <Icon name="sparkles" size={20} color={ACCENT.calories} />
                 </Pressable>
                 <Pressable
                     style={styles.round}

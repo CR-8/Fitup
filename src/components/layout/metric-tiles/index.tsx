@@ -3,14 +3,16 @@ import type { ColorValue } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { HStack } from '@/components/primitives/hstack';
+import { Metric } from '@/screens/home/components/charts';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Card, CardTitle } from '@/components/layout/card';
 
 /**
  * The reference summary's two-column grid: each tile a title, a short caption
- * for the range ("All time", "This week"), and one large figure in the
- * metric's own colour. A tile without a real figure shows an em dash.
+ * for the range ("All time", "This week"), and one large rounded figure in the
+ * metric's own colour, as Today's cards draw them. A tile without a real figure
+ * shows an em dash.
  */
 
 export interface MetricTile {
@@ -40,19 +42,6 @@ const styles = StyleSheet.create((theme) => ({
         ...theme.fontSize.xs,
         color: theme.colors.mutedTypography,
     },
-    valueRow: {
-        alignItems: 'baseline',
-        gap: theme.space(1),
-    },
-    value: {
-        fontSize: 34,
-        lineHeight: 38,
-        ...theme.typography.metric,
-    },
-    unit: {
-        ...theme.fontSize.sm,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
 }));
 
 export const MetricTiles: FC<{ tiles: MetricTile[] }> = ({ tiles }) => (
@@ -67,12 +56,7 @@ export const MetricTiles: FC<{ tiles: MetricTile[] }> = ({ tiles }) => (
                 <CardTitle title={tile.title} chevron={!!tile.onPress} />
                 <VStack>
                     <Text style={styles.caption}>{tile.caption}</Text>
-                    <HStack style={styles.valueRow}>
-                        <Text style={[styles.value, { color: tile.color }]}>{tile.value}</Text>
-                        {tile.unit ? (
-                            <Text style={[styles.unit, { color: tile.color }]}>{tile.unit}</Text>
-                        ) : null}
-                    </HStack>
+                    <Metric value={tile.value} unit={tile.unit} color={String(tile.color)} />
                 </VStack>
             </Card>
         ))}

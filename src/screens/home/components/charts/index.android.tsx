@@ -8,14 +8,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 
-import type {
-    AxisBarsProps,
-    BarsProps,
-    LineProps,
-    MetricProps,
-    PeriodPickerProps,
-    RingProps,
-} from './types';
+import type { AxisBarsProps, BarsProps, LineProps, PeriodPickerProps } from './types';
 
 /**
  * Today's dashboard controls on Android, drawn by the app: the same shapes the
@@ -101,15 +94,6 @@ const styles = StyleSheet.create((theme) => ({
         left: 0,
         width: 48,
     },
-    metric: {
-        alignItems: 'baseline',
-        gap: 2,
-    },
-    value: (size: number) => ({
-        fontSize: size,
-        lineHeight: size * 1.15,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-    }),
 }));
 
 export const PeriodPicker: FC<PeriodPickerProps> = ({ labels, index, onChange }) => (
@@ -224,45 +208,6 @@ export const Line: FC<LineProps> = ({ data, color }) => {
     );
 };
 
-export const Ring: FC<RingProps> = ({ progress, color, size }) => {
-    const stroke = size * 0.11;
-    const radius = (size - stroke) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const filled = Math.min(Math.max(progress, 0), 1);
+export { Ring } from './ring';
 
-    return (
-        <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-            <Circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                // The track is the ring's own colour, dimmed, as Apple's rings are.
-                stroke={`${color}33`}
-                strokeWidth={stroke}
-                fill="none"
-            />
-            {filled > 0 ? (
-                <Circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke={color}
-                    strokeWidth={stroke}
-                    strokeDasharray={`${circumference} ${circumference}`}
-                    strokeDashoffset={circumference * (1 - filled)}
-                    strokeLinecap="round"
-                    fill="none"
-                />
-            ) : null}
-        </Svg>
-    );
-};
-
-export const Metric: FC<MetricProps> = ({ value, unit, color, size = 34 }) => (
-    <HStack style={styles.metric}>
-        <Text style={[styles.value(size), { color }]}>{value}</Text>
-        {unit ? (
-            <Text style={[styles.value(size / 2), { color }]}>{unit.toUpperCase()}</Text>
-        ) : null}
-    </HStack>
-);
+export { Metric } from './metric';

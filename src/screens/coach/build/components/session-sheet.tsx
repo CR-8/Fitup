@@ -12,7 +12,7 @@ import { ACCENT } from '@/screens/home/summary';
 
 import { ACTIVITIES, SESSION_MINUTES, type Activity, type Session } from '../plan';
 import { ActivityIcon } from './activity-icon';
-import { MenuPicker } from './menu-picker';
+import { MenuPicker } from '@/components/forms/menu-picker';
 
 /**
  * One session of a day, added or changed: which activity, and for how long.

@@ -4,6 +4,7 @@ import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { db } from '@/db';
 import { supabase } from '@/services/supabase';
 
+import { isMissingBackupSchema } from './config';
 import { BACKUP_TABLES, toLocalRow, type BackupTableSpec } from './tables';
 
 /**
@@ -143,7 +144,12 @@ export const restoreFromBackup = async (): Promise<number> => {
     // depends on that — foreign keys are off — but a partial restore that fails
     // halfway leaves something coherent rather than orphaned sets.
     for (const spec of BACKUP_TABLES) {
-        written += await restoreTable(spec);
+        try {
+            written += await restoreTable(spec);
+        } catch (error) {
+            // A newer table the project does not have yet: nothing to restore from it.
+            if (!(spec.optional && isMissingBackupSchema(error))) throw error;
+        }
     }
 
     return written;

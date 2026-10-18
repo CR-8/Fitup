@@ -74,7 +74,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(3),
         padding: theme.space(3),
         borderRadius: theme.radius.xl,
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: theme.colors.foreground,
     },
     icon: {
         height: 48,

@@ -476,5 +476,7 @@
     },
     "passwordMismatch": "Those passwords do not match.",
     "previousWeek": "Previous week",
-    "nextWeek": "Next week"
+    "nextWeek": "Next week",
+    "play": "Play",
+    "pause": "Pause"
 }

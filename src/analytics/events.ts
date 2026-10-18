@@ -297,6 +297,11 @@ export type AnalyticsEventMap = {
     'ai:plan_reverted': {
         kind: AiPlanKindProperty;
     };
+    /** A plan request stalled or came back unusable, and is being tried once more. */
+    'ai:plan_retry': {
+        kind: AiPlanKindProperty;
+        code: string;
+    };
     'ai:failed': {
         code: string;
         surface: 'chat' | 'plan';

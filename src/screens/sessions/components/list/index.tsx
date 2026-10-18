@@ -57,7 +57,7 @@ export const SessionList: FC<SessionListProps> = ({
     onDelete,
 }) => {
     const { theme } = useUnistyles();
-    const card = listRowBackground(theme.colors.elevated as string);
+    const card = listRowBackground(theme.colors.foreground as string);
     const clear = listRowBackground('transparent');
 
     return (

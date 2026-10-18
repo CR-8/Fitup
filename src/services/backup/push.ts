@@ -256,6 +256,8 @@ export const pushBackup = async (): Promise<boolean> => {
             // Every remaining table would fail the same way, and so would every
             // push after this one.
             if (isMissingBackupSchema(error)) {
+                // A newer table the project does not have yet: wait for it alone.
+                if (spec.optional) continue;
                 noteBackupSchemaMissing();
                 break;
             }
@@ -321,6 +323,11 @@ export const pushEverything = async (userId: string, accountId: string): Promise
             rows.map((row) => String(row[spec.idColumn])),
         );
 
-        await upsertRows(spec, rows, accountId);
+        try {
+            await upsertRows(spec, rows, accountId);
+        } catch (error) {
+            // A newer table the project does not have yet; the queue sends it later.
+            if (!(spec.optional && isMissingBackupSchema(error))) throw error;
+        }
     }
 };

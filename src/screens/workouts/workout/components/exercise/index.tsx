@@ -19,6 +19,7 @@ import { isRestFinalized } from '@/helpers/rest';
 import { useAiProfile } from '@/hooks/use-ai';
 import { isBodyweightOnly } from '@/constants/equipment';
 import { Icon } from '@/components/primitives/icon';
+import { ACCENT } from '@/screens/home/summary';
 
 interface ExerciseProps {
     item: WorkoutItem;
@@ -217,7 +218,7 @@ const ExerciseContent: FC<{
                     {isEditMode ? (
                         <Box style={styles.selectCircle(!!isSelected)} />
                     ) : isExerciseCompleted && !isExerciseActive ? (
-                        <Icon name="check" size={theme.space(4)} color={theme.colors.primary} />
+                        <Icon name="check" size={theme.space(4)} color={ACCENT.distance} />
                     ) : (
                         <Box>
                             <Text style={styles.orderTitle(isExerciseActive)}>{index + 1}</Text>

@@ -23,11 +23,16 @@ export const modalStyles = StyleSheet.create((theme, rt) => ({
 }));
 
 const styles = StyleSheet.create((theme) => ({
+    // Always the full width, so back and the trailing button sit at opposite
+    // edges even on a screen that centres its content (it shrank to fit them,
+    // side by side, in the middle).
     topRow: {
+        alignSelf: 'stretch',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     header: {
+        alignSelf: 'stretch',
         gap: theme.space(1),
     },
     subtitle: {

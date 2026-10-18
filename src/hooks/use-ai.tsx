@@ -86,6 +86,22 @@ const ACTIVE_PLAN_KEY = 'ai-active-plan';
 const SEND_MUTATION_KEY = ['ai-send'] as const;
 const GENERATE_MUTATION_KEY = ['ai-generate'] as const;
 
+/**
+ * A whole plan is far longer to write than a chat reply. Measured against
+ * `openrouter/free`, the models it routes to answered a week's plan in 20-40s,
+ * or stalled and never answered; the chat timeout (60s by default) cut off good
+ * answers. 90s lets a good one finish, and a stalled one is retried (below) on
+ * whichever model the gateway picks next, rather than waited on.
+ */
+const PLAN_TIMEOUT_MS = Math.max(AI_CONFIG.timeoutMs, 90_000);
+
+/**
+ * Failures worth one more try: a stall, a provider hiccup, or a reply the
+ * validator could not use. A model-routing gateway usually answers the retry
+ * with a different model.
+ */
+const RETRYABLE_PLAN_ERRORS = new Set(['TIMEOUT', 'PROVIDER', 'INVALID_RESPONSE']);
+
 export interface PlanBriefOptions {
     /** The plan is one week of sessions, repeated this many weeks. */
     repeatWeeks?: number;
@@ -474,6 +490,7 @@ export const useAiChat = (conversationId: string | undefined) => {
                     ),
                     json: true,
                     signal,
+                    timeoutMs: PLAN_TIMEOUT_MS,
                 });
                 progress.setStage('validate');
 
@@ -490,13 +507,25 @@ export const useAiChat = (conversationId: string | undefined) => {
             try {
                 const isTruncation = (error: unknown) =>
                     error instanceof AiError && error.code === 'TRUNCATED';
+                const isRetryable = (error: unknown) =>
+                    !signal.aborted &&
+                    error instanceof AiError &&
+                    RETRYABLE_PLAN_ERRORS.has(error.code);
 
-                const { result, assessment } = await attempt(horizonDays).catch(async (error) => {
+                // Once more on a stall or an unusable reply, then give up.
+                const run = (days: number) =>
+                    attempt(days).catch(async (error) => {
+                        if (!isRetryable(error)) throw error;
+                        track('ai:plan_retry', { kind, code: (error as AiError).code });
+                        return await attempt(days);
+                    });
+
+                const { result, assessment } = await run(horizonDays).catch(async (error) => {
                     if (!isTruncation(error) || horizonDays <= FALLBACK_HORIZON_DAYS) {
                         throw error;
                     }
 
-                    return await attempt(FALLBACK_HORIZON_DAYS);
+                    return await run(FALLBACK_HORIZON_DAYS);
                 });
 
                 if (assessment.status === 'need_info') {
@@ -669,12 +698,15 @@ export const useSynActions = () => {
                 Alert.alert(t('syn.quota.title'), t('syn.quota.message', { limit: quota.limit }));
                 return false;
             }
+            // `generatePlan` needs the conversation to write into; before it has
+            // loaded, saying the plan started would be a promise nothing keeps.
+            if (!conversation) return false;
 
             generatePlan({ kind, intent, horizonDays, ...options }).catch(() => undefined);
 
             return true;
         },
-        [exhausted, generatePlan, quota.limit, t],
+        [conversation, exhausted, generatePlan, quota.limit, t],
     );
 
     const send = useCallback(

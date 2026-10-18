@@ -48,6 +48,8 @@ import { SegmentedControl } from '@expo/ui/community/segmented-control';
 import { BaseButtons } from '@/components/forms/fields/base/buttons';
 import { Icon } from '@/components/primitives/icon';
 
+import { ACCENT } from '@/screens/home/summary';
+
 import { RestRing } from './components/rest-ring';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -242,18 +244,19 @@ const styles = StyleSheet.create((theme, rt) => ({
         overflow: 'hidden',
         marginTop: theme.space(1),
     },
+    // Progress through the session in the Summary's lime, as its rings and bars.
     trackFill: {
         height: '100%',
         borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.primary,
+        backgroundColor: ACCENT.distance,
     },
     /** The steppers and the action that commits them, as one object. */
     card: {
         gap: theme.space(3),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: 22,
         borderCurve: 'continuous',
-        padding: theme.space(3),
+        padding: theme.space(4),
     },
     steppers: {
         gap: theme.space(3),
@@ -297,7 +300,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         width: theme.space(5),
         borderRadius: theme.radius.full,
         borderWidth: theme.space(1.25),
-        borderColor: theme.colors.primary,
+        borderColor: ACCENT.distance,
     },
     checkPending: {
         height: theme.space(5),

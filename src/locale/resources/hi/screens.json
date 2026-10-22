@@ -99,7 +99,7 @@
         "recentActivity": "हाल की गतिविधि",
         "viewAll": "सभी देखें",
         "dash": {
-            "title": "सारांश",
+            "title": "आज",
             "periods": {
                 "today": "आज",
                 "week": "साप्ताहिक",
@@ -113,15 +113,19 @@
             "done": "पूरे",
             "planned": "तय",
             "missed": "छूटे",
-            "target": "लक्ष्य",
-            "calories": "कैलोरी",
-            "remaining": "बाकी",
-            "consumed": "खाई",
             "newWorkout": "नया वर्कआउट",
-            "periodLabel": "{{title}} की अवधि",
-            "calorieTarget": "कैलोरी लक्ष्य",
-            "backToSummary": "सारांश पर वापस",
-            "openSyn": "Syn खोलें"
+            "periodLabel": "{{title}} की अवधि"
+        },
+        "rings": {
+            "title": "आज की प्रगति",
+            "sessions": "इस हफ़्ते के सेशन",
+            "open": "आज का सारांश खोलें"
+        },
+        "week": {
+            "rest": "रिकवरी",
+            "restMark": "R",
+            "day": "दिन {{number}}",
+            "done": "पूरा"
         }
     },
     "results": {
@@ -527,6 +531,9 @@
             },
             "account": {
                 "title": "खाता"
+            },
+            "homeScreen": {
+                "title": "होम स्क्रीन बदलें"
             }
         },
         "watch": {
@@ -550,8 +557,7 @@
                     "title": "दोस्त को बताएं"
                 },
                 "reviewAppStore": {
-                    "title": "App Store पर रिव्यू दें",
-                    "message": "यह मेरा पसंदीदा वर्कआउट लॉगिंग ऐप है: {{url}}"
+                    "title": "App Store पर रिव्यू दें"
                 }
             }
         },
@@ -1074,7 +1080,6 @@
         "activeKcal": "एक्टिव किलोकैलोरी",
         "totalKcal": "कुल किलोकैलोरी",
         "share": "शेयर करें",
-        "shareMessage": "{{name}}: {{date}} को {{time}}",
         "exercises": "एक्सरसाइज़",
         "sets": "सेट",
         "volume": "वॉल्यूम",
@@ -1088,7 +1093,6 @@
         "goForItBody": "वे अवॉर्ड जिनके आप करीब हैं, या जिन्हें आप अभी पूरा कर सकते हैं।",
         "showAll": "सभी देखें",
         "share": "शेयर करें",
-        "shareMessage": "{{name}}: {{detail}}",
         "progress": "{{target}} में से {{value}} {{unit}}",
         "groups": {
             "daily": "रोज़ के लक्ष्य",
@@ -1152,7 +1156,8 @@
         },
         "earnedTitle": "अवॉर्ड मिला: {{name}}",
         "earnedTimes_one": "{{date}} को मिला",
-        "earnedTimes_other": "{{count}} बार मिला · आखिरी {{date}}"
+        "earnedTimes_other": "{{count}} बार मिला · आखिरी {{date}}",
+        "viewAll": "सभी देखें"
     },
     "coach": {
         "build": {
@@ -1236,5 +1241,29 @@
         "dataTitle": "Syn क्या भेजता है",
         "dataDetail": "आपका लक्ष्य, शेड्यूल और ट्रेनिंग की जगह; प्रोफ़ाइल से वज़न, कद, डाइट, एलर्जी और कोई बीमारी; हाल के वर्कआउट का सार; और वे एक्सरसाइज़ जिनमें से वह चुन सकता है। आपका नाम या ईमेल नहीं भेजा जाता।",
         "continue": "आगे बढ़ें"
+    },
+    "you": {
+        "title": "प्रोफ़ाइल"
+    },
+    "share": {
+        "join": "FitSyn पर मेरे साथ जुड़ें · {{url}}",
+        "award": {
+            "eyebrow": "अवॉर्ड मिला",
+            "eyebrowProgress": "लक्ष्य की ओर",
+            "earned": "मैंने अभी FitSyn पर {{name}} अवॉर्ड जीता 🏅\n\nमेरे साथ ट्रेनिंग करें: {{url}}",
+            "progress": "FitSyn पर {{name}} अवॉर्ड की ओर: अब तक {{detail}} 💪\n\nमेरे साथ ट्रेनिंग करें: {{url}}"
+        },
+        "session": {
+            "eyebrow": "वर्कआउट पूरा",
+            "subtitle_one": "{{time}} · {{count}} सेट · {{date}}",
+            "subtitle_other": "{{time}} · {{count}} सेट · {{date}}",
+            "message": "अभी FitSyn पर {{name}} पूरा किया: {{date}} को {{time}} 💪\n\nमेरे साथ ट्रेनिंग करें: {{url}}"
+        },
+        "app": {
+            "eyebrow": "FitSyn",
+            "title": "मेरे साथ ट्रेनिंग करें",
+            "subtitle": "आपके लिए वर्कआउट, न्यूट्रिशन और AI कोच।",
+            "message": "मैं FitSyn के साथ ट्रेनिंग कर रहा/रही हूँ: मेरे लिए बने वर्कआउट, न्यूट्रिशन प्लान और एक AI कोच जो मेरा हफ़्ता तैयार करता है। मेरे साथ जुड़ें: {{url}}"
+        }
     }
 }

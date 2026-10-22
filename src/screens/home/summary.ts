@@ -13,15 +13,16 @@ import { readDistanceMeters, readStepCount } from '@/services/health';
 import { useCaloriesStore } from '@/stores/calories';
 
 /**
- * Today's dashboard, for the period picked at the top: water, distance (from
- * Health), sessions and calories. Each chart splits the period so far into
+ * Today's dashboard, for the period each card picks: water, distance (from
+ * Health) and sessions. Each chart splits the period so far into
  * buckets: 3-hour blocks for today, days for the week and month, months for
  * the year.
  */
 
 /** Each figure's accent, the one colour its numbers and charts are drawn in. */
 export const ACCENT = {
-    water: '#FF6F91',
+    // The hydration blue, so water is one colour on Today, its chart and its screen.
+    water: '#4AA8FF',
     distance: '#D6F25A',
     steps: '#A78BFA',
     sessions: '#FF9F0A',
@@ -216,23 +217,4 @@ export const useSessionsSummary = (period: Period, today: string) => {
             missed: getMissedWorkouts(list).filter((w) => inRange(w.startAt)).length,
         };
     }, [end, start, workouts]);
-};
-
-/** Calories eaten against the goal, each day of the period so far. */
-export const useCaloriesSummary = (period: Period, today: string) => {
-    const { start, from, to } = usePeriodRange(period, today);
-    const calorieDays = useCalorieDays(from, to);
-
-    return useMemo(() => {
-        const days = dayjs().startOf('day').diff(start, 'day') + 1;
-        let target = 0;
-        let consumed = 0;
-        for (let i = 0; i < days; i++) {
-            const date = toDateKey(start.add(i, 'day').toDate());
-            target += calorieDays.goalFor(date);
-            consumed += calorieDays.consumedOn(date);
-        }
-
-        return { consumed, target, remaining: Math.max(target - consumed, 0) };
-    }, [calorieDays, start]);
 };

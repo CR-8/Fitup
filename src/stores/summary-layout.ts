@@ -10,13 +10,13 @@ import { storage } from '@/storage';
  */
 
 export const SUMMARY_CARDS = [
+    'rings',
+    'week',
+    'awards',
     'workout',
     'water',
     'distance',
     'sessions',
-    'progress',
-    'calories',
-    'awards',
 ] as const;
 export type SummaryCard = (typeof SUMMARY_CARDS)[number];
 
@@ -55,6 +55,13 @@ export const useSummaryLayout = create<SummaryLayoutState>()(
         }),
         {
             name: 'summary-layout',
+            // 1: the dial and the week strip lead, and the calorie and progress cards are gone.
+            version: 1,
+            migrate: (persisted) => {
+                const saved = (persisted ?? {}) as Partial<SummaryLayoutState>;
+                const cards = (saved.cards ?? []).filter((card) => card !== 'awards');
+                return { ...saved, cards: ['rings', 'week', 'awards', ...cards] };
+            },
             storage: createJSONStorage(() => ({
                 getItem: (key) => storage.getString(key) ?? null,
                 setItem: (key, value) => storage.set(key, value),

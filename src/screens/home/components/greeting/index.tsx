@@ -14,9 +14,9 @@ import { useUnreadNotifications } from '@/hooks/use-notification-log';
 import { ACCENT } from '@/screens/home/summary';
 
 /**
- * Today's header, after Apple Fitness's Summary: a large title over the date,
- * and on the trailing edge Syn, the inbox and the profile (settings). With no
- * tab bar, this is where Syn opens from: plans are built by Syn, not by hand.
+ * Today's header: a large title over the date, and on the trailing edge the
+ * inbox (a red dot while something is unread) and the avatar, which opens
+ * the Profile tab.
  */
 
 const styles = StyleSheet.create((theme) => ({
@@ -42,37 +42,40 @@ const styles = StyleSheet.create((theme) => ({
     },
     actions: {
         alignItems: 'center',
-        gap: theme.space(2),
+        gap: theme.space(3),
     },
     round: {
-        height: 40,
-        width: 40,
+        height: 44,
+        width: 44,
         borderRadius: theme.radius.full,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.neutral[600],
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.colors.elevated,
+        backgroundColor: theme.colors.neutral[900],
     },
-    badge: {
+    dot: {
         position: 'absolute',
-        top: -2,
-        right: -2,
-        minWidth: 18,
-        height: 18,
-        paddingHorizontal: 4,
+        top: 9,
+        right: 10,
+        height: 9,
+        width: 9,
         borderRadius: theme.radius.full,
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: theme.colors.neutral[900],
         backgroundColor: theme.colors.primary,
     },
-    badgeText: {
-        fontSize: 11,
-        lineHeight: 14,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-        color: theme.colors.white,
+    avatar: {
+        height: 44,
+        width: 44,
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: ACCENT.distance,
     },
 }));
 
-export const Greeting: FC<{ accent: string }> = ({ accent }) => {
+export const Greeting: FC = () => {
     const { t, i18n } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const unread = useUnreadNotifications();
@@ -84,19 +87,11 @@ export const Greeting: FC<{ accent: string }> = ({ accent }) => {
                     {t('home.dash.title', { ns: 'screens' })}
                 </Text>
                 <Text style={styles.date} numberOfLines={1}>
-                    {dayjs().locale(i18n.language).format('dddd, MMM D')}
+                    {dayjs().locale(i18n.language).format('dddd, D MMM')}
                 </Text>
             </VStack>
 
             <HStack style={styles.actions}>
-                <Pressable
-                    style={styles.round}
-                    onPress={() => router.navigate('/syn' as never)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.dash.openSyn', { ns: 'screens' })}
-                >
-                    <Icon name="sparkles" size={20} color={ACCENT.calories} />
-                </Pressable>
                 <Pressable
                     style={styles.round}
                     onPress={() => router.navigate('/inbox' as never)}
@@ -107,18 +102,15 @@ export const Greeting: FC<{ accent: string }> = ({ accent }) => {
                     }
                 >
                     <Icon name="bell" size={20} color={theme.colors.typography} />
-                    {unread > 0 ? (
-                        <Box style={styles.badge}>
-                            <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
-                        </Box>
-                    ) : null}
+                    {unread > 0 ? <Box style={styles.dot} /> : null}
                 </Pressable>
                 <Pressable
-                    onPress={() => router.navigate('/settings' as never)}
+                    style={styles.avatar}
+                    onPress={() => router.navigate('/you' as never)}
                     accessibilityRole="button"
                     accessibilityLabel={t('home.openProfile', { ns: 'screens' })}
                 >
-                    <Icon name="person-circle" size={44} color={accent} />
+                    <Icon name="person-fill" size={24} color={theme.colors.neutral[950]} />
                 </Pressable>
             </HStack>
         </HStack>

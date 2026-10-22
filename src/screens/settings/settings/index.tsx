@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Share } from 'react-native';
+import { Alert, Platform, type View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
@@ -17,7 +17,9 @@ import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
 import { useAnalytics } from '@/hooks/use-analytics';
-import { SUPPORT_EMAIL } from '@/constants/contact';
+import { JOIN_URL, SUPPORT_EMAIL } from '@/constants/contact';
+import { InviteCard } from '@/components/brand/share-card';
+import { shareCard } from '@/services/share';
 
 type Row = {
     icon: IconName;
@@ -32,6 +34,8 @@ const SettingsScreen = () => {
     const { session } = useAccount();
     const { resetWatchSync } = useRunningWorkoutStatic();
     const { t } = useTranslation(['common', 'screens']);
+    // State rather than a ref: the rows holding the share action are built during render.
+    const [inviteCard, setInviteCard] = useState<View | null>(null);
     const { track } = useAnalytics();
 
     const [isMailAvailable, setIsMailAvailable] = useState(false);
@@ -48,18 +52,13 @@ const SettingsScreen = () => {
             ? Constants.expoConfig?.ios?.buildNumber
             : Constants.expoConfig?.android?.versionCode;
 
-    const shareUrl = 'https://fitup.app';
-
     const handleShare = () => {
         track('app:share_requested', { surface: 'settings' });
-        Share.share({
-            message: t('settings.supportFitup.items.reviewAppStore.message', {
-                ns: 'screens',
-                url: shareUrl,
-            }),
-        }).catch((error) => {
-            reportError(error, 'Failed to share Fitup from settings:');
-        });
+        shareCard(inviteCard, t('share.app.message', { ns: 'screens', url: JOIN_URL })).catch(
+            (error) => {
+                reportError(error, 'Failed to share FitSyn from settings:');
+            },
+        );
     };
 
     const handleManualReviewRequest = () => {
@@ -159,6 +158,11 @@ const SettingsScreen = () => {
 
     const preferences: Row[] = [
         {
+            icon: 'home',
+            title: t('settings.items.homeScreen.title', { ns: 'screens' }),
+            onPress: () => router.navigate('/summary-edit' as never),
+        },
+        {
             icon: 'bell',
             title: t('settings.items.notifications.title', { ns: 'screens' }),
             onPress: () => router.navigate('/settings/notifications'),
@@ -239,34 +243,39 @@ const SettingsScreen = () => {
         ));
 
     return (
-        <Host style={{ flex: 1 }}>
-            <FieldGroup>
-                <FieldGroup.Section>{section(settings, true)}</FieldGroup.Section>
-                <FieldGroup.Section title={t('settings.sections.goals', { ns: 'screens' })}>
-                    {section(goals, true)}
-                </FieldGroup.Section>
-                <FieldGroup.Section title={t('settings.sections.preferences', { ns: 'screens' })}>
-                    {section(preferences, true)}
-                </FieldGroup.Section>
-                {Platform.OS === 'ios' && (
-                    <FieldGroup.Section title={t('settings.watch.title', { ns: 'screens' })}>
-                        {section(watch, false)}
+        <>
+            <InviteCard ref={setInviteCard} />
+            <Host style={{ flex: 1 }}>
+                <FieldGroup>
+                    <FieldGroup.Section>{section(settings, true)}</FieldGroup.Section>
+                    <FieldGroup.Section title={t('settings.sections.goals', { ns: 'screens' })}>
+                        {section(goals, true)}
                     </FieldGroup.Section>
-                )}
-                <FieldGroup.Section title={t('settings.help.title', { ns: 'screens' })}>
-                    {section(feedback, true)}
-                    {isMailAvailable ? section(help, false) : null}
-                </FieldGroup.Section>
-                <FieldGroup.Section title={t('settings.supportFitup.title', { ns: 'screens' })}>
-                    {section(supportFitup, false)}
-                    <FieldGroup.SectionFooter>
-                        <UIText>
-                            {`${t('settings.version', { ns: 'screens' })} ${appVersion} (${buildVersion})`}
-                        </UIText>
-                    </FieldGroup.SectionFooter>
-                </FieldGroup.Section>
-            </FieldGroup>
-        </Host>
+                    <FieldGroup.Section
+                        title={t('settings.sections.preferences', { ns: 'screens' })}
+                    >
+                        {section(preferences, true)}
+                    </FieldGroup.Section>
+                    {Platform.OS === 'ios' && (
+                        <FieldGroup.Section title={t('settings.watch.title', { ns: 'screens' })}>
+                            {section(watch, false)}
+                        </FieldGroup.Section>
+                    )}
+                    <FieldGroup.Section title={t('settings.help.title', { ns: 'screens' })}>
+                        {section(feedback, true)}
+                        {isMailAvailable ? section(help, false) : null}
+                    </FieldGroup.Section>
+                    <FieldGroup.Section title={t('settings.supportFitup.title', { ns: 'screens' })}>
+                        {section(supportFitup, false)}
+                        <FieldGroup.SectionFooter>
+                            <UIText>
+                                {`${t('settings.version', { ns: 'screens' })} ${appVersion} (${buildVersion})`}
+                            </UIText>
+                        </FieldGroup.SectionFooter>
+                    </FieldGroup.Section>
+                </FieldGroup>
+            </Host>
+        </>
     );
 };
 

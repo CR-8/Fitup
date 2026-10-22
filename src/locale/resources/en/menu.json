@@ -1,12 +1,12 @@
 {
     "home": {
-        "title": "Today"
+        "title": "Home"
     },
     "results": {
         "title": "Progress"
     },
     "syn": {
-        "title": "Syn"
+        "title": "AI Coach"
     },
     "exercises": {
         "title": "Exercises"
@@ -18,6 +18,6 @@
         "title": "Plan"
     },
     "you": {
-        "title": "You"
+        "title": "Profile"
     }
 }

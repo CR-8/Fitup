@@ -1,22 +1,29 @@
-import { FC } from 'react';
-import { Share } from 'react-native';
+import { FC, useRef } from 'react';
+import type { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { HeaderButton } from '@/components/buttons/header';
+import { ShareCard } from '@/components/brand/share-card';
+import { JOIN_URL } from '@/constants/contact';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useTodayKey } from '@/hooks/use-water';
 import { runInBackground } from '@/services/error-reporting';
+import { shareCard } from '@/services/share';
 import { ACCENT } from '@/screens/home/summary';
 
-import { Badge, ProgressLine } from './components/badge';
+import { Badge, Medal, ProgressLine } from './components/badge';
 import { useAwardText, useAwards } from './data';
 
-/** One award, large: what earns it, where you stand, and a share button. */
+/**
+ * One award, large: what earns it, where you stand, and a share button that
+ * sends a picture of the medal, a line about it and the link to join.
+ */
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -53,7 +60,8 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 const AwardScreen: FC = () => {
-    const { t } = useTranslation(['screens']);
+    const { t, i18n } = useTranslation(['screens']);
+    const card = useRef<View>(null);
     const { awardId } = useLocalSearchParams<{ awardId: string }>();
     const today = useTodayKey();
     const { all } = useAwards(today);
@@ -62,16 +70,24 @@ const AwardScreen: FC = () => {
 
     if (!award) return null;
 
+    const earned = award.earned || !!award.lastEarnedAt;
+    const name = text.name(award);
+    const earnedOn = dayjs(award.lastEarnedAt ?? undefined)
+        .locale(i18n.language)
+        .format('D MMM YYYY');
+
     const share = () =>
         runInBackground(
             () =>
-                Share.share({
-                    message: t('awards.shareMessage', {
+                shareCard(
+                    card,
+                    t(earned ? 'share.award.earned' : 'share.award.progress', {
                         ns: 'screens',
-                        name: text.name(award),
+                        name,
                         detail: text.detail(award),
+                        url: JOIN_URL,
                     }),
-                }),
+                ),
             'Failed to share an award:',
         );
 
@@ -102,6 +118,16 @@ const AwardScreen: FC = () => {
             <Box style={styles.progress}>
                 <ProgressLine progress={award.progress} color={ACCENT.distance} />
             </Box>
+            <ShareCard
+                ref={card}
+                accent={award.color}
+                eyebrow={t(earned ? 'share.award.eyebrow' : 'share.award.eyebrowProgress', {
+                    ns: 'screens',
+                })}
+                title={name}
+                subtitle={earned ? earnedOn : text.detail(award)}
+                art={<Medal {...award} earned={earned} size={210} />}
+            />
         </ScrollView>
     );
 };

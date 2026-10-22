@@ -1,5 +1,5 @@
-import { FC, useMemo } from 'react';
-import { Share } from 'react-native';
+import { FC, useMemo, useRef } from 'react';
+import type { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,14 @@ import { Text } from '@/components/primitives/text';
 import { Icon } from '@/components/primitives/icon';
 import { Pressable } from '@/components/primitives/pressable';
 import { HeaderButton } from '@/components/buttons/header';
+import { ShareCard } from '@/components/brand/share-card';
+import { JOIN_URL } from '@/constants/contact';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useWorkouts, useWorkoutWithDetails } from '@/hooks/use-workouts';
 import { formatSet } from '@/helpers/workouts';
 import { useWorkoutHealthStats } from '@/hooks/use-workout-health-stats';
 import { runInBackground } from '@/services/error-reporting';
+import { shareCard } from '@/services/share';
 import { Metric } from '@/screens/home/components/charts';
 
 import { SESSION_COLORS } from './components/list/types';
@@ -108,11 +111,22 @@ const styles = StyleSheet.create((theme) => ({
         height: StyleSheet.hairlineWidth,
         backgroundColor: theme.colors.border,
     },
+    shareArt: {
+        height: 200,
+        width: 200,
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 3,
+        borderColor: SESSION_COLORS.duration,
+        backgroundColor: `${SESSION_COLORS.duration}1f`,
+    },
 }));
 
 const SessionDetailScreen: FC = () => {
     const { t, i18n } = useTranslation(['screens']);
     const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
+    const card = useRef<View>(null);
     const { data: workouts } = useWorkouts();
     const workout = workouts?.find((w) => w.id === workoutId);
     const { stats } = useWorkoutHealthStats(workout);
@@ -205,17 +219,20 @@ const SessionDetailScreen: FC = () => {
     ];
     const pairs = [figures.slice(0, 2), figures.slice(2, 4), figures.slice(4, 6)];
 
+    const date = ended.format('ddd, D MMM');
     const share = () =>
         runInBackground(
             () =>
-                Share.share({
-                    message: t('sessions.shareMessage', {
+                shareCard(
+                    card,
+                    t('share.session.message', {
                         ns: 'screens',
                         name: workout.name,
                         time,
-                        date: ended.format('ddd, MMM D'),
+                        date,
+                        url: JOIN_URL,
                     }),
-                }),
+                ),
             'Failed to share a session:',
         );
 
@@ -305,6 +322,23 @@ const SessionDetailScreen: FC = () => {
                     </VStack>
                 </>
             ) : null}
+            <ShareCard
+                ref={card}
+                accent={SESSION_COLORS.duration}
+                eyebrow={t('share.session.eyebrow', { ns: 'screens' })}
+                title={workout.name}
+                subtitle={t('share.session.subtitle', {
+                    ns: 'screens',
+                    time,
+                    count: totals.done,
+                    date,
+                })}
+                art={
+                    <Box style={styles.shareArt}>
+                        <Icon name="dumbbell" size={88} color={SESSION_COLORS.duration} />
+                    </Box>
+                }
+            />
         </ScrollView>
     );
 };

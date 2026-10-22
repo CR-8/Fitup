@@ -2,6 +2,7 @@ import { FC, ReactNode, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -10,17 +11,14 @@ import { Text } from '@/components/primitives/text';
 import { Icon } from '@/components/primitives/icon';
 import { Pressable } from '@/components/primitives/pressable';
 import { MenuPicker } from '@/components/forms/menu-picker';
-import { useCaloriesStore } from '@/stores/calories';
-import { useWeeklyStreak } from '@/hooks/use-weekly-streak';
-import { useWorkoutStats } from '@/hooks/use-workouts';
-import { AwardTile } from '@/screens/awards/components/tile';
-import { useAwards } from '@/screens/awards/data';
+import { Medal } from '@/screens/awards/components/badge';
+import { openAward } from '@/screens/awards/components/tile';
+import { useAwardText, useAwards, type Award } from '@/screens/awards/data';
 
 import { Bars, Line, Metric, Ring } from './charts';
 import {
     ACCENT,
     PERIODS,
-    useCaloriesSummary,
     useMovementSummary,
     useSessionsSummary,
     useWaterSummary,
@@ -32,8 +30,6 @@ import {
  * This Year), picked from the menu under its title the way Apple Fitness puts
  * "Today" there, and loads only its own figures for it.
  */
-
-const RING_SIZE = 132;
 
 const styles = StyleSheet.create((theme) => ({
     tile: {
@@ -91,30 +87,6 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: highlighted ? theme.colors.typography : theme.colors.mutedTypography,
     }),
-    target: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    stats: {
-        gap: theme.space(3),
-    },
-    ring: {
-        width: RING_SIZE,
-        height: RING_SIZE,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    ringLabel: {
-        position: 'absolute',
-        alignItems: 'center',
-    },
-    progress: {
-        gap: theme.space(3),
-    },
-    progressFigure: {
-        flex: 1,
-    },
     intro: {
         flex: 0,
         gap: theme.space(3),
@@ -141,16 +113,38 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: ACCENT.distance,
     },
-    awards: {
-        marginHorizontal: -theme.space(1),
-        marginBottom: -theme.space(4),
+    viewAll: {
+        alignItems: 'center',
+        gap: 2,
+    },
+    viewAllText: {
+        ...theme.fontSize.default,
+        color: theme.colors.mutedTypography,
+    },
+    medals: {
+        justifyContent: 'space-around',
+    },
+    medal: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 2,
+    },
+    medalName: {
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        textAlign: 'center',
+        color: theme.colors.typography,
+        marginTop: theme.space(1),
+    },
+    medalCaption: {
+        ...theme.fontSize.xs,
+        textAlign: 'center',
+        color: theme.colors.mutedTypography,
     },
 }));
 
 interface TileProps {
     title: string;
-    /** Title colour, for the calorie card's two-tone heading. */
-    accent?: string;
     period?: Period;
     onPeriod?: (period: Period) => void;
     onPress?: () => void;
@@ -158,7 +152,7 @@ interface TileProps {
 }
 
 /** A dark card: title and chevron, the period menu under it, then its figures. */
-export const Tile: FC<TileProps> = ({ title, accent, period, onPeriod, onPress, children }) => {
+export const Tile: FC<TileProps> = ({ title, period, onPeriod, onPress, children }) => {
     const { t } = useTranslation(['screens']);
     const { theme } = useUnistyles();
 
@@ -171,10 +165,7 @@ export const Tile: FC<TileProps> = ({ title, accent, period, onPeriod, onPress, 
         >
             <VStack style={styles.head}>
                 <HStack style={styles.titleRow}>
-                    <Text
-                        style={[styles.title, accent ? { color: accent } : null]}
-                        numberOfLines={1}
-                    >
+                    <Text style={styles.title} numberOfLines={1}>
                         {title}
                     </Text>
                     {onPress ? (
@@ -311,131 +302,71 @@ export const SessionsCard: FC<{ today: string }> = ({ today }) => {
     );
 };
 
-export const CaloriesCard: FC<{ today: string }> = ({ today }) => {
-    const { t } = useTranslation(['screens']);
-    const [period, setPeriod] = useState<Period>('today');
-    const calories = useCaloriesSummary(period, today);
-    const setCaloriesDay = useCaloriesStore((state) => state.setDay);
-
-    return (
-        <Tile
-            title={t('home.dash.calorieTarget', { ns: 'screens' })}
-            accent={ACCENT.calories}
-            period={period}
-            onPeriod={setPeriod}
-            onPress={() => {
-                setCaloriesDay(today);
-                router.navigate('/calories' as never);
-            }}
-        >
-            <HStack style={styles.target}>
-                <VStack style={styles.stats}>
-                    <VStack>
-                        <Metric
-                            value={String(calories.target)}
-                            unit="kcal"
-                            color={ACCENT.calories}
-                            size={24}
-                        />
-                        <Text style={styles.caption}>
-                            {t('home.dash.target', { ns: 'screens' })}
-                        </Text>
-                    </VStack>
-                    <VStack>
-                        <Metric
-                            value={String(calories.remaining)}
-                            unit="kcal"
-                            color={ACCENT.calories}
-                            size={24}
-                        />
-                        <Text style={styles.caption}>
-                            {t('home.dash.remaining', { ns: 'screens' })}
-                        </Text>
-                    </VStack>
-                </VStack>
-                <Box style={styles.ring}>
-                    <Ring
-                        progress={calories.target > 0 ? calories.consumed / calories.target : 0}
-                        color={ACCENT.calories}
-                        size={RING_SIZE}
-                    />
-                    <VStack style={styles.ringLabel} pointerEvents="none">
-                        <Metric
-                            value={String(calories.consumed)}
-                            color={ACCENT.calories}
-                            size={28}
-                        />
-                        <Text style={styles.caption}>
-                            {t('home.dash.consumed', { ns: 'screens' })}
-                        </Text>
-                    </VStack>
-                </Box>
-            </HStack>
-        </Tile>
-    );
-};
-
+/** The two awards earned last, then the closest to earn: Today's shelf, each opening its award. */
 export const AwardsCard: FC<{ today: string }> = ({ today }) => {
-    const { t } = useTranslation(['screens']);
-    const { goForIt, all } = useAwards(today);
+    const { t, i18n } = useTranslation(['screens']);
+    const { theme } = useUnistyles();
+    const text = useAwardText();
+    const { all, goForIt } = useAwards(today);
+
+    const shelf = useMemo(() => {
+        const won = (award: Award) => award.earned || !!award.lastEarnedAt;
+        // An award met today but not yet recorded counts as earned now.
+        const at = (award: Award) => award.lastEarnedAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const earned = all
+            .filter(won)
+            .sort((a, b) => at(b) - at(a))
+            .slice(0, 2);
+        const next = goForIt.filter((award) => !earned.includes(award));
+
+        return [...earned, ...next].slice(0, 3).map((award) => ({ award, earned: won(award) }));
+    }, [all, goForIt]);
+
+    if (!shelf.length) return null;
 
     return (
-        <Tile
-            title={t('awards.title', { ns: 'screens' })}
-            onPress={() => router.navigate('/awards' as never)}
-        >
-            <HStack style={styles.awards}>
-                {(goForIt.length ? goForIt : all).slice(0, 3).map((award) => (
-                    <AwardTile key={award.id} award={award} size={76} />
-                ))}
-            </HStack>
-        </Tile>
-    );
-};
-
-/** Progress, opened from Today now there is no tab bar: the week, the streak, all time. */
-export const ProgressCard: FC = () => {
-    const { t } = useTranslation(['screens']);
-    const { done, target, streak } = useWeeklyStreak();
-    const { workoutsCount } = useWorkoutStats();
-
-    const figures = [
-        {
-            key: 'week',
-            value: `${done}/${target}`,
-            label: t('results.tiles.week', { ns: 'screens' }),
-            color: ACCENT.sessions,
-        },
-        {
-            key: 'streak',
-            value: String(streak),
-            label: t('results.hero.streak', { ns: 'screens' }),
-            color: ACCENT.distance,
-        },
-        {
-            key: 'workouts',
-            value: workoutsCount ? String(workoutsCount) : '\u2013',
-            label: t('results.stats.workoutsCount.title', { ns: 'screens' }),
-            color: ACCENT.calories,
-        },
-    ];
-
-    return (
-        <Tile
-            title={t('results.title', { ns: 'screens' })}
-            onPress={() => router.navigate('/results' as never)}
-        >
-            <HStack style={styles.progress}>
-                {figures.map((figure) => (
-                    <VStack key={figure.key} style={styles.progressFigure}>
-                        <Metric value={figure.value} color={figure.color} size={28} />
-                        <Text style={styles.caption} numberOfLines={1}>
-                            {figure.label}
+        <VStack style={styles.tile}>
+            <HStack style={styles.titleRow}>
+                <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
+                    {t('awards.title', { ns: 'screens' })}
+                </Text>
+                <Pressable
+                    onPress={() => router.navigate('/awards' as never)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                >
+                    <HStack style={styles.viewAll}>
+                        <Text style={styles.viewAllText}>
+                            {t('awards.viewAll', { ns: 'screens' })}
                         </Text>
-                    </VStack>
+                        <Icon name="chevron-right" size={14} color={theme.colors.mutedTypography} />
+                    </HStack>
+                </Pressable>
+            </HStack>
+            <HStack style={styles.medals}>
+                {shelf.map(({ award, earned }) => (
+                    <Pressable
+                        key={award.id}
+                        style={styles.medal}
+                        onPress={() => openAward(award)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${text.name(award)}, ${text.detail(award)}`}
+                    >
+                        <Medal {...award} earned={earned} size={88} />
+                        <Text style={styles.medalName} numberOfLines={1}>
+                            {text.name(award)}
+                        </Text>
+                        <Text style={styles.medalCaption} numberOfLines={1}>
+                            {earned
+                                ? dayjs(award.lastEarnedAt ?? undefined)
+                                      .locale(i18n.language)
+                                      .format('D MMM YYYY')
+                                : text.detail(award)}
+                        </Text>
+                    </Pressable>
                 ))}
             </HStack>
-        </Tile>
+        </VStack>
     );
 };
 

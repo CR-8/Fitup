@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -11,15 +12,16 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
+import { ACCENT } from '@/screens/home/summary';
 
 /**
- * The workout under way, as a glass pill floating at the foot of Today, Syn and
- * Progress, like a music app's now-playing bar: its name and clock, and a tap
- * back into the timer. Nothing when no workout is running. Takes the place the
- * tab bar had.
+ * The workout under way, like a music app's now-playing bar: its name and
+ * clock, and a tap back into the timer. Nothing when no workout is running.
+ * iOS shows the row in the tab bar's bottom accessory; Android floats it in a
+ * glass pill above its own tab bar.
  */
 
-const LIME = '#D6F25A';
+const LIME = ACCENT.distance;
 
 const styles = StyleSheet.create((theme, rt) => ({
     pill: {
@@ -29,21 +31,21 @@ const styles = StyleSheet.create((theme, rt) => ({
         bottom: rt.insets.bottom + theme.space(2),
         borderRadius: theme.radius.full,
     },
-    row: {
-        minHeight: 60,
+    row: (compact: boolean) => ({
+        minHeight: compact ? 0 : 60,
         alignItems: 'center',
         gap: theme.space(3),
         paddingLeft: theme.space(2),
         paddingRight: theme.space(4),
-    },
-    dot: {
-        height: 44,
-        width: 44,
+    }),
+    dot: (compact: boolean) => ({
+        height: compact ? 32 : 44,
+        width: compact ? 32 : 44,
         borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: `${LIME}26`,
-    },
+    }),
     text: {
         flex: 1,
     },
@@ -64,7 +66,8 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
-export const NowPlaying: FC = () => {
+/** The row alone, for a surface that draws its own glass (iOS's bottom accessory). */
+export const NowPlayingRow: FC<{ compact?: boolean }> = ({ compact = false }) => {
     const { t } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const { runningWorkout } = useRunningWorkoutStatic();
@@ -73,28 +76,41 @@ export const NowPlaying: FC = () => {
     if (!runningWorkout) return null;
 
     return (
-        <FrostedGlass style={styles.pill}>
-            <Pressable
-                onPress={() => router.navigate('/timer' as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t('home.upNext.eyebrow.resume', { ns: 'screens' })}, ${runningWorkout.name}, ${elapsedFormated}`}
-            >
-                <HStack style={styles.row}>
-                    <Box style={styles.dot}>
-                        <Icon name="dumbbell" size={20} color={LIME} />
-                    </Box>
-                    <VStack style={styles.text}>
+        <Pressable
+            onPress={() => router.navigate('/timer' as never)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('home.upNext.eyebrow.resume', { ns: 'screens' })}, ${runningWorkout.name}, ${elapsedFormated}`}
+        >
+            <HStack style={styles.row(compact)}>
+                <Box style={styles.dot(compact)}>
+                    <Icon name="dumbbell" size={compact ? 16 : 20} color={LIME} />
+                </Box>
+                <VStack style={styles.text}>
+                    {compact ? null : (
                         <Text style={styles.eyebrow}>
                             {t('home.upNext.eyebrow.resume', { ns: 'screens' })}
                         </Text>
-                        <Text style={styles.name} numberOfLines={1}>
-                            {runningWorkout.name}
-                        </Text>
-                    </VStack>
-                    <Text style={styles.clock}>{elapsedFormated}</Text>
-                    <Icon name="chevron-right" size={14} color={theme.colors.mutedTypography} />
-                </HStack>
-            </Pressable>
+                    )}
+                    <Text style={styles.name} numberOfLines={1}>
+                        {runningWorkout.name}
+                    </Text>
+                </VStack>
+                <Text style={styles.clock}>{elapsedFormated}</Text>
+                <Icon name="chevron-right" size={14} color={theme.colors.mutedTypography} />
+            </HStack>
+        </Pressable>
+    );
+};
+
+/** The row in a floating glass pill; `style` places it. */
+export const NowPlaying: FC<{ style?: StyleProp<ViewStyle> }> = ({ style }) => {
+    const { runningWorkout } = useRunningWorkoutStatic();
+
+    if (!runningWorkout) return null;
+
+    return (
+        <FrostedGlass style={[styles.pill, style]}>
+            <NowPlayingRow />
         </FrostedGlass>
     );
 };

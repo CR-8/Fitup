@@ -21,21 +21,20 @@ import { resolveUpNext } from './components/up-next/resolve';
 
 import {
     AwardsCard,
-    CaloriesCard,
     DistanceCard,
-    ProgressCard,
     SessionsCard,
     WaterCard,
     SummaryIntro,
 } from './components/cards';
+import { RingsCard } from './components/rings';
+import { WeekCard } from './components/week';
 import { toRows, useSummaryLayout, type SummaryCard } from '@/stores/summary-layout';
-import { ACCENT } from './summary';
 
 /**
- * Today, laid out after Apple Fitness's Summary: the workout to do now, then
- * water, distance, sessions, calories and awards, each card with its own
- * period. The charts are native SwiftUI on iOS and drawn by the app on Android
- * (`components/charts`); the cards around them are shared (`components/cards`).
+ * Today: the dial (water, distance, the week's sessions), the week day by day,
+ * the awards shelf, then the workout to do now and the per-period cards, in the
+ * order the person chose (Edit Home Screen). The charts are native SwiftUI on
+ * iOS and drawn by the app on Android (`components/charts`).
  */
 
 /** The missed-session sheet is offered once per app open, not on every visit to Today. */
@@ -48,10 +47,10 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     // No navigation bar here, on either platform, so the screen clears the
     // status bar itself (iOS's automatic inset did not, and the title sat under
-    // the clock) and the floating tab bar at the bottom.
+    // the clock) and the tab bar (and a running workout above it) at the bottom.
     content: {
         paddingTop: rt.insets.top + theme.space(3),
-        paddingBottom: rt.insets.bottom + theme.space(28),
+        paddingBottom: rt.insets.bottom + theme.space(36),
         gap: theme.space(4),
     },
     /** Keeps scrolled cards from running under the clock and battery icons. */
@@ -167,10 +166,10 @@ const HomeScreen: FC = () => {
                 return <DistanceCard today={today} />;
             case 'sessions':
                 return <SessionsCard today={today} />;
-            case 'progress':
-                return <ProgressCard />;
-            case 'calories':
-                return <CaloriesCard today={today} />;
+            case 'rings':
+                return <RingsCard today={today} />;
+            case 'week':
+                return <WeekCard today={today} />;
             case 'awards':
                 return <AwardsCard today={today} />;
         }
@@ -184,7 +183,7 @@ const HomeScreen: FC = () => {
                 contentInsetAdjustmentBehavior="never"
                 showsVerticalScrollIndicator={false}
             >
-                <Greeting accent={ACCENT.distance} />
+                <Greeting />
 
                 <VStack style={styles.section}>
                     {introDismissed ? null : <SummaryIntro onDismiss={dismissIntro} />}

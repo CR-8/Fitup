@@ -6,7 +6,7 @@
         "title": "परिणाम"
     },
     "syn": {
-        "title": "सिन"
+        "title": "AI कोच"
     },
     "exercises": {
         "title": "एक्सरसाइज"
@@ -16,5 +16,8 @@
     },
     "workouts": {
         "title": "वर्कआउट"
+    },
+    "you": {
+        "title": "प्रोफ़ाइल"
     }
 }

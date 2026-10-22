@@ -136,7 +136,7 @@
             "openHint": "Opens today's training summary"
         },
         "dash": {
-            "title": "Summary",
+            "title": "Today",
             "periods": {
                 "today": "Today",
                 "week": "Weekly",
@@ -150,15 +150,8 @@
             "done": "Done",
             "planned": "Planned",
             "missed": "Missed",
-            "target": "Target",
-            "calories": "Calories",
-            "remaining": "Remaining",
-            "consumed": "Consumed",
             "newWorkout": "New workout",
             "periodLabel": "{{title}} period",
-            "calorieTarget": "Calorie Target",
-            "backToSummary": "Back to Summary",
-            "openSyn": "Open Syn",
             "intro": {
                 "title": "A Customizable Summary",
                 "body": "Make Today your own: choose which cards it shows, and in what order.",
@@ -166,9 +159,9 @@
                 "dismiss": "Dismiss"
             },
             "edit": {
-                "title": "Edit Summary",
+                "title": "Edit Home Screen",
                 "subtitle": "Choose the cards on Today, and their order.",
-                "shown": "On Your Summary",
+                "shown": "On Your Home Screen",
                 "addTitle": "Add a Card",
                 "none": "No cards. Add one below.",
                 "up": "Move {{name}} up",
@@ -177,6 +170,14 @@
                 "add": "Add {{name}}"
             },
             "cards": {
+                "rings": {
+                    "name": "Today's Progress",
+                    "detail": "Water, distance and this week's sessions on one dial."
+                },
+                "week": {
+                    "name": "This Week",
+                    "detail": "Each day of the week: training days and regeneration days."
+                },
                 "workout": {
                     "name": "Today's Workout",
                     "detail": "The session to start or resume, and its size."
@@ -193,19 +194,22 @@
                     "name": "Sessions",
                     "detail": "Sessions done, planned and missed."
                 },
-                "progress": {
-                    "name": "Progress",
-                    "detail": "This week against your goal, your streak, and all time."
-                },
-                "calories": {
-                    "name": "Calorie Target",
-                    "detail": "Calories eaten against your goal."
-                },
                 "awards": {
                     "name": "Awards",
                     "detail": "The awards you are closest to earning."
                 }
             }
+        },
+        "rings": {
+            "title": "Today's Progress",
+            "sessions": "sessions this week",
+            "open": "Open today's summary"
+        },
+        "week": {
+            "rest": "Regeneration",
+            "restMark": "R",
+            "day": "Day {{number}}",
+            "done": "done"
         }
     },
     "results": {
@@ -646,6 +650,9 @@
             },
             "planBuilds": {
                 "title": "Plan builds"
+            },
+            "homeScreen": {
+                "title": "Edit Home Screen"
             }
         },
         "watch": {
@@ -669,8 +676,7 @@
                     "title": "Tell a Friend"
                 },
                 "reviewAppStore": {
-                    "title": "Review in the App Store",
-                    "message": "Here's my favorite workout logging app: {{url}}"
+                    "title": "Review in the App Store"
                 }
             }
         },
@@ -1196,7 +1202,7 @@
         "history": "History"
     },
     "you": {
-        "title": "You"
+        "title": "Profile"
     },
     "missed-session": {
         "title": "You missed a session",
@@ -1628,7 +1634,6 @@
         "activeKcal": "Active Kilocalories",
         "totalKcal": "Total Kilocalories",
         "share": "Share",
-        "shareMessage": "{{name}}: {{time}} on {{date}}",
         "exercises": "Exercises",
         "sets": "Sets",
         "volume": "Volume",
@@ -1642,7 +1647,6 @@
         "goForItBody": "Awards you're close to earning, or ones you can complete now.",
         "showAll": "Show All",
         "share": "Share",
-        "shareMessage": "{{name}}: {{detail}}",
         "progress": "{{value}} of {{target}} {{unit}}",
         "groups": {
             "daily": "Daily Goals",
@@ -1706,7 +1710,8 @@
         },
         "earnedTitle": "Award earned: {{name}}",
         "earnedTimes_one": "Earned {{date}}",
-        "earnedTimes_other": "Earned {{count}} times · last {{date}}"
+        "earnedTimes_other": "Earned {{count}} times · last {{date}}",
+        "viewAll": "View All"
     },
     "synWelcome": {
         "title": "Welcome to Syn",
@@ -1729,5 +1734,26 @@
         "dataTitle": "What Syn sends",
         "dataDetail": "Your goal, schedule and where you train; body weight, height, diet, allergens and any conditions from your profile; a summary of your recent workouts; and the exercises it can choose from. It does not send your name or email.",
         "continue": "Continue"
+    },
+    "share": {
+        "join": "Join me on FitSyn · {{url}}",
+        "award": {
+            "eyebrow": "Award earned",
+            "eyebrowProgress": "Going for it",
+            "earned": "I just earned the {{name}} award on FitSyn 🏅\n\nTrain with me: {{url}}",
+            "progress": "Going for the {{name}} award on FitSyn: {{detail}} so far 💪\n\nTrain with me: {{url}}"
+        },
+        "session": {
+            "eyebrow": "Workout complete",
+            "subtitle_one": "{{time}} · {{count}} set · {{date}}",
+            "subtitle_other": "{{time}} · {{count}} sets · {{date}}",
+            "message": "Just finished {{name}} on FitSyn: {{time}} on {{date}} 💪\n\nTrain with me: {{url}}"
+        },
+        "app": {
+            "eyebrow": "FitSyn",
+            "title": "Train with me",
+            "subtitle": "Personalised workouts, nutrition and an AI coach.",
+            "message": "I'm training with FitSyn: personalised workouts, nutrition plans and an AI coach that builds my week. Join me: {{url}}"
+        }
     }
 }

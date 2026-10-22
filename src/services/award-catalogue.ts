@@ -58,7 +58,7 @@ export interface AwardDefinition {
 }
 
 const CALORIES = '#5AB0FF';
-const WATER = '#FF6F91';
+const WATER = '#4AA8FF';
 const WORKOUTS = '#D6F25A';
 const WEEK = '#FF9F0A';
 

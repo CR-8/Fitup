@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { Alert, Platform, Share } from 'react-native';
+import { Alert, Platform, type View } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,7 @@ import {
     KeyRound,
     Droplet,
     Sparkles,
+    LayoutDashboard,
     type LucideIcon,
 } from 'lucide-react-native';
 
@@ -39,7 +40,9 @@ import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
 import { useAnalytics } from '@/hooks/use-analytics';
-import { SUPPORT_EMAIL } from '@/constants/contact';
+import { JOIN_URL, SUPPORT_EMAIL } from '@/constants/contact';
+import { InviteCard } from '@/components/brand/share-card';
+import { shareCard } from '@/services/share';
 
 /**
  * You, as the reference's Account page: who is signed in on a card of its
@@ -205,6 +208,8 @@ const SettingsScreen = () => {
     const { session } = useAccount();
     const { resetWatchSync } = useRunningWorkoutStatic();
     const { t } = useTranslation(['common', 'screens']);
+    // State rather than a ref: the rows holding the share action are built during render.
+    const [inviteCard, setInviteCard] = useState<View | null>(null);
     const { theme } = useUnistyles();
     const { track } = useAnalytics();
 
@@ -222,18 +227,13 @@ const SettingsScreen = () => {
             ? Constants.expoConfig?.ios?.buildNumber
             : Constants.expoConfig?.android?.versionCode;
 
-    const shareUrl = 'https://fitup.app';
-
     const handleShare = () => {
         track('app:share_requested', { surface: 'settings' });
-        Share.share({
-            message: t('settings.supportFitup.items.reviewAppStore.message', {
-                ns: 'screens',
-                url: shareUrl,
-            }),
-        }).catch((error) => {
-            reportError(error, 'Failed to share Fitup from settings:');
-        });
+        shareCard(inviteCard, t('share.app.message', { ns: 'screens', url: JOIN_URL })).catch(
+            (error) => {
+                reportError(error, 'Failed to share FitSyn from settings:');
+            },
+        );
     };
 
     const handleManualReviewRequest = () => {
@@ -322,6 +322,12 @@ const SettingsScreen = () => {
     ];
 
     const preferences: Row[] = [
+        {
+            icon: LayoutDashboard,
+            title: t('settings.items.homeScreen.title', { ns: 'screens' }),
+            tint: theme.colors.brand[600],
+            onPress: () => router.navigate('/summary-edit' as never),
+        },
         {
             icon: Bell,
             title: t('settings.items.notifications.title', { ns: 'screens' }),
@@ -446,6 +452,7 @@ const SettingsScreen = () => {
             <Text style={styles.version}>
                 {`${t('settings.version', { ns: 'screens' })} ${appVersion} (${buildVersion})`}
             </Text>
+            <InviteCard ref={setInviteCard} />
         </ScrollView>
     );
 };

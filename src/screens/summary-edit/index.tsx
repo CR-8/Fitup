@@ -20,13 +20,13 @@ import { SUMMARY_CARDS, useSummaryLayout, type SummaryCard } from '@/stores/summ
  */
 
 const ICONS: Record<SummaryCard, { icon: IconName; color: string }> = {
+    rings: { icon: 'target', color: ACCENT.water },
+    week: { icon: 'sprout', color: ACCENT.distance },
+    awards: { icon: 'trophy', color: ACCENT.sessions },
     workout: { icon: 'dumbbell', color: ACCENT.distance },
     water: { icon: 'droplet', color: ACCENT.water },
-    distance: { icon: 'arrow-right', color: ACCENT.distance },
+    distance: { icon: 'run', color: ACCENT.distance },
     sessions: { icon: 'calendar', color: ACCENT.sessions },
-    progress: { icon: 'bar-chart', color: ACCENT.calories },
-    calories: { icon: 'flame', color: ACCENT.calories },
-    awards: { icon: 'trophy', color: ACCENT.sessions },
 };
 
 const styles = StyleSheet.create((theme) => ({

@@ -70,7 +70,8 @@ module.exports = {
         ],
     },
     ios: {
-        buildNumber: String(process.env.APP_BUILD_NUMBER) || '1',
+        // Not `String(...) || '1'`: String(undefined) is "undefined", which EAS rejects.
+        buildNumber: process.env.APP_BUILD_NUMBER || '1',
         appleTeamId: process.env.APP_APPLE_TEAM_ID || '',
         bundleIdentifier: process.env.APP_BUNDLE_IDENTIFIER || '',
         appStoreUrl: process.env.APP_STORE_URL,

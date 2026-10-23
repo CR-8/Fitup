@@ -145,7 +145,6 @@
             },
             "water": "Water",
             "distance": "Distance",
-            "noHealth": "No Health data yet",
             "sessions": "Sessions",
             "done": "Done",
             "planned": "Planned",
@@ -153,9 +152,9 @@
             "newWorkout": "New workout",
             "periodLabel": "{{title}} period",
             "intro": {
-                "title": "A Customizable Summary",
+                "title": "A Customizable Home Screen",
                 "body": "Make Today your own: choose which cards it shows, and in what order.",
-                "edit": "Edit Your Summary",
+                "edit": "Edit Home Screen",
                 "dismiss": "Dismiss"
             },
             "edit": {
@@ -1755,5 +1754,17 @@
             "subtitle": "Personalised workouts, nutrition and an AI coach.",
             "message": "I'm training with FitSyn: personalised workouts, nutrition plans and an AI coach that builds my week. Join me: {{url}}"
         }
+    },
+    "health": {
+        "connect": "Connect Health",
+        "install": "Get Health Connect",
+        "why": "See your steps and distance here.",
+        "unavailable": "Health data isn't available on this device.",
+        "iosHint": "Steps stuck at zero? In the Health app, open Sharing, then Apps, then FitSyn, and turn on Steps and Walking + Running Distance."
+    },
+    "notFound": {
+        "title": "This page isn't here",
+        "body": "The link may be old, or the page may have moved.",
+        "home": "Back to Today"
     }
 }

@@ -12,6 +12,8 @@ import * as Notifications from 'expo-notifications';
 import { router, Href, usePathname } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Device from 'expo-device';
+
+import { colors } from '../../unistyles';
 import {
     checkNotifications,
     NotificationSettings,
@@ -52,7 +54,7 @@ const IOS_TIMER_END_NOTIFICATION_SOUND = 'timer_end.wav';
 const NOTIFICATION_CHANNEL_CONFIG = {
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250] as [number, number, number, number],
-    lightColor: '#84cc16',
+    lightColor: colors.brand[500],
 } as const;
 
 const WORKOUT_TIMER_DATE_TRIGGER_MIN_LEAD_MS = 1000;

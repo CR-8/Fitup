@@ -31,7 +31,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     fieldContainer: {
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
     },
     sliderWrapper: {

@@ -73,7 +73,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         gap: theme.space(3),
         padding: theme.space(3),
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
     },
     icon: {

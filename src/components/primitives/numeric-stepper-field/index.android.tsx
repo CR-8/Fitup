@@ -57,6 +57,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     valueText: (compact: boolean) => ({
         ...(compact ? theme.fontSize['2xl'] : theme.fontSize['4xl']),
+        ...theme.typography.metric,
         color: theme.colors.typography,
         fontWeight: theme.fontWeight.bold.fontWeight,
         textAlign: 'center' as const,

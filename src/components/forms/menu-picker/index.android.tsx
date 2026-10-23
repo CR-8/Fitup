@@ -8,6 +8,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 
 import type { MenuPickerProps } from './types';
+import { colors } from '../../../../unistyles';
 
 /**
  * "30min ⌃" on Android: the current choice with an up-down chevron, opening a
@@ -55,7 +56,7 @@ export function MenuPicker<T extends string | number>({
     options,
     onChange,
     accessibilityLabel,
-    color = '#9a9fa8',
+    color = colors.neutral[400],
 }: MenuPickerProps<T>) {
     const { theme, rt } = useUnistyles();
     const anchor = useRef<View>(null);

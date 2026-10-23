@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { Box } from '@/components/primitives/box';
@@ -96,7 +96,7 @@ const readDraft = (): Draft => {
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
-        backgroundColor: '#1c1e22',
+        backgroundColor: theme.colors.foreground,
     },
     content: {
         paddingHorizontal: theme.space(4),
@@ -192,6 +192,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 
 const FoodPlanScreen: FC = () => {
     const { t } = useTranslation(['screens', 'common']);
+    const { theme } = useUnistyles();
     const available = useAiAvailable();
     const { isSignedIn } = useAccount();
     const { profile, save } = useAiProfile();
@@ -320,7 +321,7 @@ const FoodPlanScreen: FC = () => {
                                 <MealIcon
                                     slot={slot}
                                     size={22}
-                                    color={selected ? LIME : '#9a9fa8'}
+                                    color={selected ? LIME : theme.solid.mutedTypography}
                                 />
                                 <Text style={styles.tileText(selected)}>
                                     {t(`syn.plan.slots.${slot}`, { ns: 'screens' })}

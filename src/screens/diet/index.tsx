@@ -62,7 +62,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     // nothing on this screen read as a card.
     panel: {
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,

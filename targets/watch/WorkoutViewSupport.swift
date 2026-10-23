@@ -1,7 +1,8 @@
 import Foundation
 import SwiftUI
 
-let watchBrandLime = Color(red: 163 / 255, green: 230 / 255, blue: 53 / 255)
+// The app's lime (#D6F25A), the colour of the running clock on the phone.
+let watchBrandLime = Color(red: 214 / 255, green: 242 / 255, blue: 90 / 255)
 
 enum WatchEditableTrackingField: String {
   case weight

@@ -23,7 +23,7 @@ import { MenuPicker } from '@/components/forms/menu-picker';
 const styles = StyleSheet.create((theme, rt) => ({
     sheet: {
         flex: 1,
-        backgroundColor: '#1c1e22',
+        backgroundColor: theme.colors.foreground,
         paddingTop: Platform.OS === 'android' ? rt.insets.top + theme.space(2) : theme.space(2),
         paddingHorizontal: theme.space(4),
     },

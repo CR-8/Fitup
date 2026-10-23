@@ -212,7 +212,7 @@ const styles = StyleSheet.create((theme) => ({
         marginHorizontal: theme.space(4),
         marginTop: theme.space(4),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(4),
         gap: theme.space(4),
@@ -395,7 +395,7 @@ const styles = StyleSheet.create((theme) => ({
         marginLeft: -theme.space(1.25),
         borderRadius: theme.radius.full,
         borderWidth: theme.space(0.55),
-        borderColor: '#34343C',
+        borderColor: theme.colors.neutral[700],
         backgroundColor: 'transparent',
     },
     heartRateZoneScaleTicks: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create((theme) => ({
         marginLeft: -theme.space(2.25),
         borderRadius: theme.radius.full,
         borderWidth: theme.space(0.55),
-        borderColor: '#34343C',
+        borderColor: theme.colors.neutral[700],
         backgroundColor: 'transparent',
     },
     recoveryScaleTicks: {

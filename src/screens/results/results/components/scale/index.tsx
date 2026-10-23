@@ -43,6 +43,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     metricValue: {
         ...theme.fontSize['3xl'],
+        ...theme.typography.metric,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },

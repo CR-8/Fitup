@@ -31,7 +31,7 @@ const styles = StyleSheet.create((theme, rt) => ({
     headerContainer: {
         padding: theme.space(5),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         gap: theme.space(5),
     },

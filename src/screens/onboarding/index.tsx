@@ -121,7 +121,8 @@ const styles = StyleSheet.create((theme, rt) => ({
         color: theme.colors.mutedTypography,
     },
     group: {
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
         overflow: 'hidden',
     },

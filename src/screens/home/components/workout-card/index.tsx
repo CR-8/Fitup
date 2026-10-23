@@ -36,7 +36,7 @@ dayjs.extend(localizedFormat);
 const styles = StyleSheet.create((theme) => ({
     container: (status: WorkoutSelect['status']) => ({
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous' as const,
         borderWidth: 1,
         borderColor: status === 'in_progress' ? theme.colors.brand[500] : theme.colors.border,

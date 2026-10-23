@@ -27,7 +27,7 @@ import { Icon } from '@/components/primitives/icon';
 const styles = StyleSheet.create((theme) => ({
     container: {
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(4),
         gap: theme.space(4),

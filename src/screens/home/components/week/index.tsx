@@ -19,7 +19,8 @@ import { ACCENT } from '../../summary';
 /**
  * This week, day by day: a day with no session is a regeneration day ("R"),
  * the rest are numbered training days, their sprout green once the session is
- * done. Today is outlined; a day opens its summary.
+ * done. Today is outlined. A day still to train opens its session; any other
+ * opens the day's summary.
  */
 
 const styles = StyleSheet.create((theme) => ({
@@ -78,10 +79,13 @@ export const WeekCard: FC<{ today: string }> = ({ today }) => {
             });
             const isTraining = onDay.length > 0;
 
+            const done = onDay.some((workout) => workout.status === 'completed');
+
             return {
                 key: toDateKey(day.toDate()),
                 number: isTraining ? ++training : 0,
-                done: onDay.some((workout) => workout.status === 'completed'),
+                done,
+                planned: done ? undefined : onDay[0]?.id,
             };
         });
     }, [firstWeekday, today, workouts]);
@@ -106,10 +110,12 @@ export const WeekCard: FC<{ today: string }> = ({ today }) => {
                             key={day.key}
                             style={styles.day(isToday)}
                             onPress={() =>
-                                router.navigate({
-                                    pathname: '/day',
-                                    params: { date: day.key },
-                                } as never)
+                                day.planned
+                                    ? router.navigate(`/workout/${day.planned}` as never)
+                                    : router.navigate({
+                                          pathname: '/day',
+                                          params: { date: day.key },
+                                      } as never)
                             }
                             // Today in view, however late in the week it falls.
                             onLayout={

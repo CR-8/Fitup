@@ -71,6 +71,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     valueText: {
         ...theme.fontSize['3xl'],
+        ...theme.typography.metric,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.solid.typography,
     },

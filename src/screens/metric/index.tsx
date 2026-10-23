@@ -1,4 +1,5 @@
 import { FC, useState } from 'react';
+import { Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import { HeaderButton } from '@/components/buttons/header';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useTodayKey } from '@/hooks/use-water';
 import { AxisBars, Metric, PeriodPicker } from '@/screens/home/components/charts';
+import { HealthPrompt } from '@/screens/home/components/cards';
 import {
     ACCENT,
     PERIODS,
@@ -53,6 +55,11 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: 13,
         textTransform: 'uppercase',
         color: theme.colors.typography,
+    },
+    hint: {
+        ...theme.fontSize.sm,
+        color: theme.colors.mutedTypography,
+        paddingHorizontal: theme.space(1),
     },
 }));
 
@@ -121,6 +128,12 @@ const MetricScreen: FC = () => {
                 onChange={(index) => setPeriod(PERIODS[index])}
             />
 
+            {kind === 'distance' && summary.access !== 'granted' ? (
+                <VStack style={styles.card}>
+                    <HealthPrompt access={summary.access} onConnect={summary.connect} />
+                </VStack>
+            ) : null}
+
             {figures.map((figure) => (
                 <VStack key={figure.key} style={styles.card}>
                     <Text style={styles.label}>{figure.label}</Text>
@@ -133,6 +146,10 @@ const MetricScreen: FC = () => {
                     <AxisBars data={figure.data} x={x} ticks={ticks} color={figure.color} />
                 </VStack>
             ))}
+            {/* HealthKit reads a refusal as no data, so a zero on iOS may be a switch left off. */}
+            {kind === 'distance' && Platform.OS === 'ios' && summary.steps?.total === 0 ? (
+                <Text style={styles.hint}>{t('health.iosHint', { ns: 'screens' })}</Text>
+            ) : null}
         </ScrollView>
     );
 };

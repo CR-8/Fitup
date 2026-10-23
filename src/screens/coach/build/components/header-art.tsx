@@ -3,6 +3,9 @@ import { View } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { StyleSheet } from 'react-native-unistyles';
 
+import { ACCENT } from '@/screens/home/summary';
+import { colors } from '../../../../../unistyles';
+
 /**
  * The sheet's line-art header, after Apple Fitness's plan builder: a faint grid
  * with a few diagonals and three rings in Syn's blue.
@@ -10,8 +13,8 @@ import { StyleSheet } from 'react-native-unistyles';
 
 const W = 360;
 const H = 170;
-const GRID = '#2a2e35';
-const RING = '#5AB0FF';
+const GRID = colors.neutral[700];
+const RING = ACCENT.calories;
 
 const styles = StyleSheet.create({
     art: {

@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
+import { Linking } from 'react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 
 import { sumConsumed, sumPlanned, toDateKey, type MealWithItems } from '@/crud/nutrition';
@@ -7,9 +8,16 @@ import { getMissedWorkouts } from '@/helpers/workouts';
 import { useAiProfile } from '@/hooks/use-ai';
 import { useMealsBetween } from '@/hooks/use-nutrition';
 import { useUser } from '@/hooks/use-user';
+import { useAppState } from '@/hooks/use-app-state';
 import { useWaterBetween } from '@/hooks/use-water';
 import { useWorkouts } from '@/hooks/use-workouts';
-import { readDistanceMeters, readStepCount } from '@/services/health';
+import {
+    HEALTH_CONNECT_STORE_URL,
+    getMovementAccess,
+    readMovement,
+    requestHealthPermissions,
+} from '@/services/health';
+import { reportError } from '@/services/error-reporting';
 import { useCaloriesStore } from '@/stores/calories';
 
 /**
@@ -138,52 +146,81 @@ export const useWaterSummary = (period: Period, today: string) => {
     return { ...range, water };
 };
 
-/** Distance and steps from Health, by bucket; null where Health has nothing. */
+/**
+ * Distance and steps from Health, by bucket. Both are null until Health can be
+ * read (`access`; `connect` asks, or on Android without Health Connect opens
+ * its store page); after that an empty bucket is 0. The figures are read again
+ * every few minutes while on screen and whenever the app comes back, so the
+ * count keeps up with a walk.
+ */
 export const useMovementSummary = (period: Period, today: string) => {
     const { user } = useUser();
+    const queryClient = useQueryClient();
     const range = usePeriodRange(period, today);
     const { buckets, from } = range;
 
-    // One Health read per bucket and figure; buckets still ahead are zero without asking.
+    const { data: access, refetch: recheck } = useQuery({
+        queryKey: ['health-access'],
+        queryFn: getMovementAccess,
+        staleTime: 60_000,
+    });
+
+    // Buckets still ahead are zero without asking; the one under way stops at now.
     // `period` and `from` fix the buckets, which are dates and so not a key of their own.
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    const { data: health } = useQuery({
-        queryKey: ['health-distance', period, from],
+    const { data: health, refetch } = useQuery({
+        queryKey: ['health-movement', period, from],
         queryFn: async () => {
             const now = dayjs();
-            const read = async (reader: typeof readStepCount) => {
-                const values = await Promise.all(
-                    buckets.map((bucket) =>
-                        bucket.start.isAfter(now)
-                            ? Promise.resolve(0)
-                            : reader(
-                                  bucket.start.toDate(),
-                                  (bucket.end.isAfter(now) ? now : bucket.end).toDate(),
-                              ),
-                    ),
-                );
+            const past = buckets.filter((bucket) => bucket.start.isBefore(now));
+            const read = await readMovement(
+                past.map((bucket) => ({
+                    start: bucket.start.toDate(),
+                    end: (bucket.end.isAfter(now) ? now : bucket.end).toDate(),
+                })),
+            );
+            const pad = (values: number[] | null) =>
+                values && buckets.map((_, i) => values[i] ?? 0);
 
-                return values.every((value) => value == null)
-                    ? null
-                    : values.map((value) => value ?? 0);
-            };
-            const [meters, steps] = await Promise.all([
-                read(readDistanceMeters),
-                read(readStepCount),
-            ]);
-
-            return { meters, steps };
+            return { steps: pad(read.steps), meters: pad(read.meters) };
         },
-        staleTime: 5 * 60_000,
+        enabled: access === 'granted',
+        staleTime: 60_000,
+        refetchInterval: 3 * 60_000,
     });
+
+    useAppState({
+        onForeground: () => {
+            void recheck();
+            if (access === 'granted') void refetch();
+        },
+    });
+
+    const connect = useCallback(async () => {
+        try {
+            if (access === 'install') {
+                await Linking.openURL(HEALTH_CONNECT_STORE_URL);
+                return;
+            }
+            await requestHealthPermissions();
+        } catch (error) {
+            reportError(error, 'Failed to connect Health for steps:');
+        }
+        await queryClient.invalidateQueries({ queryKey: ['health-access'] });
+        await queryClient.invalidateQueries({ queryKey: ['health-movement'] });
+    }, [access, queryClient]);
 
     const miles = user?.distanceUnits === 'mi';
     const perUnit = miles ? 1609.344 : 1000;
-    const meters = health?.meters;
-    const steps = health?.steps;
+    const granted = access === 'granted';
+    const meters = granted ? health?.meters : null;
+    const steps = granted ? health?.steps : null;
 
     return {
         ...range,
+        // Undefined while it is first checked.
+        access,
+        connect,
         distance: meters
             ? {
                   series: meters.map((m) => m / perUnit),

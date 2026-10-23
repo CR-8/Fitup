@@ -37,7 +37,7 @@ const LIME = ACCENT.distance;
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
-        backgroundColor: '#1c1e22',
+        backgroundColor: theme.colors.foreground,
     },
     content: {
         flexGrow: 1,

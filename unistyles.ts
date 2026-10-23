@@ -13,11 +13,10 @@ const common = {
         lg: 8,
         xl: 12,
         '2xl': 16,
-        '3xl': 24,
-        // Was 32. The app's best-built surfaces (up-next, timer, stat-blocks)
-        // already ship at 24 — this collapses the 32/24/16 three-way split
-        // that had crept into the other ~34 files onto that same value.
-        '4xl': 24,
+        // The card: Today's Summary cards set it at 22, as Apple Fitness's, and
+        // every other card (and sheet) takes the same corner. Was 24 and 32.
+        '3xl': 22,
+        '4xl': 22,
         full: 9999,
     },
     fontSize: {

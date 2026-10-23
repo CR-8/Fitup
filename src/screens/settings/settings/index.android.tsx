@@ -76,7 +76,8 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
         gap: theme.space(3),
         padding: theme.space(4),
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
     },
     avatar: {
@@ -110,7 +111,8 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(4),
     },
     group: {
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
         overflow: 'hidden',
     },

@@ -40,7 +40,7 @@ const styles = StyleSheet.create((theme) => ({
     panel: {
         // A card on both platforms (`inset` was flush on Android).
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         padding: theme.space(5),
         gap: theme.space(4),

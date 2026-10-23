@@ -102,6 +102,11 @@ const styles = StyleSheet.create((theme) => ({
         ...theme.fontSize.sm,
         color: theme.colors.mutedTypography,
     },
+    prompt: (color: string) => ({
+        ...theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color,
+    }),
 }));
 
 /** "1.5", "2", "0.25": a figure without trailing zeros. */
@@ -116,6 +121,7 @@ interface Ring {
     goal: string;
     unit?: string;
     progress: number;
+    prompt?: string;
     onPress: () => void;
 }
 
@@ -124,7 +130,8 @@ export const RingsCard: FC<{ today: string }> = ({ today }) => {
     const { theme } = useUnistyles();
     const { width } = useWindowDimensions();
     const water = useWaterDay(today);
-    const { distance, distanceUnit } = useMovementSummary('today', today);
+    const { distance, distanceUnit, access, connect } = useMovementSummary('today', today);
+    const canConnect = access === 'ask' || access === 'install';
     const week = useWeeklyStreak();
 
     const distanceGoal = DISTANCE_GOAL[distanceUnit === 'mi' ? 'mi' : 'km'];
@@ -149,11 +156,19 @@ export const RingsCard: FC<{ today: string }> = ({ today }) => {
             goal: String(distanceGoal),
             unit: distanceUnit,
             progress: distance ? distance.total / distanceGoal : 0,
-            onPress: () =>
-                router.navigate({
-                    pathname: '/metric',
-                    params: { kind: 'distance', period: 'today' },
-                } as never),
+            // Until Health is connected the row asks for it, in place of the goal.
+            prompt: canConnect
+                ? t(access === 'install' ? 'health.install' : 'health.connect', {
+                      ns: 'screens',
+                  })
+                : undefined,
+            onPress: canConnect
+                ? connect
+                : () =>
+                      router.navigate({
+                          pathname: '/metric',
+                          params: { kind: 'distance', period: 'today' },
+                      } as never),
         },
         {
             key: 'sessions',
@@ -254,8 +269,13 @@ export const RingsCard: FC<{ today: string }> = ({ today }) => {
                                 </Text>
                                 <HStack style={styles.figure}>
                                     <Text style={styles.value(ring.color)}>{ring.value}</Text>
-                                    <Text style={styles.of} numberOfLines={1}>
-                                        {` / ${ring.goal}${ring.unit ? ` ${ring.unit}` : ''}`}
+                                    <Text
+                                        style={ring.prompt ? styles.prompt(ring.color) : styles.of}
+                                        numberOfLines={1}
+                                    >
+                                        {ring.prompt
+                                            ? ` ${ring.prompt}`
+                                            : ` / ${ring.goal}${ring.unit ? ` ${ring.unit}` : ''}`}
                                     </Text>
                                 </HStack>
                             </VStack>

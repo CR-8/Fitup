@@ -54,7 +54,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(4),
         marginHorizontal: theme.space(4),
         marginTop: theme.space(2),
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         backgroundColor: open ? theme.colors.elevated : theme.colors.foreground,
     }),

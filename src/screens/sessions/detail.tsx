@@ -75,7 +75,8 @@ const styles = StyleSheet.create((theme) => ({
     card: {
         padding: theme.space(4),
         gap: theme.space(3),
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         backgroundColor: theme.colors.foreground,
     },
     cell: {

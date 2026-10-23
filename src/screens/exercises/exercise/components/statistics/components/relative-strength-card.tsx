@@ -42,6 +42,7 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const styles = StyleSheet.create((theme) => ({
     bestValue: {
         ...theme.fontSize['3xl'],
+        ...theme.typography.metric,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },

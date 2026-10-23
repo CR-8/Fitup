@@ -1,5 +1,7 @@
 import { FC, useMemo, useState, useCallback } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+
+import { colors } from '../../../../../../unistyles';
 import { useTranslation } from 'react-i18next';
 import Svg, { Path } from 'react-native-svg';
 import { type LayoutChangeEvent, View } from 'react-native';
@@ -188,7 +190,7 @@ const getRingColor = (
     levelIndex: number,
 ): string => {
     const palette = ringColors[filledCount];
-    if (!palette) return '#8A8F99';
+    if (!palette) return colors.neutral[400];
     return palette[levelIndex] || palette[palette.length - 1];
 };
 

@@ -14,6 +14,7 @@ import { MenuPicker } from '@/components/forms/menu-picker';
 import { Medal } from '@/screens/awards/components/badge';
 import { openAward } from '@/screens/awards/components/tile';
 import { useAwardText, useAwards, type Award } from '@/screens/awards/data';
+import type { MovementAccess } from '@/services/health';
 
 import { Bars, Line, Metric, Ring } from './charts';
 import {
@@ -113,6 +114,14 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: ACCENT.distance,
     },
+    health: {
+        gap: theme.space(1),
+    },
+    healthLink: {
+        ...theme.fontSize.default,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: ACCENT.distance,
+    },
     viewAll: {
         alignItems: 'center',
         gap: 2,
@@ -200,6 +209,36 @@ export const Tile: FC<TileProps> = ({ title, period, onPeriod, onPress, children
     );
 };
 
+/**
+ * What stands in for steps and distance until Health can be read: a way to
+ * connect it, Health Connect's store page on an Android phone without it, or
+ * a plain line where there is no Health store at all.
+ */
+export const HealthPrompt: FC<{ access?: MovementAccess; onConnect: () => void }> = ({
+    access,
+    onConnect,
+}) => {
+    const { t } = useTranslation(['screens']);
+
+    if (!access || access === 'granted') return null;
+    if (access === 'unavailable') {
+        return <Text style={styles.caption}>{t('health.unavailable', { ns: 'screens' })}</Text>;
+    }
+
+    return (
+        <VStack style={styles.health}>
+            <Text style={styles.caption}>{t('health.why', { ns: 'screens' })}</Text>
+            <Pressable onPress={onConnect} hitSlop={8} accessibilityRole="button">
+                <Text style={styles.healthLink}>
+                    {t(access === 'install' ? 'health.install' : 'health.connect', {
+                        ns: 'screens',
+                    })}
+                </Text>
+            </Pressable>
+        </VStack>
+    );
+};
+
 const openMetric = (kind: 'water' | 'distance', period: Period) =>
     router.navigate({ pathname: '/metric', params: { kind, period } } as never);
 
@@ -224,7 +263,7 @@ export const WaterCard: FC<{ today: string }> = ({ today }) => {
 export const DistanceCard: FC<{ today: string }> = ({ today }) => {
     const { t } = useTranslation(['screens']);
     const [period, setPeriod] = useState<Period>('today');
-    const { distance, distanceUnit, current } = useMovementSummary(period, today);
+    const { distance, distanceUnit, current, access, connect } = useMovementSummary(period, today);
 
     // A running total, so the line climbs to the figure above it.
     const line = useMemo(() => {
@@ -248,7 +287,7 @@ export const DistanceCard: FC<{ today: string }> = ({ today }) => {
             {distance ? (
                 <Line data={line} color={ACCENT.distance} />
             ) : (
-                <Text style={styles.caption}>{t('home.dash.noHealth', { ns: 'screens' })}</Text>
+                <HealthPrompt access={access} onConnect={connect} />
             )}
         </Tile>
     );

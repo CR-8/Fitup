@@ -17,7 +17,8 @@ const styles = StyleSheet.create((theme) => ({
         paddingVertical: theme.space(8),
         gap: theme.space(1),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
     },
     title: {
         color: theme.colors.typography,

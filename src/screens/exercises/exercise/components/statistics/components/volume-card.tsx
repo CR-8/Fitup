@@ -29,6 +29,7 @@ interface VolumeCardProps {
 const styles = StyleSheet.create((theme) => ({
     bestValue: {
         ...theme.fontSize['3xl'],
+        ...theme.typography.metric,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },

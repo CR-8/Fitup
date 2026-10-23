@@ -1,7 +1,7 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { Platform, ScrollView, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
@@ -54,7 +54,7 @@ const LIME = ACCENT.distance;
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
-        backgroundColor: '#1c1e22',
+        backgroundColor: theme.colors.foreground,
     },
     content: {
         paddingHorizontal: theme.space(4),
@@ -241,6 +241,7 @@ const styles = StyleSheet.create((theme, rt) => ({
 
 const BuildPlanScreen: FC = () => {
     const { t, i18n } = useTranslation(['screens', 'common']);
+    const { theme } = useUnistyles();
     const { width } = useWindowDimensions();
     const [step, setStep] = useState<'build' | 'review'>('build');
     const [sheet, setSheet] = useState<{ day: Weekday; index: number | null } | null>(null);
@@ -475,7 +476,7 @@ const BuildPlanScreen: FC = () => {
                                         <ActivityIcon
                                             activity={activity}
                                             size={22}
-                                            color={selected ? LIME : '#9a9fa8'}
+                                            color={selected ? LIME : theme.solid.mutedTypography}
                                         />
                                         <Text style={styles.tileText(selected)} numberOfLines={1}>
                                             {t(`coach.build.types.${activity}`, { ns: 'screens' })}
@@ -571,7 +572,7 @@ const BuildPlanScreen: FC = () => {
                                                     <Icon
                                                         name="chevron-right"
                                                         size={14}
-                                                        color="#9a9fa8"
+                                                        color={theme.colors.mutedTypography}
                                                     />
                                                 </HStack>
                                             </Pressable>
@@ -581,7 +582,11 @@ const BuildPlanScreen: FC = () => {
                                             accessibilityRole="button"
                                         >
                                             <HStack style={styles.addRow}>
-                                                <Icon name="plus" size={16} color="#9a9fa8" />
+                                                <Icon
+                                                    name="plus"
+                                                    size={16}
+                                                    color={theme.colors.mutedTypography}
+                                                />
                                                 <Text style={styles.muted}>
                                                     {t('coach.build.add', { ns: 'screens' })}
                                                 </Text>

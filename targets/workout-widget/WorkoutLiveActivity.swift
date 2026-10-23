@@ -38,7 +38,8 @@ struct WorkoutLiveActivity: Widget {
 
 // MARK: - Brand Colors
 
-private let brandLime = Color(red: 163 / 255, green: 230 / 255, blue: 53 / 255)
+// The app's lime (#D6F25A), the colour of the running clock in the app.
+private let brandLime = Color(red: 214 / 255, green: 242 / 255, blue: 90 / 255)
 
 private func workoutDeepLink(context: ActivityViewContext<WorkoutAttributes>) -> URL? {
   let workoutId = context.attributes.workoutId

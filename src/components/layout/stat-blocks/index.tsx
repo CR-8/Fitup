@@ -72,7 +72,7 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'flex-start',
         gap: theme.space(0.5),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
         borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,

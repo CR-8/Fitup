@@ -1,5 +1,8 @@
 import { Platform } from 'react-native';
 import {
+    AuthorizationRequestStatus,
+    getRequestStatusForAuthorization,
+    isHealthDataAvailable,
     requestAuthorization,
     saveWorkoutSample,
     queryQuantitySamples,
@@ -12,6 +15,8 @@ import {
     WorkoutActivityType,
 } from '@kingstinct/react-native-healthkit';
 import {
+    SdkAvailabilityStatus,
+    getSdkStatus,
     initialize,
     requestPermission,
     getGrantedPermissions,
@@ -840,6 +845,121 @@ const resolveWorkoutBounds = (workouts: HealthKitWorkoutSample[]) => {
 
     return { workoutStartDate, workoutEndDate };
 };
+
+/**
+ * Whether steps and distance can be read. `granted` on iOS means the person has
+ * answered the Health sheet: HealthKit never says whether reading was allowed,
+ * and a refusal reads as no data. `install` is an Android phone without Health
+ * Connect (or with one too old), `unavailable` a device with no Health store.
+ */
+export type MovementAccess = 'granted' | 'ask' | 'install' | 'unavailable';
+
+/** Health Connect's Play Store page, for `install`. */
+export const HEALTH_CONNECT_STORE_URL = 'market://details?id=com.google.android.apps.healthdata';
+
+export async function getMovementAccess(): Promise<MovementAccess> {
+    try {
+        if (Platform.OS === 'ios') {
+            if (!isHealthDataAvailable()) return 'unavailable';
+            const status = await getRequestStatusForAuthorization({
+                toShare: [WorkoutTypeIdentifier],
+                toRead: [...IOS_HEALTH_READ_TYPES],
+            });
+
+            return status === AuthorizationRequestStatus.unnecessary ? 'granted' : 'ask';
+        }
+
+        if (Platform.OS === 'android') {
+            const sdk = await getSdkStatus();
+            if (sdk === SdkAvailabilityStatus.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
+                return 'install';
+            }
+            if (sdk !== SdkAvailabilityStatus.SDK_AVAILABLE) return 'unavailable';
+            if (!(await ensureHealthConnectReady())) return 'unavailable';
+
+            const granted = new Set((await getGrantedPermissions()).map(getPermissionKey));
+
+            return granted.has('read:Steps') || granted.has('read:Distance') ? 'granted' : 'ask';
+        }
+    } catch (error) {
+        logHealthError('getMovementAccess', error);
+    }
+
+    return 'unavailable';
+}
+
+const STEPS_IOS = 'HKQuantityTypeIdentifierStepCount';
+const DISTANCE_IOS = 'HKQuantityTypeIdentifierDistanceWalkingRunning';
+
+/**
+ * Steps and walking and running distance (metres) in each window, for Today's
+ * charts. Each type is null when it cannot be read, and a window with nothing
+ * in it is 0, not missing. Health Connect's permissions are checked once for
+ * the lot rather than once a window.
+ */
+export async function readMovement(
+    windows: { start: Date; end: Date }[],
+): Promise<{ steps: number[] | null; meters: number[] | null }> {
+    try {
+        if (Platform.OS === 'ios') {
+            const sum = (type: typeof STEPS_IOS | typeof DISTANCE_IOS, unit: 'count' | 'm') =>
+                Promise.all(
+                    windows.map(({ start, end }) =>
+                        queryStatisticsForQuantity(type, ['cumulativeSum'], {
+                            filter: { date: { startDate: start, endDate: end } },
+                            unit,
+                        }).then((result) => result.sumQuantity?.quantity ?? 0),
+                    ),
+                );
+            const [steps, meters] = await Promise.all([
+                sum(STEPS_IOS, 'count'),
+                sum(DISTANCE_IOS, 'm'),
+            ]);
+
+            return { steps, meters };
+        }
+
+        if (Platform.OS === 'android') {
+            if (!(await requireHealthConnectReady('readMovement'))) {
+                return { steps: null, meters: null };
+            }
+            const granted = new Set((await getGrantedPermissions()).map(getPermissionKey));
+            const filter = ({ start, end }: { start: Date; end: Date }) => ({
+                operator: 'between' as const,
+                startTime: start.toISOString(),
+                endTime: end.toISOString(),
+            });
+            const [steps, meters] = await Promise.all([
+                granted.has('read:Steps')
+                    ? Promise.all(
+                          windows.map((window) =>
+                              aggregateRecord({
+                                  recordType: 'Steps',
+                                  timeRangeFilter: filter(window),
+                              }).then((result) => result.COUNT_TOTAL ?? 0),
+                          ),
+                      )
+                    : null,
+                granted.has('read:Distance')
+                    ? Promise.all(
+                          windows.map((window) =>
+                              aggregateRecord({
+                                  recordType: 'Distance',
+                                  timeRangeFilter: filter(window),
+                              }).then((result) => result.DISTANCE?.inMeters ?? 0),
+                          ),
+                      )
+                    : null,
+            ]);
+
+            return { steps, meters };
+        }
+    } catch (error) {
+        logHealthError('readMovement', error);
+    }
+
+    return { steps: null, meters: null };
+}
 
 export async function readDistanceMeters(startDate: Date, endDate: Date): Promise<number | null> {
     try {

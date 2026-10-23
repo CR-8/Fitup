@@ -30,7 +30,8 @@ const styles = StyleSheet.create((theme) => ({
     message: {
         minHeight: theme.space(36),
         backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius['4xl'],
+        borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.colors.border,
         padding: theme.space(4),

@@ -4,12 +4,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 
 import { sumConsumed, sumPlanned, toDateKey, type MealWithItems } from '@/crud/nutrition';
-import { getMissedWorkouts } from '@/helpers/workouts';
+import { getMissedWorkouts, startOfWeekMs } from '@/helpers/workouts';
 import { useAiProfile } from '@/hooks/use-ai';
 import { useMealsBetween } from '@/hooks/use-nutrition';
 import { useUser } from '@/hooks/use-user';
 import { useAppState } from '@/hooks/use-app-state';
-import { useWaterBetween } from '@/hooks/use-water';
+import { useWaterBetween, useWaterSettings } from '@/hooks/use-water';
+import { useWeeklyStreak } from '@/hooks/use-weekly-streak';
 import { useWorkouts } from '@/hooks/use-workouts';
 import {
     HEALTH_CONNECT_STORE_URL,
@@ -36,6 +37,9 @@ export const ACCENT = {
     sessions: '#FF9F0A',
     calories: '#5AB0FF',
 };
+
+// ponytail: one fixed daily distance goal; make it a setting if people ask to change it.
+export const DISTANCE_GOAL = { km: 5, mi: 3 };
 
 export type Period = 'today' | 'week' | 'month' | 'year';
 export const PERIODS: Period[] = ['today', 'week', 'month', 'year'];
@@ -254,4 +258,146 @@ export const useSessionsSummary = (period: Period, today: string) => {
             missed: getMissedWorkouts(list).filter((w) => inRange(w.startAt)).length,
         };
     }, [end, start, workouts]);
+};
+
+/** Every `YYYY-MM-DD` from `from` through `to`. */
+const daysBetween = (from: string, to: string): string[] => {
+    const days: string[] = [];
+    for (let day = dayjs(from); !day.isAfter(dayjs(to), 'day'); day = day.add(1, 'day')) {
+        days.push(toDateKey(day.toDate()));
+    }
+
+    return days;
+};
+
+/** Health windows for `days`, each cut off at now; days still ahead read as nothing. */
+const readUpToNow = async (windows: { start: Dayjs; end: Dayjs }[]) => {
+    const now = dayjs();
+    const past = windows.filter((window) => window.start.isBefore(now));
+    const read = await readMovement(
+        past.map(({ start, end }) => ({
+            start: start.toDate(),
+            end: (end.isAfter(now) ? now : end).toDate(),
+        })),
+    );
+    const pad = (values: number[] | null) => values && windows.map((_, i) => values[i] ?? 0);
+
+    return { steps: pad(read.steps), meters: pad(read.meters) };
+};
+
+/**
+ * Today's three rings for every day from `from` through `to`, for the activity
+ * screen and its calendar: water against the goal, distance from Health
+ * against DISTANCE_GOAL, and that week's sessions so far against the weekly
+ * target (the dial's sessions ring is the week's, not the day's). Distance and
+ * steps are null until Health can be read.
+ */
+export const useActivityDays = (from: string, to: string) => {
+    const { user } = useUser();
+    const { data: logs } = useWaterBetween(from, to);
+    const { targetMl } = useWaterSettings();
+    const { data: workouts } = useWorkouts();
+    const { target } = useWeeklyStreak();
+    const { data: access } = useQuery({
+        queryKey: ['health-access'],
+        queryFn: getMovementAccess,
+        staleTime: 60_000,
+    });
+    // ponytail: one Health read per day of the range, ~90 for the calendar; batch by week if slow.
+    const { data: health } = useQuery({
+        queryKey: ['health-movement-days', from, to],
+        queryFn: () =>
+            readUpToNow(
+                daysBetween(from, to).map((day) => ({
+                    start: dayjs(day).startOf('day'),
+                    end: dayjs(day).add(1, 'day').startOf('day'),
+                })),
+            ),
+        enabled: access === 'granted',
+        staleTime: 60_000,
+    });
+
+    return useMemo(() => {
+        const days = daysBetween(from, to);
+        const index = new Map(days.map((day, i) => [day, i]));
+        const miles = user?.distanceUnits === 'mi';
+        const perUnit = miles ? 1609.344 : 1000;
+        const distanceGoal = DISTANCE_GOAL[miles ? 'mi' : 'km'];
+        const firstWeekday = user?.firstWeekday || 2;
+        const granted = access === 'granted';
+
+        const waterOn: Record<string, number> = {};
+        (logs ?? []).forEach(
+            (log) => (waterOn[log.date] = (waterOn[log.date] ?? 0) + log.amountMl),
+        );
+        const completed = (workouts ?? []).filter(
+            (workout) => workout.status === 'completed' && !!workout.completedAt,
+        );
+
+        const dayFor = (date: string) => {
+            const end = dayjs(date).endOf('day');
+            const since = startOfWeekMs(firstWeekday, end.toDate());
+            const at = (workout: (typeof completed)[number]) =>
+                new Date(workout.completedAt!).getTime();
+            const weekSessions = completed.filter(
+                (workout) => at(workout) >= since && at(workout) <= end.valueOf(),
+            ).length;
+            const i = index.get(date);
+            const meters = granted && i !== undefined ? (health?.meters?.[i] ?? null) : null;
+            const steps = granted && i !== undefined ? (health?.steps?.[i] ?? null) : null;
+            const waterMl = waterOn[date] ?? 0;
+            const distance = meters === null ? null : meters / perUnit;
+
+            return {
+                waterMl,
+                distance,
+                steps,
+                sessions: completed.filter((workout) =>
+                    dayjs(workout.completedAt).isSame(end, 'day'),
+                ).length,
+                weekSessions,
+                rings: [
+                    { progress: targetMl > 0 ? waterMl / targetMl : 0, color: ACCENT.water },
+                    { progress: (distance ?? 0) / distanceGoal, color: ACCENT.distance },
+                    { progress: target > 0 ? weekSessions / target : 0, color: ACCENT.sessions },
+                ],
+            };
+        };
+
+        return {
+            dayFor,
+            logs: logs ?? [],
+            completed,
+            targetMl,
+            distanceGoal,
+            distanceUnit: miles ? 'mi' : 'km',
+            target,
+            access,
+        };
+    }, [access, from, health, logs, target, targetMl, to, user, workouts]);
+};
+
+/** One day's steps and distance (in the person's unit) hour by hour, once Health can be read. */
+export const useMovementHours = (date: string, granted: boolean) => {
+    const { user } = useUser();
+    const { data } = useQuery({
+        queryKey: ['health-movement-hours', date],
+        queryFn: () =>
+            readUpToNow(
+                Array.from({ length: 24 }, (_, hour) => ({
+                    start: dayjs(date).startOf('day').add(hour, 'hour'),
+                    end: dayjs(date)
+                        .startOf('day')
+                        .add(hour + 1, 'hour'),
+                })),
+            ),
+        enabled: granted,
+        staleTime: 60_000,
+    });
+    const perUnit = user?.distanceUnits === 'mi' ? 1609.344 : 1000;
+
+    return {
+        steps: data?.steps ?? null,
+        distance: data?.meters ? data.meters.map((m) => m / perUnit) : null,
+    };
 };

@@ -69,6 +69,6 @@ export const Line: FC<LineProps> = ({ data, color }) => (
     </Host>
 );
 
-export { Ring } from './ring';
+export { Ring, Rings } from './ring';
 
 export { Metric } from './metric';

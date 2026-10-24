@@ -17,7 +17,7 @@ import { runInBackground } from '@/services/error-reporting';
 import { shareCard } from '@/services/share';
 import { ACCENT } from '@/screens/home/summary';
 
-import { Badge, Medal, ProgressLine } from './components/badge';
+import { Medal, ProgressLine } from './components/badge';
 import { useAwardText, useAwards } from './data';
 
 /**
@@ -108,7 +108,7 @@ const AwardScreen: FC = () => {
                 }
             />
             <Box style={styles.badge}>
-                <Badge {...award} size={240} />
+                <Medal {...award} earned={earned} size={240} />
             </Box>
             <Text style={styles.name} accessibilityRole="header">
                 {text.name(award)}

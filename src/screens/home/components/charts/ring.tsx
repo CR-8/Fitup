@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, G } from 'react-native-svg';
 
 import type { RingProps } from './types';
 
@@ -42,3 +42,49 @@ export const Ring: FC<RingProps> = ({ progress, color, size }) => {
         </Svg>
     );
 };
+
+/**
+ * Several rings, one inside the other, Apple's Activity rings: the first is
+ * the outermost. Today's dial, the activity screen and its calendar all draw
+ * them; the stroke defaults to a tenth of the size.
+ */
+export const Rings: FC<{
+    rings: { progress: number; color: string }[];
+    size: number;
+    stroke?: number;
+    gap?: number;
+}> = ({ rings, size, stroke = size * 0.1, gap = stroke * 0.25 }) => (
+    <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        {rings.map((ring, i) => {
+            const radius = (size - stroke) / 2 - i * (stroke + gap);
+            const circumference = 2 * Math.PI * radius;
+            const filled = Math.min(Math.max(ring.progress, 0), 1);
+
+            return (
+                <G key={i}>
+                    <Circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke={`${ring.color}33`}
+                        strokeWidth={stroke}
+                        fill="none"
+                    />
+                    {filled > 0 ? (
+                        <Circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            stroke={ring.color}
+                            strokeWidth={stroke}
+                            strokeDasharray={`${circumference} ${circumference}`}
+                            strokeDashoffset={circumference * (1 - filled)}
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                    ) : null}
+                </G>
+            );
+        })}
+    </Svg>
+);

@@ -96,11 +96,13 @@ const GENERATE_MUTATION_KEY = ['ai-generate'] as const;
 const PLAN_TIMEOUT_MS = Math.max(AI_CONFIG.timeoutMs, 90_000);
 
 /**
- * Failures worth one more try: a stall, a provider hiccup, or a reply the
- * validator could not use. A model-routing gateway usually answers the retry
- * with a different model.
+ * Failures worth one more try: a stall, a provider hiccup, a reply the
+ * validator could not use, or a food chart whose portions came up under the
+ * calorie floor (free models often set a 1,500 kcal target and then list
+ * 1,100 kcal of food). A model-routing gateway usually answers the retry with
+ * a different model.
  */
-const RETRYABLE_PLAN_ERRORS = new Set(['TIMEOUT', 'PROVIDER', 'INVALID_RESPONSE']);
+const RETRYABLE_PLAN_ERRORS = new Set(['TIMEOUT', 'PROVIDER', 'INVALID_RESPONSE', 'UNSAFE_PLAN']);
 
 export interface PlanBriefOptions {
     /** The plan is one week of sessions, repeated this many weeks. */
@@ -119,7 +121,9 @@ export interface PlanBriefOptions {
 
 /** A short rotation of meals (and their day targets) laid end to end to fill `days`. */
 const repeatDays = (payload: AiPlanPayload, days: number): AiPlanPayload => {
-    const cycle = Math.max(1, payload.horizonDays);
+    // The days that have food, not the horizon the model declared: a chart that
+    // wrote one day of a three-day cycle repeats that day, rather than leaving gaps.
+    const cycle = Math.max(1, ...payload.meals.map((meal) => meal.dayOffset + 1));
     if (days <= cycle) return payload;
     const rounds = Math.ceil(days / cycle);
     const spread = <T extends { dayOffset: number }>(rows: T[]) =>

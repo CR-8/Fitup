@@ -315,6 +315,8 @@ export type AnalyticsScreenName =
     | 'calories'
     | 'calorie_goal'
     | 'calendar'
+    | 'activity'
+    | 'activity_calendar'
     | 'metric'
     | 'sessions'
     | 'session'

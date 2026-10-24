@@ -160,6 +160,8 @@ const App: FC = () => {
                             <Stack.Screen name="calories" options={screens.pushed} />
                             <Stack.Screen name="calorie-goal" options={screens.modal} />
                             <Stack.Screen name="calendar" options={screens.modal} />
+                            <Stack.Screen name="activity" options={screens.pushed} />
+                            <Stack.Screen name="activity-calendar" options={screens.modal} />
                             <Stack.Screen
                                 name="sessions"
                                 options={{ ...screens.pushed, headerLargeTitle: true }}

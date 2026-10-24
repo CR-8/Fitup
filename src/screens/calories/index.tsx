@@ -28,7 +28,7 @@ import { GoalMenu } from './components/goal-menu';
  */
 
 /** Where the hour axis is labelled, as Apple's is: midnight, 6, noon, 6. */
-const AXIS_HOURS = [0, 6, 12, 18];
+export const AXIS_HOURS = [0, 6, 12, 18];
 
 /** Monday of `date`'s week. */
 export const weekStart = (date: string) => {

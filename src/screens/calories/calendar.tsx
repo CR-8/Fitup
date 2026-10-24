@@ -1,9 +1,9 @@
-import { FC, useRef } from 'react';
+import { FC, ReactNode, useRef } from 'react';
 import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 
 import { toDateKey } from '@/crud/nutrition';
 import { Box } from '@/components/primitives/box';
@@ -20,12 +20,21 @@ import { ACCENT, useCalorieDays } from '@/screens/home/summary';
 import { weekStart } from '.';
 
 /**
- * Every day's calorie ring, a month at a time, Monday first; picking a day
- * shows it on the ring screen. Opens scrolled to this month.
+ * Every day's ring, a month at a time, Monday first; picking a day shows it on
+ * the ring screen. Opens scrolled to this month. Shared by the calorie ring
+ * and the activity rings (`screens/activity/calendar`).
  */
 
 // ponytail: three months, one ring each (a SwiftUI host on iOS); page further back if asked.
 const MONTHS = 3;
+
+/** The months the calendar shows, oldest first, ending with `today`'s. */
+export const calendarMonths = (today: string): Dayjs[] =>
+    Array.from({ length: MONTHS }, (_, i) =>
+        dayjs(today)
+            .startOf('month')
+            .subtract(MONTHS - 1 - i, 'month'),
+    );
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -56,41 +65,33 @@ const styles = StyleSheet.create((theme) => ({
         ...theme.fontSize.xs,
         color: theme.colors.mutedTypography,
     },
-    number: (selected: boolean) => ({
+    number: (selected: boolean, color: string) => ({
         height: 26,
         minWidth: 26,
         borderRadius: theme.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: selected ? ACCENT.calories : 'transparent',
+        backgroundColor: selected ? color : 'transparent',
     }),
-    numberText: (selected: boolean, isToday: boolean) => ({
+    numberText: (selected: boolean, isToday: boolean, color: string) => ({
         ...theme.fontSize.sm,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-        color: selected
-            ? theme.colors.neutral[950]
-            : isToday
-              ? ACCENT.calories
-              : theme.colors.typography,
+        color: selected ? theme.colors.neutral[950] : isToday ? color : theme.colors.typography,
     }),
 }));
 
-const CalendarScreen: FC = () => {
-    const { t, i18n } = useTranslation(['screens']);
+export const RingCalendar: FC<{
+    title: string;
+    months: Dayjs[];
+    selected: string;
+    /** The selected day's fill and today's number. */
+    color: string;
+    onPick: (date: string) => void;
+    ring: (date: string) => ReactNode;
+}> = ({ title, months, selected, color, onPick, ring }) => {
+    const { i18n } = useTranslation();
     const scroll = useRef<ScrollView>(null);
     const today = useTodayKey();
-    const day = useCaloriesStore((state) => state.day) || today;
-    const setDay = useCaloriesStore((state) => state.setDay);
-
-    const months = Array.from({ length: MONTHS }, (_, i) =>
-        dayjs(today)
-            .startOf('month')
-            .subtract(MONTHS - 1 - i, 'month'),
-    );
-    const { goalFor, consumedOn } = useCalorieDays(
-        toDateKey(months[0].toDate()),
-        toDateKey(months[MONTHS - 1].endOf('month').toDate()),
-    );
     const monday = weekStart(today);
 
     return (
@@ -101,7 +102,7 @@ const CalendarScreen: FC = () => {
             contentInsetAdjustmentBehavior="automatic"
             onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}
         >
-            <ModalHeader title={t('calories.calendar', { ns: 'screens' })} />
+            <ModalHeader title={title} />
 
             <HStack>
                 {Array.from({ length: 7 }, (_, i) => (
@@ -125,35 +126,34 @@ const CalendarScreen: FC = () => {
                             ))}
                             {Array.from({ length: month.daysInMonth() }, (_, i) => {
                                 const date = toDateKey(month.add(i, 'day').toDate());
-                                const selected = date === day;
-                                const goal = goalFor(date);
+                                const isSelected = date === selected;
 
                                 return (
                                     <Pressable
                                         key={date}
                                         style={styles.cell}
                                         onPress={() => {
-                                            setDay(date);
+                                            onPick(date);
                                             router.back();
                                         }}
                                         accessibilityRole="button"
-                                        accessibilityState={{ selected }}
+                                        accessibilityState={{ selected: isSelected }}
                                         accessibilityLabel={dayjs(date)
                                             .locale(i18n.language)
                                             .format('dddd, MMMM D')}
                                     >
-                                        <Box style={styles.number(selected)}>
+                                        <Box style={styles.number(isSelected, color)}>
                                             <Text
-                                                style={styles.numberText(selected, date === today)}
+                                                style={styles.numberText(
+                                                    isSelected,
+                                                    date === today,
+                                                    color,
+                                                )}
                                             >
                                                 {i + 1}
                                             </Text>
                                         </Box>
-                                        <Ring
-                                            progress={goal > 0 ? consumedOn(date) / goal : 0}
-                                            color={ACCENT.calories}
-                                            size={34}
-                                        />
+                                        {ring(date)}
                                     </Pressable>
                                 );
                             })}
@@ -162,6 +162,35 @@ const CalendarScreen: FC = () => {
                 );
             })}
         </ScrollView>
+    );
+};
+
+const CalendarScreen: FC = () => {
+    const { t } = useTranslation(['screens']);
+    const today = useTodayKey();
+    const day = useCaloriesStore((state) => state.day) || today;
+    const setDay = useCaloriesStore((state) => state.setDay);
+    const months = calendarMonths(today);
+    const { goalFor, consumedOn } = useCalorieDays(
+        toDateKey(months[0].toDate()),
+        toDateKey(months[months.length - 1].endOf('month').toDate()),
+    );
+
+    return (
+        <RingCalendar
+            title={t('calories.calendar', { ns: 'screens' })}
+            months={months}
+            selected={day}
+            color={ACCENT.calories}
+            onPick={setDay}
+            ring={(date) => (
+                <Ring
+                    progress={goalFor(date) > 0 ? consumedOn(date) / goalFor(date) : 0}
+                    color={ACCENT.calories}
+                    size={34}
+                />
+            )}
+        />
     );
 };
 

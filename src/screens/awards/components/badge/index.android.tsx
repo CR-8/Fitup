@@ -11,11 +11,10 @@ import {
 } from 'lucide-react-native';
 
 import type { AwardSymbol } from '../../data';
-import { BadgeFrame } from './frame';
 import { MedalFrame, medalInk } from './medal';
-import { UNEARNED, type BadgeProps } from './types';
+import type { BadgeProps } from './types';
 
-/** Award art on Android: the shared vector frame around a Lucide glyph. */
+/** Award art on Android: the shared hexagonal medal around a Lucide glyph. */
 
 const SYMBOLS: Record<AwardSymbol, LucideIcon> = {
     flame: Flame,
@@ -27,21 +26,7 @@ const SYMBOLS: Record<AwardSymbol, LucideIcon> = {
     bolt: Zap,
 };
 
-export const Badge: FC<BadgeProps> = ({ symbol, ...frame }) => {
-    const Glyph = SYMBOLS[symbol];
-
-    return (
-        <BadgeFrame {...frame}>
-            <Glyph
-                size={frame.size * 0.26}
-                color={frame.earned ? frame.color : UNEARNED}
-                strokeWidth={1.75}
-            />
-        </BadgeFrame>
-    );
-};
-
-/** The same award as a hexagonal medal, for Today and the share card. */
+/** An award as a hexagonal medal: Today, the awards screens and the share card. */
 export const Medal: FC<Omit<BadgeProps, 'shape'>> = ({ symbol, ...frame }) => {
     const Glyph = SYMBOLS[symbol];
 

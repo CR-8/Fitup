@@ -118,13 +118,17 @@
         "rings": {
             "title": "आज की प्रगति",
             "sessions": "इस हफ़्ते के सेशन",
-            "open": "आज का सारांश खोलें"
+            "open": "ऐक्टिविटी खोलें"
         },
         "week": {
             "rest": "रिकवरी",
             "restMark": "R",
             "day": "दिन {{number}}",
-            "done": "पूरा"
+            "done": "पूरा",
+            "title": "इस हफ़्ते",
+            "restShort": "आराम",
+            "streak_one": "{{count}} हफ़्ते की स्ट्रीक",
+            "streak_other": "{{count}} हफ़्तों की स्ट्रीक"
         }
     },
     "results": {
@@ -1042,6 +1046,15 @@
                 "save": "रोज़ का लक्ष्य बदलें"
             }
         }
+    },
+    "activity": {
+        "today": "आज, {{date}}",
+        "openCalendar": "कैलेंडर खोलें",
+        "calendar": "ऐक्टिविटी",
+        "sessions": "इस हफ़्ते के सेशन",
+        "sessionsToday": "आज के सेशन",
+        "steps": "कदम",
+        "total": "कुल {{total}}"
     },
     "metric": {
         "total": "कुल",

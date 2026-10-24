@@ -202,13 +202,17 @@
         "rings": {
             "title": "Today's Progress",
             "sessions": "sessions this week",
-            "open": "Open today's summary"
+            "open": "Open activity"
         },
         "week": {
             "rest": "Regeneration",
             "restMark": "R",
             "day": "Day {{number}}",
-            "done": "done"
+            "done": "done",
+            "title": "This week",
+            "restShort": "Rest",
+            "streak_one": "{{count}}-week streak",
+            "streak_other": "{{count}}-week streak"
         }
     },
     "results": {
@@ -1596,6 +1600,15 @@
                 "save": "Change Daily Goal"
             }
         }
+    },
+    "activity": {
+        "today": "Today, {{date}}",
+        "openCalendar": "Open calendar",
+        "calendar": "Activity",
+        "sessions": "Sessions this week",
+        "sessionsToday": "Sessions today",
+        "steps": "Steps",
+        "total": "Total {{total}}"
     },
     "metric": {
         "total": "Total",

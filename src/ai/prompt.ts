@@ -9,7 +9,7 @@ import type { AiRequestContext } from '@/types/ai';
  * so it is treated as a code change rather than a tunable, and the version is stored
  * alongside every plan for reproducibility.
  */
-export const PROMPT_VERSION = '6';
+export const PROMPT_VERSION = '7';
 
 const PLAN_SCHEMA_HINT = `Return a single JSON object with exactly this shape:
 
@@ -433,6 +433,10 @@ rasam, pongal, upma, curd rice; for West or East Indian, that region's everyday 
 Egg, chicken or fish only where the dietary pattern allows them ("eggetarian" allows egg
 but no meat or fish). Write quantities the Indian way (2 rotis, 1 katori dal, 1 glass
 chaas) and keep calories and macros realistic for those portions.
+
+Size the portions so each day's items add up to that day's calorie target (within 10%),
+and never below 1200 kcal: add each day up before you answer, and if it falls short, make
+the portions bigger rather than lowering the target.
 
 Keep it tight so the JSON finishes: at most 4 meals per day and 3 items
 per meal, short food names, no commentary beyond a one-line summary.`;

@@ -14,8 +14,8 @@ import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useTodayKey } from '@/hooks/use-water';
 import { ACCENT } from '@/screens/home/summary';
 
-import { Badge } from './components/badge';
-import { AwardTile, openAward } from './components/tile';
+import { Medal } from './components/badge';
+import { AwardTile, isWon, openAward } from './components/tile';
 import { AWARD_GROUPS, useAwardText, useAwards } from './data';
 
 /**
@@ -97,7 +97,7 @@ const AwardsScreen: FC = () => {
                     onPress={() => openAward(top)}
                     accessibilityRole="button"
                 >
-                    <Badge {...top} size={72} />
+                    <Medal {...top} earned={isWon(top)} size={72} />
                     <VStack style={styles.goText}>
                         <Text style={styles.title}>{t('awards.goForIt', { ns: 'screens' })}</Text>
                         <Text style={styles.name} numberOfLines={1}>
@@ -111,7 +111,7 @@ const AwardsScreen: FC = () => {
                         <HStack>
                             {next.slice(0, 2).map((award, i) => (
                                 <Box key={award.id} style={i > 0 ? styles.next : undefined}>
-                                    <Badge {...award} size={30} />
+                                    <Medal {...award} earned={isWon(award)} size={30} />
                                 </Box>
                             ))}
                         </HStack>
@@ -145,7 +145,7 @@ const AwardsScreen: FC = () => {
                         {all
                             .filter((award) => award.group === group)
                             .map((award) => (
-                                <AwardTile key={award.id} award={award} size={84} />
+                                <AwardTile key={award.id} award={award} size={88} />
                             ))}
                     </Box>
                 </VStack>

@@ -1,6 +1,8 @@
 import { FC } from 'react';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 import { Box } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
@@ -8,7 +10,7 @@ import { Text } from '@/components/primitives/text';
 import { ACCENT } from '@/screens/home/summary';
 
 import { useAwardText, type Award } from '../data';
-import { Badge, ProgressLine } from './badge';
+import { Medal, ProgressLine } from './badge';
 
 export const openAward = (award: Award) =>
     router.navigate({ pathname: '/award/[awardId]', params: { awardId: award.id } } as never);
@@ -37,13 +39,21 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-/** A badge over its name and progress, a third of the row wide; it opens the award. */
+/** Earned for its period, or at some point before (a daily award earned yesterday still shows struck). */
+export const isWon = (award: Award) => award.earned || !!award.lastEarnedAt;
+
+/**
+ * A medal over its name and, once earned, the day it was; until then how far
+ * along it is. Today's shelf in a grid, a third of the row wide; it opens the award.
+ */
 export const AwardTile: FC<{ award: Award; size: number; progress?: boolean }> = ({
     award,
     size,
     progress,
 }) => {
+    const { i18n } = useTranslation();
     const text = useAwardText();
+    const earned = isWon(award);
 
     return (
         <Pressable
@@ -52,12 +62,16 @@ export const AwardTile: FC<{ award: Award; size: number; progress?: boolean }> =
             accessibilityRole="button"
             accessibilityLabel={`${text.name(award)}, ${text.detail(award)}`}
         >
-            <Badge {...award} size={size} />
+            <Medal {...award} earned={earned} size={size} />
             <Text style={styles.name} numberOfLines={1}>
                 {text.name(award)}
             </Text>
             <Text style={styles.detail} numberOfLines={1}>
-                {text.detail(award)}
+                {earned
+                    ? dayjs(award.lastEarnedAt ?? undefined)
+                          .locale(i18n.language)
+                          .format('D MMM YYYY')
+                    : text.detail(award)}
             </Text>
             {progress ? (
                 <Box style={styles.progress}>

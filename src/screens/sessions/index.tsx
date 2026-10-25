@@ -8,10 +8,12 @@ import { ModalHeader } from '@/components/layout/modal-header';
 import { useDeleteWorkout } from '@/hooks/use-workouts';
 
 import { SessionList } from './components/list';
+import { SessionWeek } from './components/week';
 import { ALL, WORKOUTS, useSessions } from './data';
 
 /**
- * Every finished session, after Apple Fitness's Sessions: filters (All,
+ * The week's plan (`components/week`), then every finished session, after
+ * Apple Fitness's Sessions: filters (All,
  * Workouts, then each workout by name), months newest first, a row per
  * session that opens it and swipes to Delete.
  */
@@ -46,7 +48,12 @@ const SessionsScreen: FC = () => {
     return (
         <View style={styles.container}>
             <SessionList
-                header={<ModalHeader title={t('sessions.title', { ns: 'screens' })} done={false} />}
+                header={
+                    <>
+                        <ModalHeader title={t('sessions.title', { ns: 'screens' })} done={false} />
+                        <SessionWeek />
+                    </>
+                }
                 chips={[
                     { key: ALL, label: t('sessions.all', { ns: 'screens' }) },
                     { key: WORKOUTS, label: t('sessions.workouts', { ns: 'screens' }) },

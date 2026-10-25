@@ -23,16 +23,18 @@ import { queryClient } from '@/queries';
 import { reportError } from '@/services/error-reporting';
 import { PeriodPicker, Ring } from '@/screens/home/components/charts';
 import { ACCENT } from '@/screens/home/summary';
+import { useStepsGoalStore } from '@/stores/steps-goal';
 
 /**
  * First launch, after Apple Fitness's: Welcome (what the app does), Personalize
  * (birth date, sex, height, weight, so calories and heart-rate zones are right),
- * a daily calorie goal from how active you are, and the case for notifications.
+ * a daily calorie goal from how active you are, a daily steps goal, and the
+ * case for notifications.
  * Then Summary. Training plans are Syn's to build, from its own form.
  */
 
-type Step = 'welcome' | 'personalize' | 'goal' | 'notifications';
-const STEPS: Step[] = ['welcome', 'personalize', 'goal', 'notifications'];
+type Step = 'welcome' | 'personalize' | 'goal' | 'steps' | 'notifications';
+const STEPS: Step[] = ['welcome', 'personalize', 'goal', 'steps', 'notifications'];
 
 type Sex = 'female' | 'male' | 'other';
 type Level = 'light' | 'moderate' | 'active';
@@ -238,6 +240,8 @@ const OnboardingScreen: FC = () => {
     const [weight, setWeight] = useState('');
     const [level, setLevel] = useState<Level>('moderate');
     const [calories, setCalories] = useState<number | null>(null);
+    const stepsGoal = useStepsGoalStore((state) => state.goal);
+    const setStepsGoal = useStepsGoalStore((state) => state.setGoal);
 
     const { control } = useForm<{ birthday: Date | null }>({
         defaultValues: { birthday: user?.birthday ?? null },
@@ -437,6 +441,34 @@ const OnboardingScreen: FC = () => {
                         />
                         <Text style={styles.unit}>
                             {t('calories.goal.unit', { ns: 'screens' })}
+                        </Text>
+                    </VStack>
+                </>
+            ),
+        },
+        steps: {
+            action: t('onboarding.flow.stepsGoal.set', { ns: 'screens' }),
+            onPress: next,
+            body: (
+                <>
+                    <Text style={styles.title} accessibilityRole="header">
+                        {t('onboarding.flow.stepsGoal.title', { ns: 'screens' })}
+                    </Text>
+                    <Text style={styles.body}>
+                        {t('onboarding.flow.stepsGoal.body', { ns: 'screens' })}
+                    </Text>
+                    <VStack style={{ gap: theme.space(3), paddingTop: theme.space(8) }}>
+                        <NumericStepperField
+                            value={stepsGoal}
+                            unit=""
+                            onChange={setStepsGoal}
+                            modalTitle={t('onboarding.flow.stepsGoal.title', { ns: 'screens' })}
+                            step={500}
+                            min={1000}
+                            max={50000}
+                        />
+                        <Text style={styles.unit}>
+                            {t('onboarding.flow.stepsGoal.unit', { ns: 'screens' })}
                         </Text>
                     </VStack>
                 </>

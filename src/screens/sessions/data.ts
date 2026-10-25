@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 
+import { updateWorkout } from '@/crud/workout';
 import type { WorkoutSelect } from '@/db/schema';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { readActiveCalories } from '@/services/health';
@@ -140,4 +141,73 @@ export const useSessions = (filter: string, locale: string) => {
     }, [kcal, locale, sessions, summarised]);
 
     return { names, groups, workouts: completed };
+};
+
+export type DayStatus = 'completed' | 'planned' | 'missed' | 'in_progress';
+
+/** The day a session counts for: when it was done, else when it is planned. */
+const dayOf = (w: WorkoutSelect) => (w.status === 'completed' ? w.completedAt : w.startAt);
+
+/**
+ * The plan a week at a time for the Sessions screen: the chosen day's sessions,
+ * done and planned, and the figures for that day and its week from what was
+ * actually trained.
+ */
+export const useSessionDay = (date: string, firstWeekday: number) => {
+    const { data: workouts } = useWorkouts();
+
+    return useMemo(() => {
+        const list = (workouts ?? []).filter((w) => w.status !== 'cancelled' && !!dayOf(w));
+        const day = dayjs(date);
+        const offset = firstWeekday === 1 ? day.day() : (day.day() + 6) % 7;
+        const weekStart = day.subtract(offset, 'day').startOf('day');
+        const weekEnd = weekStart.add(7, 'day');
+        const inWeek = list.filter(
+            (w) => !dayjs(dayOf(w)).isBefore(weekStart) && dayjs(dayOf(w)).isBefore(weekEnd),
+        );
+        const done = inWeek.filter((w) => w.status === 'completed');
+        const startOfToday = dayjs().startOf('day');
+        const statusOf = (w: WorkoutSelect): DayStatus =>
+            w.status === 'planned' && dayjs(w.startAt).isBefore(startOfToday)
+                ? 'missed'
+                : (w.status as DayStatus);
+        const sessions = list
+            .filter((w) => dayjs(dayOf(w)).isSame(day, 'day'))
+            .sort((a, b) => dayjs(dayOf(a)).diff(dayOf(b)))
+            .map((w) => ({ workout: w, status: statusOf(w) }));
+        const dayTime = sessions
+            .filter(({ status }) => status === 'completed')
+            .reduce((sum, { workout }) => sum + sessionMs(workout), 0);
+
+        return {
+            sessions,
+            weekDone: `${done.length}/${inWeek.length}`,
+            weekTime: clock(done.reduce((sum, w) => sum + sessionMs(w), 0)),
+            dayTime: clock(dayTime),
+            running: list.find((w) => w.status === 'in_progress') ?? null,
+            workouts: list,
+        };
+    }, [date, firstWeekday, workouts]);
+};
+
+/**
+ * Moves a planned session to now so it can be trained today, whatever day it
+ * was planned for. When it was planned for a day still ahead, what was planned
+ * for today takes that day instead, so it is done later rather than missed.
+ */
+export const moveToToday = async (workout: WorkoutSelect, workouts: WorkoutSelect[]) => {
+    const now = dayjs();
+    const from = workout.startAt;
+    if (from && dayjs(from).isSame(now, 'day')) return;
+
+    if (from && dayjs(from).isAfter(now, 'day')) {
+        const todays = workouts.filter(
+            (w) =>
+                w.id !== workout.id &&
+                w.status === 'planned' &&
+                dayjs(w.startAt).isSame(now, 'day'),
+        );
+        await Promise.all(todays.map((w) => updateWorkout(w.id, { startAt: from })));
+    }
+    await updateWorkout(workout.id, { startAt: now.toDate() });
 };

@@ -20,6 +20,7 @@ import {
 } from '@/services/health';
 import { reportError } from '@/services/error-reporting';
 import { useCaloriesStore } from '@/stores/calories';
+import { useStepsGoalStore } from '@/stores/steps-goal';
 
 /**
  * Today's dashboard, for the period each card picks: water, distance (from
@@ -37,9 +38,6 @@ export const ACCENT = {
     sessions: '#FF9F0A',
     calories: '#5AB0FF',
 };
-
-// ponytail: one fixed daily distance goal; make it a setting if people ask to change it.
-export const DISTANCE_GOAL = { km: 5, mi: 3 };
 
 export type Period = 'today' | 'week' | 'month' | 'year';
 export const PERIODS: Period[] = ['today', 'week', 'month', 'year'];
@@ -287,8 +285,8 @@ const readUpToNow = async (windows: { start: Dayjs; end: Dayjs }[]) => {
 
 /**
  * Today's three rings for every day from `from` through `to`, for the activity
- * screen and its calendar: water against the goal, distance from Health
- * against DISTANCE_GOAL, and that week's sessions so far against the weekly
+ * screen and its calendar: water against the goal, steps from Health against
+ * the daily steps goal, and that week's sessions so far against the weekly
  * target (the dial's sessions ring is the week's, not the day's). Distance and
  * steps are null until Health can be read.
  */
@@ -298,6 +296,7 @@ export const useActivityDays = (from: string, to: string) => {
     const { targetMl } = useWaterSettings();
     const { data: workouts } = useWorkouts();
     const { target } = useWeeklyStreak();
+    const stepsGoal = useStepsGoalStore((state) => state.goal);
     const { data: access } = useQuery({
         queryKey: ['health-access'],
         queryFn: getMovementAccess,
@@ -322,7 +321,6 @@ export const useActivityDays = (from: string, to: string) => {
         const index = new Map(days.map((day, i) => [day, i]));
         const miles = user?.distanceUnits === 'mi';
         const perUnit = miles ? 1609.344 : 1000;
-        const distanceGoal = DISTANCE_GOAL[miles ? 'mi' : 'km'];
         const firstWeekday = user?.firstWeekday || 2;
         const granted = access === 'granted';
 
@@ -358,7 +356,7 @@ export const useActivityDays = (from: string, to: string) => {
                 weekSessions,
                 rings: [
                     { progress: targetMl > 0 ? waterMl / targetMl : 0, color: ACCENT.water },
-                    { progress: (distance ?? 0) / distanceGoal, color: ACCENT.distance },
+                    { progress: (steps ?? 0) / stepsGoal, color: ACCENT.distance },
                     { progress: target > 0 ? weekSessions / target : 0, color: ACCENT.sessions },
                 ],
             };
@@ -369,12 +367,12 @@ export const useActivityDays = (from: string, to: string) => {
             logs: logs ?? [],
             completed,
             targetMl,
-            distanceGoal,
+            stepsGoal,
             distanceUnit: miles ? 'mi' : 'km',
             target,
             access,
         };
-    }, [access, from, health, logs, target, targetMl, to, user, workouts]);
+    }, [access, from, health, logs, stepsGoal, target, targetMl, to, user, workouts]);
 };
 
 /** One day's steps and distance (in the person's unit) hour by hour, once Health can be read. */

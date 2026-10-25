@@ -1121,6 +1121,12 @@
                 },
                 "set": "Set Calorie Goal"
             },
+            "stepsGoal": {
+                "title": "Daily Steps Goal",
+                "body": "How many steps you want to walk each day. Your dial fills as you reach it.",
+                "unit": "Steps a day",
+                "set": "Set Steps Goal"
+            },
             "notifications": {
                 "title": "Stay Motivated with Notifications",
                 "body": "Reminders for your workouts, a nudge when you are close to a goal, and the awards you earn."
@@ -1629,6 +1635,22 @@
         }
     },
     "sessions": {
+        "plan": {
+            "weekDone": "Done this week",
+            "weekTime": "Time this week",
+            "dayTime": "Time this day",
+            "empty": "Nothing planned or trained this day.",
+            "start": "Start",
+            "doToday": "Do Today",
+            "resume": "Resume",
+            "startFailed": "Couldn't start that workout. Please try again.",
+            "status": {
+                "completed": "Done",
+                "planned": "Planned",
+                "missed": "Missed",
+                "in_progress": "In progress"
+            }
+        },
         "title": "Sessions",
         "all": "All",
         "workouts": "Workouts",

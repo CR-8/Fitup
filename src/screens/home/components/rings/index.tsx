@@ -12,12 +12,13 @@ import { Icon, type IconName } from '@/components/primitives/icon';
 import { Pressable } from '@/components/primitives/pressable';
 import { useWaterDay } from '@/hooks/use-water';
 import { useWeeklyStreak } from '@/hooks/use-weekly-streak';
+import { useStepsGoalStore } from '@/stores/steps-goal';
 
 import { Rings } from '../charts';
-import { ACCENT, DISTANCE_GOAL, useMovementSummary } from '../../summary';
+import { ACCENT, useMovementSummary } from '../../summary';
 
 /**
- * Today's dial: water drunk, distance covered and the week's sessions, one ring
+ * Today's dial: water drunk, steps taken and the week's sessions, one ring
  * each (outer to inner), with the three figures beside it and a way into each.
  * The rings are left clear, Apple's way: the figures beside them say it, and
  * text inside spilled over the inner ring. Tapping them opens the activity
@@ -109,15 +110,15 @@ interface Ring {
 }
 
 export const RingsCard: FC<{ today: string }> = ({ today }) => {
-    const { t } = useTranslation(['screens']);
+    const { t, i18n } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const { width } = useWindowDimensions();
     const water = useWaterDay(today);
-    const { distance, distanceUnit, access, connect } = useMovementSummary('today', today);
+    const { steps, access, connect } = useMovementSummary('today', today);
     const canConnect = access === 'ask' || access === 'install';
     const week = useWeeklyStreak();
+    const stepsGoal = useStepsGoalStore((state) => state.goal);
 
-    const distanceGoal = DISTANCE_GOAL[distanceUnit === 'mi' ? 'mi' : 'km'];
     const rings: Ring[] = [
         {
             key: 'water',
@@ -131,14 +132,13 @@ export const RingsCard: FC<{ today: string }> = ({ today }) => {
             onPress: () => router.navigate('/hydration' as never),
         },
         {
-            key: 'distance',
-            label: t('home.dash.distance', { ns: 'screens' }),
+            key: 'steps',
+            label: t('activity.steps', { ns: 'screens' }),
             icon: 'run',
             color: ACCENT.distance,
-            value: distance ? trim(distance.total) : '–',
-            goal: String(distanceGoal),
-            unit: distanceUnit,
-            progress: distance ? distance.total / distanceGoal : 0,
+            value: steps ? Math.round(steps.total).toLocaleString(i18n.language) : '–',
+            goal: stepsGoal.toLocaleString(i18n.language),
+            progress: steps ? steps.total / stepsGoal : 0,
             // Until Health is connected the row asks for it, in place of the goal.
             prompt: canConnect
                 ? t(access === 'install' ? 'health.install' : 'health.connect', {
@@ -150,7 +150,7 @@ export const RingsCard: FC<{ today: string }> = ({ today }) => {
                 : () =>
                       router.navigate({
                           pathname: '/metric',
-                          params: { kind: 'distance', period: 'today' },
+                          params: { kind: 'steps', period: 'today' },
                       } as never),
         },
         {

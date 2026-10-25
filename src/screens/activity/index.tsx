@@ -31,7 +31,7 @@ import {
  * Today's dial opened up, after Apple Fitness's ring detail: the week's rings
  * (a day picks it, the calendar goes further back), the day's rings large,
  * then each ring's figure against its goal with its day hour by hour, and the
- * day's steps. The sessions ring is the week's, as on the dial.
+ * day's distance. The sessions ring is the week's, as on the dial.
  */
 
 /** The day on show; the week strip and the calendar both set it. */
@@ -153,7 +153,10 @@ const ActivityScreen: FC = () => {
         const series = Array.from({ length: 24 }, () => 0);
         activity.logs
             .filter((log) => log.date === day)
-            .forEach((log) => (series[dayjs(log.createdAt).hour()] += log.amountMl));
+            .forEach((log) => {
+                const hour = dayjs(log.createdAt).hour();
+                if (hour >= 0 && hour < 24) series[hour] += Number(log.amountMl) || 0;
+            });
 
         return series;
     }, [activity.logs, day]);
@@ -226,15 +229,14 @@ const ActivityScreen: FC = () => {
 
             <Box style={styles.divider} />
 
-            <Section label={t('home.dash.distance', { ns: 'screens' })}>
+            <Section label={t('activity.steps', { ns: 'screens' })}>
                 <Metric
-                    value={`${selected.distance === null ? '–' : trim(selected.distance, 2)}/${activity.distanceGoal}`}
-                    unit={activity.distanceUnit}
+                    value={`${selected.steps === null ? '–' : Math.round(selected.steps).toLocaleString(i18n.language)}/${activity.stepsGoal.toLocaleString(i18n.language)}`}
                     color={ACCENT.distance}
                 />
-                {hours.distance ? (
+                {hours.steps ? (
                     <>
-                        <Bars data={hours.distance} current={nowHour} color={ACCENT.distance} />
+                        <Bars data={hours.steps} current={nowHour} color={ACCENT.distance} />
                         <HourAxis />
                     </>
                 ) : access === 'ask' || access === 'install' ? (
@@ -268,13 +270,10 @@ const ActivityScreen: FC = () => {
 
             <HStack style={styles.pair}>
                 <VStack>
-                    <Text style={styles.label}>{t('activity.steps', { ns: 'screens' })}</Text>
+                    <Text style={styles.label}>{t('home.dash.distance', { ns: 'screens' })}</Text>
                     <Metric
-                        value={
-                            selected.steps === null
-                                ? '–'
-                                : Math.round(selected.steps).toLocaleString(i18n.language)
-                        }
+                        value={selected.distance === null ? '–' : trim(selected.distance, 2)}
+                        unit={activity.distanceUnit}
                         color={theme.colors.neutral[50]}
                         size={28}
                     />

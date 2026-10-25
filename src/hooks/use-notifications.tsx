@@ -32,6 +32,7 @@ import { getNotificationNavigation } from '@/helpers/notification-navigation';
 import { logReceivedNotification } from '@/services/notification-events';
 import { registerPushToken } from '@/services/push-registration';
 import { useAnalytics } from './use-analytics';
+import { useAccount } from './use-account';
 
 interface HandleNotificationStatus {
     status: PermissionStatus;
@@ -568,6 +569,16 @@ const useNotificationsProvider = () => {
                 });
         }
     }, [permissions, handleGrantedStatus, handleBlockedStatus, track]);
+
+    // Asked the moment someone is signed in, if they have never answered; once
+    // per launch, so a refusal on Android is not asked again straight away.
+    const { isSignedIn } = useAccount();
+    const askedOnSignInRef = useRef(false);
+    useEffect(() => {
+        if (!isSignedIn || askedOnSignInRef.current || permissions !== RESULTS.DENIED) return;
+        askedOnSignInRef.current = true;
+        requestPermissions();
+    }, [isSignedIn, permissions, requestPermissions]);
 
     const scheduleWorkoutTimerNotification = useCallback(
         async (args: {

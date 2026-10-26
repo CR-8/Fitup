@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import type { AiPlanSelect, WorkoutSelect } from '@/db/schema';
 import type { AiPlanPayload } from '@/types/ai';
 
@@ -153,4 +155,41 @@ export const getPlanWeekByWorkoutId = (
     }
 
     return weeks;
+};
+
+/**
+ * The days an applied plan runs: from the day it went on the schedule (its
+ * first session's day, as `applyPlanToSchedule` starts it then) through the end
+ * of its horizon. `end` is the first day after it. A plan that was never
+ * applied runs from when it was made, for the saved-plans list to say so.
+ */
+export const planWindow = (
+    plan: Pick<AiPlanSelect, 'appliedAt' | 'createdAt' | 'payload'>,
+): { start: Date; end: Date } => {
+    const start = new Date(startOfDay(plan.appliedAt ?? plan.createdAt));
+    const end = new Date(start);
+    end.setDate(end.getDate() + Math.max(1, (plan.payload as AiPlanPayload).horizonDays ?? 7));
+
+    return { start, end };
+};
+
+/** Where a saved plan stands: on the schedule now, run its course, a draft, or undone. */
+export type PlanStatus = 'active' | 'ended' | 'draft' | 'archived';
+
+export const planStatus = (plan: AiPlanSelect, now: number = Date.now()): PlanStatus => {
+    if (plan.status === 'draft') return 'draft';
+    if (plan.status === 'discarded') return 'archived';
+
+    return now >= planWindow(plan).end.getTime() ? 'ended' : 'active';
+};
+
+/** "10 Aug – 16 Aug": the first and last day a plan runs. */
+export const planRange = (
+    plan: Pick<AiPlanSelect, 'appliedAt' | 'createdAt' | 'payload'>,
+    locale: string,
+): string => {
+    const { start, end } = planWindow(plan);
+    const format = (date: dayjs.Dayjs) => date.locale(locale).format('D MMM');
+
+    return `${format(dayjs(start))} – ${format(dayjs(end).subtract(1, 'day'))}`;
 };

@@ -1,33 +1,26 @@
 import { FC, useState } from 'react';
 import { Platform } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { HeaderButton } from '@/components/buttons/header';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import { useTodayKey } from '@/hooks/use-water';
 import { AxisBars, Metric, PeriodPicker } from '@/screens/home/components/charts';
 import { HealthPrompt } from '@/screens/home/components/cards';
-import {
-    ACCENT,
-    PERIODS,
-    axisFor,
-    useMovementSummary,
-    useWaterSummary,
-    type Period,
-} from '@/screens/home/summary';
+import { ACCENT, PERIODS, axisFor, useMovementSummary, type Period } from '@/screens/home/summary';
 
 /**
  * A Today card opened into its charts, after Apple Fitness's Steps screen: the
  * period picker, then one card per figure — its total and its bars, with axes.
- * Water, and distance with steps.
+ * Steps and distance, titled by the card that opened it. Water has its own
+ * screen, its log and its chart together (`screens/hydration`).
  */
 
-type Kind = 'water' | 'distance';
+type Kind = 'steps' | 'distance';
 
 interface Figure {
     key: string;
@@ -66,60 +59,41 @@ const styles = StyleSheet.create((theme) => ({
 const MetricScreen: FC = () => {
     const { t, i18n } = useTranslation(['screens']);
     const params = useLocalSearchParams<{ kind?: string; period?: string }>();
-    const kind: Kind = params.kind === 'distance' ? 'distance' : 'water';
+    const kind: Kind = params.kind === 'distance' ? 'distance' : 'steps';
     const [period, setPeriod] = useState<Period>(
         PERIODS.find((p) => p === params.period) ?? 'week',
     );
     const today = useTodayKey();
-    const summary = { ...useWaterSummary(period, today), ...useMovementSummary(period, today) };
+    const summary = useMovementSummary(period, today);
     const { x, ticks } = axisFor(period, summary.buckets, i18n.language);
     const zeros = summary.buckets.map(() => 0);
 
-    const figures: Figure[] =
-        kind === 'water'
-            ? [
-                  {
-                      key: 'water',
-                      label: t('metric.total', { ns: 'screens' }),
-                      value: summary.water.litres.toFixed(1),
-                      unit: 'L',
-                      color: ACCENT.water,
-                      data: summary.water.series.map((ml) => ml / 1000),
-                  },
-              ]
-            : [
-                  {
-                      key: 'steps',
-                      label: t('metric.steps', { ns: 'screens' }),
-                      value: summary.steps ? String(Math.round(summary.steps.total)) : '–',
-                      color: ACCENT.steps,
-                      data: summary.steps?.series ?? zeros,
-                  },
-                  {
-                      key: 'distance',
-                      label: t('metric.distance', { ns: 'screens' }),
-                      value: summary.distance ? summary.distance.total.toFixed(2) : '–',
-                      unit: summary.distanceUnit,
-                      color: ACCENT.distance,
-                      data: summary.distance?.series ?? zeros,
-                  },
-              ];
+    const figures: Figure[] = [
+        {
+            key: 'steps',
+            label: t('metric.steps', { ns: 'screens' }),
+            value: summary.steps
+                ? Math.round(summary.steps.total).toLocaleString(i18n.language)
+                : '–',
+            color: ACCENT.steps,
+            data: summary.steps?.series ?? zeros,
+        },
+        {
+            key: 'distance',
+            label: t('metric.distance', { ns: 'screens' }),
+            value: summary.distance ? summary.distance.total.toFixed(2) : '–',
+            unit: summary.distanceUnit,
+            color: ACCENT.distance,
+            data: summary.distance?.series ?? zeros,
+        },
+    ];
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={modalStyles.content}>
             <ModalHeader
-                title={t(`home.dash.${kind}`, { ns: 'screens' })}
+                title={t(`metric.${kind}`, { ns: 'screens' })}
                 subtitle={t(`metric.this.${period}`, { ns: 'screens' })}
                 done={false}
-                right={
-                    kind === 'water' ? (
-                        <HeaderButton
-                            icon="plus"
-                            onPress={() => router.navigate('/hydration' as never)}
-                            accessibilityLabel={t('metric.logWater', { ns: 'screens' })}
-                        />
-                    ) : undefined
-                }
             />
 
             <PeriodPicker
@@ -128,7 +102,7 @@ const MetricScreen: FC = () => {
                 onChange={(index) => setPeriod(PERIODS[index])}
             />
 
-            {kind === 'distance' && summary.access !== 'granted' ? (
+            {summary.access !== 'granted' ? (
                 <VStack style={styles.card}>
                     <HealthPrompt access={summary.access} onConnect={summary.connect} />
                 </VStack>
@@ -147,7 +121,7 @@ const MetricScreen: FC = () => {
                 </VStack>
             ))}
             {/* HealthKit reads a refusal as no data, so a zero on iOS may be a switch left off. */}
-            {kind === 'distance' && Platform.OS === 'ios' && summary.steps?.total === 0 ? (
+            {Platform.OS === 'ios' && summary.steps?.total === 0 ? (
                 <Text style={styles.hint}>{t('health.iosHint', { ns: 'screens' })}</Text>
             ) : null}
         </ScrollView>

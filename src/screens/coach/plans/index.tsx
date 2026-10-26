@@ -10,14 +10,16 @@ import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Icon, type IconName } from '@/components/primitives/icon';
 import { Card } from '@/components/layout/card';
+import { SkeletonList } from '@/components/feedback/skeleton';
 import { ModalHeader, modalStyles } from '@/components/layout/modal-header';
 import type { AiPlanSelect } from '@/db/schema';
 import { usePlans } from '@/hooks/use-ai';
+import { planRange, planStatus, type PlanStatus } from '@/helpers/ai-plan';
 
 /**
  * D07 Saved plans: what Syn has built, split by where each plan stands. A
- * draft has changed nothing; an active plan is on the schedule; an archived
- * one was undone or replaced.
+ * draft has changed nothing; an active plan is on the schedule and inside its
+ * dates; an ended one ran its course; an archived one was undone or replaced.
  */
 
 const KIND_ICON: Record<AiPlanSelect['kind'], IconName> = {
@@ -26,11 +28,7 @@ const KIND_ICON: Record<AiPlanSelect['kind'], IconName> = {
     combined: 'sparkles',
 };
 
-const SECTIONS: { status: AiPlanSelect['status']; key: string }[] = [
-    { status: 'applied', key: 'active' },
-    { status: 'draft', key: 'draft' },
-    { status: 'discarded', key: 'archived' },
-];
+const SECTIONS: PlanStatus[] = ['active', 'draft', 'ended', 'archived'];
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -72,13 +70,15 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-export const PlanRow: FC<{ plan: AiPlanSelect }> = ({ plan }) => {
+const PlanRow: FC<{ plan: AiPlanSelect }> = ({ plan }) => {
     const { t, i18n } = useTranslation(['screens']);
     const { theme } = useUnistyles();
-    const status = SECTIONS.find((section) => section.status === plan.status)?.key ?? 'draft';
+    const status = planStatus(plan);
     const meta = [
         t(`coach.plans.kind.${plan.kind}`, { ns: 'screens' }),
-        dayjs(plan.createdAt).locale(i18n.language).format('D MMM'),
+        plan.status === 'applied'
+            ? planRange(plan, i18n.language)
+            : dayjs(plan.createdAt).locale(i18n.language).format('D MMM'),
     ].join(' · ');
 
     return (
@@ -127,12 +127,14 @@ const PlansScreen: FC = () => {
                 done={false}
             />
 
+            {isLoading ? <SkeletonList count={3} /> : null}
+
             {!isLoading && plans.length === 0 ? (
                 <Text style={styles.empty}>{t('coach.plans.empty', { ns: 'screens' })}</Text>
             ) : null}
 
-            {SECTIONS.map(({ status, key }) => {
-                const rows = plans.filter((plan) => plan.status === status);
+            {SECTIONS.map((key) => {
+                const rows = plans.filter((plan) => planStatus(plan) === key);
                 if (rows.length === 0) return null;
 
                 return (

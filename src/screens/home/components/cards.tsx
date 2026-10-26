@@ -239,7 +239,7 @@ export const HealthPrompt: FC<{ access?: MovementAccess; onConnect: () => void }
     );
 };
 
-const openMetric = (kind: 'water' | 'distance', period: Period) =>
+const openMetric = (kind: 'distance', period: Period) =>
     router.navigate({ pathname: '/metric', params: { kind, period } } as never);
 
 export const WaterCard: FC<{ today: string }> = ({ today }) => {
@@ -252,7 +252,7 @@ export const WaterCard: FC<{ today: string }> = ({ today }) => {
             title={t('home.dash.water', { ns: 'screens' })}
             period={period}
             onPeriod={setPeriod}
-            onPress={() => openMetric('water', period)}
+            onPress={() => router.navigate({ pathname: '/hydration', params: { period } } as never)}
         >
             <Bars data={water.series} current={current} color={ACCENT.water} />
             <Metric value={water.litres.toFixed(1)} unit="L" color={ACCENT.water} />

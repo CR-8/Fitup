@@ -3,13 +3,19 @@ import { Alert } from 'react-native';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { isReportableAiError, requestCompletion, useAiUsageStore } from '@/api/ai';
+import {
+    isReportableAiError,
+    nextUtcMonthStart,
+    requestCompletion,
+    useAiUsageStore,
+} from '@/api/ai';
 import { AI_CONFIG, isAiEnabled, type AiPlanKind } from '@/constants/ai';
 import { buildChatMessages, buildPlanMessages } from '@/ai/prompt';
 import { extractJsonObject, parseAssessment } from '@/ai/validate';
 import { applyPlanToSchedule, createdWorkoutIds, revertAppliedPlan } from '@/ai/apply-plan';
 import { diffPlanAgainstSchedule, type PlanDiffRow } from '@/helpers/plan-diff';
 import { getWorkouts } from '@/crud/workout';
+import { nanoid } from '@/helpers/nanoid';
 import { useAiProgressStore } from '@/stores/ai-progress';
 import { logPlanUpdated } from '@/services/notification-events';
 import {
@@ -260,10 +266,6 @@ export const useAiProfile = () => {
     return { profile: (data ?? null) as AiProfileSelect | null, save, isSaving: isPending };
 };
 
-/** `YYYY-MM-DD` of the next UTC month start, when the server renews builds. */
-const nextUtcMonthStart = (now = new Date()): string =>
-    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
-
 /**
  * Plan builds left this month.
  *
@@ -482,8 +484,11 @@ export const useAiChat = (conversationId: string | undefined) => {
              * mid-structure — but the same request over fewer days usually fits, and a
              * shorter plan beats no plan.
              */
+            // Every attempt below is the same build, charged once by the proxy.
+            const build = nanoid();
             const attempt = async (days: number) => {
                 const result = await requestCompletion({
+                    build,
                     messages: buildPlanMessages(
                         context,
                         kind,

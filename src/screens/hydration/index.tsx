@@ -1,4 +1,5 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -21,6 +22,9 @@ import {
     WATER_TARGET_STEP_ML,
 } from '@/constants/water';
 import { formatTime } from '@/helpers/times';
+import { Skeleton } from '@/components/feedback/skeleton';
+import { AxisBars, Metric, PeriodPicker } from '@/screens/home/components/charts';
+import { ACCENT, PERIODS, axisFor, useWaterSummary, type Period } from '@/screens/home/summary';
 import { useUser } from '@/hooks/use-user';
 import {
     formatGlasses,
@@ -32,8 +36,10 @@ import {
 } from '@/hooks/use-water';
 
 /**
- * B03 Hydration: today's total against the goal, one-tap sizes, the day's
- * entries (each removable, the last one undoable), and the goal itself.
+ * B03 Hydration, the one water screen: today's total against the goal, one-tap
+ * sizes, the history by day, week, month or year, the day's entries (each
+ * removable, the last one undoable), and the goal itself. Today's dial and its
+ * Water card both open it, the card on its own period.
  */
 
 const styles = StyleSheet.create((theme) => ({
@@ -141,11 +147,17 @@ const styles = StyleSheet.create((theme) => ({
 }));
 
 const HydrationScreen: FC = () => {
-    const { t } = useTranslation(['screens']);
+    const { t, i18n } = useTranslation(['screens']);
     const { theme } = useUnistyles();
     const { user } = useUser();
     const today = useTodayKey();
     const water = useWaterDay(today);
+    const params = useLocalSearchParams<{ period?: string }>();
+    const [period, setPeriod] = useState<Period>(
+        PERIODS.find((p) => p === params.period) ?? 'week',
+    );
+    const history = useWaterSummary(period, today);
+    const { x, ticks } = axisFor(period, history.buckets, i18n.language);
     const settings = useWaterSettings();
     const { addWater, removeWater } = useWaterLogging();
 
@@ -179,9 +191,11 @@ const HydrationScreen: FC = () => {
 
             <Card accessibilityLabel={summary}>
                 <HStack style={styles.valueRow}>
-                    <Text style={styles.value}>
-                        {water.isLoading ? '–' : formatGlasses(water.glasses)}
-                    </Text>
+                    {water.isLoading ? (
+                        <Skeleton width={72} height={56} />
+                    ) : (
+                        <Text style={styles.value}>{formatGlasses(water.glasses)}</Text>
+                    )}
                     <Text style={styles.unit}>
                         {t('hydration.ofGlasses', { ns: 'screens', count: water.targetGlasses })}
                     </Text>
@@ -224,6 +238,28 @@ const HydrationScreen: FC = () => {
                     </Pressable>
                 ))}
             </HStack>
+
+            <Card>
+                <CardTitle title={t('hydration.history', { ns: 'screens' })} />
+                <PeriodPicker
+                    labels={PERIODS.map((p) => t(`metric.short.${p}`, { ns: 'screens' }))}
+                    index={PERIODS.indexOf(period)}
+                    onChange={(index) => setPeriod(PERIODS[index])}
+                />
+                <Text style={styles.caption}>{t(`metric.this.${period}`, { ns: 'screens' })}</Text>
+                <Metric
+                    value={history.water.litres.toFixed(1)}
+                    unit="L"
+                    color={ACCENT.water}
+                    size={30}
+                />
+                <AxisBars
+                    data={history.water.series.map((ml) => ml / 1000)}
+                    x={x}
+                    ticks={ticks}
+                    color={ACCENT.water}
+                />
+            </Card>
 
             <Card>
                 <CardTitle

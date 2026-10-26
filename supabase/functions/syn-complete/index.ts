@@ -8,7 +8,9 @@
  *   1. verifies the caller's Supabase JWT (a signed-in person, not just the
  *      publishable key),
  *   2. counts the request against the monthly plan-build quota and a per-minute
- *      rate limit, atomically, in `ai_usage` (supabase/migrations/0011, 0012),
+ *      rate limit, atomically, in `ai_usage` (supabase/migrations/0011, 0012,
+ *      0014). A plan build is charged once: its retries carry the same
+ *      `X-Syn-Build` id and pass free (up to four requests a build),
  *   3. forwards the body to the provider with the key attached, and returns the
  *      provider's answer body untouched,
  *   4. gives a plan build back (`ai_refund`) when it failed before the person got
@@ -115,14 +117,19 @@ const rpc = async <T>(name: string, args: Record<string, unknown>): Promise<T> =
 
 // Throws when the quota cannot be checked, which the caller turns into a 503:
 // fail closed, a quota that cannot be checked is not a free pass.
-const consume = (userId: string, isPlan: boolean): Promise<Consumption> =>
+const consume = (userId: string, isPlan: boolean, build: string | null): Promise<Consumption> =>
     rpc<Consumption>('ai_consume', {
         p_user: userId,
         p_is_plan: isPlan,
         p_monthly_limit: MONTHLY_PLAN_LIMIT,
         p_rate_limit: RATE_LIMIT,
         p_window_seconds: 60,
+        p_build: build,
     });
+
+/** The app's id for one plan build, shared by its retries; anything odd counts as none. */
+const buildIdFrom = (value: string | null): string | null =>
+    value && /^[A-Za-z0-9_-]{8,64}$/.test(value) ? value : null;
 
 /** Builds left and the day they renew. Empty if `ai_consume` predates 0012 and sent no count. */
 const usageHeaders = (planCount: number | undefined): Record<string, string> => {
@@ -188,7 +195,7 @@ Deno.serve(async (request) => {
 
     let consumption: Consumption;
     try {
-        consumption = await consume(userId, isPlan);
+        consumption = await consume(userId, isPlan, buildIdFrom(request.headers.get('X-Syn-Build')));
     } catch (error) {
         console.error(error);
 

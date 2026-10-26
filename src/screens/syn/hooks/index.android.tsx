@@ -1,5 +1,6 @@
 import { useScreen } from '@/hooks/use-screen';
 
+/** No tab header: Syn draws its own, as Today does (`components/header`). */
 export const useSynTab = () => {
     const { options } = useScreen();
 
@@ -7,11 +8,7 @@ export const useSynTab = () => {
         name: 'syn',
         options: {
             ...options,
-            headerTransparent: true,
-            headerStyle: {
-                ...options.headerStyle,
-                backgroundColor: 'transparent',
-            },
+            headerShown: false,
         },
     };
 };

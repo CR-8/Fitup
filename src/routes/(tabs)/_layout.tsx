@@ -6,7 +6,7 @@ import { NowPlayingRow } from '@/components/overlays/now-playing';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 
 /**
- * The system tab bar (Liquid Glass): Home, AI Coach, Progress, Profile. A
+ * The system tab bar (Liquid Glass): Home, Syn, Progress, Profile. A
  * running workout sits in the bar's bottom accessory. Android keeps its
  * pre-native tab bar: `_layout.android.tsx`.
  */

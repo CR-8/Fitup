@@ -6,7 +6,8 @@ import dayjs from 'dayjs';
 import { useWorkouts, useWorkoutsOverviewMeta } from '@/hooks/use-workouts';
 import { useRunningWorkoutStatic, useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { getInProgressWorkouts, getMissedWorkouts, getPlannedWorkouts } from '@/helpers/workouts';
-import { getPlanWeekByWorkoutId } from '@/helpers/ai-plan';
+import { getPlanWeekByWorkoutId, planStatus } from '@/helpers/ai-plan';
+import { createdWorkoutIds } from '@/ai/apply-plan';
 import { useMissedSessionStore } from '@/stores/missed-session';
 import { useAppliedPlans } from '@/hooks/use-ai';
 import { ScrollView } from '@/components/primitives/scrollview';
@@ -14,6 +15,7 @@ import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { useTodayKey } from '@/hooks/use-water';
+import { Skeleton } from '@/components/feedback/skeleton';
 
 import { Greeting } from './components';
 import { UpNext } from './components/up-next';
@@ -72,11 +74,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     cell: {
         flex: 1,
     },
-    upNextPlaceholder: {
-        height: 196,
-        borderRadius: 22,
-        backgroundColor: theme.colors.foreground,
-    },
 }));
 
 const HomeScreen: FC = () => {
@@ -87,7 +84,7 @@ const HomeScreen: FC = () => {
     const workoutIds = useMemo(() => (workouts ?? []).map((workout) => workout.id), [workouts]);
     const { data: workoutsOverviewMeta = {} } = useWorkoutsOverviewMeta(workoutIds);
     const { runningWorkout } = useRunningWorkoutStatic();
-    const { plans } = useAppliedPlans();
+    const { plans, isLoading: plansLoading } = useAppliedPlans();
     const { elapsedFormated } = useRunningWorkoutTicker();
 
     const upNext = useMemo(() => {
@@ -122,14 +119,21 @@ const HomeScreen: FC = () => {
 
     const openMissed = useMissedSessionStore((state) => state.open);
     useEffect(() => {
-        if (missedPromptShown || !workouts) return;
+        if (missedPromptShown || !workouts || plansLoading) return;
 
-        const [latestMissed] = getMissedWorkouts(workouts);
+        // A plan that has run its course is over: its untrained sessions stay
+        // in history as missed, but are not offered again.
+        const ended = new Set(
+            plans
+                .filter((plan) => planStatus(plan) === 'ended')
+                .flatMap((plan) => createdWorkoutIds(plan.appliedWorkoutIds)),
+        );
+        const [latestMissed] = getMissedWorkouts(workouts).filter((w) => !ended.has(w.id));
         if (!latestMissed) return;
 
         missedPromptShown = true;
         openMissed(latestMissed.id);
-    }, [openMissed, workouts]);
+    }, [openMissed, plans, plansLoading, workouts]);
 
     const { cards, introDismissed, dismissIntro } = useSummaryLayout();
     const rows = useMemo(() => toRows(cards), [cards]);
@@ -155,10 +159,9 @@ const HomeScreen: FC = () => {
                         }
                     />
                 ) : (
-                    <Box
-                        style={styles.upNextPlaceholder}
-                        accessibilityLabel={t('home.loading', { ns: 'screens' })}
-                    />
+                    <Box accessibilityLabel={t('home.loading', { ns: 'screens' })}>
+                        <Skeleton height={196} radius={22} />
+                    </Box>
                 );
             case 'water':
                 return <WaterCard today={today} />;

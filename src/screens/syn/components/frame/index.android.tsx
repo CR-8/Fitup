@@ -1,82 +1,37 @@
 import { FC, PropsWithChildren } from 'react';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { useTranslation } from 'react-i18next';
-import { Undo2 } from 'lucide-react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
-import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
-import { Pressable } from '@/components/primitives/pressable';
-import { Title } from '@/components/typography/title';
+
+import { SynHeader } from '../header';
 
 export type SynFrameProps = PropsWithChildren<{
     canClear: boolean;
     onClear: () => void;
 }>;
 
-const styles = StyleSheet.create((theme) => ({
+// No tab header (see `useSynTab`): the screen clears the status bar itself.
+const styles = StyleSheet.create((theme, rt) => ({
     container: {
         flex: 1,
+        paddingTop: rt.insets.top + theme.space(3),
         paddingHorizontal: theme.space(4),
-    },
-    header: {
-        paddingTop: theme.screenHeaderHeight(),
-        paddingBottom: theme.space(3),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    resetButton: {
-        height: theme.space(8),
-        width: theme.space(8),
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.colors.foreground,
-        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.background,
     },
 }));
 
-/** The conversation under an in-page title row, which holds clearing it. */
-export const SynFrame: FC<SynFrameProps> = ({ canClear, onClear, children }) => {
-    const { t } = useTranslation('screens');
-    const { theme } = useUnistyles();
+/** The conversation under Syn's header, which holds starting a new one. */
+export const SynFrame: FC<SynFrameProps> = ({ canClear, onClear, children }) => (
+    <VStack style={styles.container}>
+        <SynHeader onClear={canClear ? onClear : undefined} />
+        {children}
+    </VStack>
+);
 
-    return (
-        <VStack style={styles.container}>
-            <HStack style={styles.header}>
-                <Title type="h1">{t('syn.title')}</Title>
-
-                {canClear ? (
-                    <Pressable
-                        style={styles.resetButton}
-                        onPress={onClear}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('syn.clear.title')}
-                    >
-                        <Undo2
-                            size={theme.space(4)}
-                            strokeWidth={theme.space(0.375)}
-                            opacity={0.8}
-                            color={theme.colors.typography}
-                        />
-                    </Pressable>
-                ) : null}
-            </HStack>
-
-            {children}
-        </VStack>
-    );
-};
-
-/** Where Syn is unavailable: the content under the in-page title. */
-export const UnavailableFrame: FC<PropsWithChildren> = ({ children }) => {
-    const { t } = useTranslation('screens');
-
-    return (
-        <VStack style={styles.container}>
-            <HStack style={styles.header}>
-                <Title type="h1">{t('syn.title')}</Title>
-            </HStack>
-            {children}
-        </VStack>
-    );
-};
+/** Where Syn is unavailable, or still loading: the content under its header. */
+export const UnavailableFrame: FC<PropsWithChildren> = ({ children }) => (
+    <VStack style={styles.container}>
+        <SynHeader />
+        {children}
+    </VStack>
+);

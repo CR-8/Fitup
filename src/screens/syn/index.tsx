@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, type ListRenderItem } from 'react-native';
+import { Alert, FlatList, ScrollView, type ListRenderItem } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
-import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
 import { Pressable } from '@/components/primitives/pressable';
+import { Icon, type IconName } from '@/components/primitives/icon';
 import { AuthHero } from '@/screens/auth/components/hero';
 import { Button } from '@/components/buttons/base';
 import { AI_CONFIG } from '@/constants/ai';
@@ -26,14 +26,10 @@ import { Composer } from './components/composer';
 import { Pending } from './components/pending';
 import { Message } from './components/message';
 import { SynFrame, UnavailableFrame } from './components/frame';
-import { CoachHub } from './components/hub';
+import { CoachHub, CoachHubSkeleton, type Question } from './components/hub';
 import { hasSeenSynWelcome } from '@/screens/syn-welcome';
 
 const styles = StyleSheet.create((theme) => ({
-    container: {
-        flex: 1,
-        paddingHorizontal: theme.space(4),
-    },
     centered: {
         flex: 1,
         alignItems: 'center',
@@ -47,37 +43,39 @@ const styles = StyleSheet.create((theme) => ({
         paddingBottom: theme.space(4),
         gap: theme.space(3),
     },
-    // An empty thread centres its welcome in whatever height is left, so it
-    // sits balanced above the composer instead of hugging the top.
-    listContentEmpty: {
-        flexGrow: 1,
-        justifyContent: 'center',
-    },
-    chips: {
-        flexWrap: 'wrap',
-        gap: theme.space(2),
-    },
-    // Outlined, never filled: the screen's one filled button is the proposal's.
+    // Filled pills with their own glyph, as Today's controls: the screen's one
+    // bright fill stays the send button and the proposal's.
     chip: {
         minHeight: 40,
-        justifyContent: 'center',
-        paddingHorizontal: theme.space(4),
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space(2),
+        paddingHorizontal: theme.space(3.5),
         borderRadius: theme.radius.full,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.foreground,
     },
     chipText: {
         ...theme.fontSize.sm,
-        fontWeight: theme.fontWeight.medium.fontWeight,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
         color: theme.colors.typography,
     },
     disabled: {
         opacity: 0.5,
     },
     quota: {
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space(1.5),
+        paddingHorizontal: theme.space(3),
+        paddingVertical: theme.space(1),
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.primarySoft,
+    },
+    quotaText: {
         ...theme.fontSize.xs,
-        textAlign: 'center',
-        color: theme.colors.mutedTypography,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+        color: theme.colors.primary,
     },
     threadFooter: {
         gap: theme.space(2),
@@ -95,6 +93,7 @@ const styles = StyleSheet.create((theme) => ({
 type Starter = {
     key: string;
     label: string;
+    icon: IconName;
     run: () => void;
     spendsQuota: boolean;
 };
@@ -166,8 +165,8 @@ const SynScreen = () => {
     );
 
     /**
-     * Four ways in, each bound to something the app can already do. The first
-     * two open the plan-build form; the other two send a prompt through the same
+     * The ways in, each bound to something the app can already do. The builds
+     * open the plan-build form; the questions send a prompt through the same
      * `sendMessage` the composer uses, so they are the user typing a good
      * question. Nothing here fakes a reply.
      */
@@ -176,36 +175,46 @@ const SynScreen = () => {
             {
                 key: 'week',
                 label: t('syn.starters.week'),
+                icon: 'dumbbell',
                 run: () => openForm('workout'),
                 spendsQuota: true,
             },
             {
                 key: 'food',
                 label: t('syn.starters.food'),
+                icon: 'utensils',
                 run: () => openForm('nutrition'),
                 spendsQuota: true,
             },
             {
                 key: 'form',
                 label: t('syn.starters.form'),
+                icon: 'target',
                 run: () => handleSend(t('syn.starters.formIntent')),
                 spendsQuota: false,
             },
             {
                 key: 'progress',
                 label: t('syn.starters.progress'),
+                icon: 'trending-up',
                 run: () => handleSend(t('syn.actions.progressIntent')),
+                spendsQuota: false,
+            },
+            {
+                key: 'explain',
+                label: t('syn.actions.explain'),
+                icon: 'message',
+                run: () => handleSend(t('syn.actions.explainIntent')),
                 spendsQuota: false,
             },
         ],
         [handleSend, openForm, t],
     );
 
-    // "N plan builds left · resets 1 Nov": the month count is computed from the
-    // plans on this device, so the reset is the first of next month.
+    // "N plan builds left · resets 1 Nov", from the server's count when it has one.
     const quotaLine = t('syn.quota.builds', {
         count: quota.remaining,
-        date: dayjs().add(1, 'month').startOf('month').format('D MMM'),
+        date: dayjs(quota.resetsOn).format('D MMM'),
     });
 
     const chip = (starter: Starter) => {
@@ -222,32 +231,27 @@ const SynScreen = () => {
                 accessibilityRole="button"
                 accessibilityState={{ disabled }}
             >
+                <Icon
+                    name={starter.icon}
+                    size={14}
+                    color={starter.spendsQuota ? theme.colors.primary : theme.colors.typography}
+                />
                 <Text style={styles.chipText}>{starter.label}</Text>
             </Pressable>
         );
     };
 
-    const chips = [
-        ...starters.map(chip),
-        chip({
-            key: 'plans',
-            label: t('coach.plans.title'),
-            run: () => router.navigate('/coach/plans' as never),
-            spendsQuota: false,
-        }),
-    ];
-
-    // The hub offers the two builds as large choices, so only the free
-    // questions are chips there.
-    const listEmpty = (
-        <CoachHub
-            freeChips={
-                <HStack style={styles.chips}>
-                    {starters.filter((starter) => !starter.spendsQuota).map(chip)}
-                </HStack>
-            }
-        />
-    );
+    // The hub offers the builds as large choices, so only the free questions
+    // are listed there.
+    const questions: Question[] = starters
+        .filter((starter) => !starter.spendsQuota)
+        .map(({ key, label, icon, run }) => ({
+            key,
+            label,
+            icon,
+            run: isBusy ? () => undefined : run,
+        }));
+    const listEmpty = <CoachHub questions={questions} />;
 
     // A build with no AI host configured shows why rather than failing on every turn.
     if (!available) {
@@ -290,9 +294,9 @@ const SynScreen = () => {
 
     if (isLoading) {
         return (
-            <VStack style={[styles.container, styles.centered]}>
-                <ActivityIndicator color={theme.colors.primary} />
-            </VStack>
+            <UnavailableFrame>
+                <CoachHubSkeleton />
+            </UnavailableFrame>
         );
     }
 
@@ -301,10 +305,7 @@ const SynScreen = () => {
             <FlatList
                 ref={listRef}
                 style={styles.list}
-                contentContainerStyle={[
-                    styles.listContent,
-                    messages.length === 0 && styles.listContentEmpty,
-                ]}
+                contentContainerStyle={styles.listContent}
                 data={messages}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
@@ -317,16 +318,18 @@ const SynScreen = () => {
                 showsVerticalScrollIndicator={false}
             />
 
-            {/* The empty state already offers all four, so the row would repeat
+            {/* The empty state already offers every one, so the row would repeat
                 them. It comes back once there is a conversation to act on.
                 Scrolls rather than wraps, so it never pushes the composer up. */}
             {messages.length > 0 ? (
                 <VStack style={styles.threadFooter}>
                     <Pressable
+                        style={styles.quota}
                         onPress={() => router.navigate('/quota' as never)}
                         accessibilityRole="button"
                     >
-                        <Text style={styles.quota}>{quotaLine}</Text>
+                        <Icon name="sparkles" size={12} color={theme.colors.primary} />
+                        <Text style={styles.quotaText}>{quotaLine}</Text>
                     </Pressable>
                     <ScrollView
                         horizontal
@@ -335,7 +338,7 @@ const SynScreen = () => {
                         contentContainerStyle={styles.suggestions}
                         style={styles.suggestionsScroll}
                     >
-                        {chips}
+                        {starters.map(chip)}
                     </ScrollView>
                 </VStack>
             ) : null}

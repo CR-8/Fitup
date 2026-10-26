@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
 import { DayStrip } from '@/components/layout/day-strip';
+import { Skeleton } from '@/components/feedback/skeleton';
 import { HStack } from '@/components/primitives/hstack';
 import { VStack } from '@/components/primitives/vstack';
 import { Text } from '@/components/primitives/text';
@@ -54,6 +55,9 @@ const styles = StyleSheet.create((theme) => ({
     figureLabel: {
         ...theme.fontSize.xs,
         color: theme.colors.mutedTypography,
+    },
+    figureSkeleton: {
+        marginVertical: 3,
     },
     figureValue: {
         fontSize: 22,
@@ -161,12 +165,21 @@ export const SessionWeek: FC = () => {
                         <Text style={styles.figureLabel} numberOfLines={1}>
                             {t(`sessions.plan.${figure.key}`, { ns: 'screens' })}
                         </Text>
-                        <Text style={styles.figureValue}>{figure.value}</Text>
+                        {day.isLoading ? (
+                            <Skeleton width={56} height={22} style={styles.figureSkeleton} />
+                        ) : (
+                            <Text style={styles.figureValue}>{figure.value}</Text>
+                        )}
                     </VStack>
                 ))}
             </HStack>
 
-            {day.sessions.length === 0 ? (
+            {day.isLoading ? (
+                <VStack style={styles.figures}>
+                    <Skeleton height={60} radius={22} />
+                    <Skeleton height={60} radius={22} />
+                </VStack>
+            ) : day.sessions.length === 0 ? (
                 <Text style={styles.empty}>{t('sessions.plan.empty', { ns: 'screens' })}</Text>
             ) : (
                 day.sessions.map(({ workout, status }) => {

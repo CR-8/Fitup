@@ -6,6 +6,7 @@ import {
     type RawAxiosHeaders,
 } from 'axios';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
     AI_CONFIG,
@@ -15,6 +16,7 @@ import {
 } from '@/constants/ai';
 import { reportError } from '@/services/error-reporting';
 import { supabase } from '@/services/supabase';
+import { storage } from '@/storage';
 import { AiError, type AiFailureCode } from '@/types/ai';
 
 export interface AiChatMessage {
@@ -29,6 +31,11 @@ export interface AiCompletionOptions {
     signal?: AbortSignal;
     /** Overrides EXPO_PUBLIC_AI_TIMEOUT_MS for this request (plans take longer than chat). */
     timeoutMs?: number;
+    /**
+     * One plan build's id, the same on each of its retries, so the proxy charges
+     * the build once rather than every request (supabase/migrations/0014).
+     */
+    build?: string;
 }
 
 export interface AiCompletionResult {
@@ -80,11 +87,28 @@ export interface AiUsage {
 /**
  * The server's count, taken from the `X-Syn-Builds-*` headers `syn-complete`
  * puts on every answer, errors included (supabase/migrations/0012). Set here,
- * where every request passes, so no caller has to remember to. Null until the
- * first request of the session, and always in direct mode, which has no server
- * count.
+ * where every request passes, so no caller has to remember to. Kept on the
+ * device, so the count Syn shows after a restart is still the server's and
+ * not the device's own (which misses builds that failed or ended in a
+ * question). Null until the first answer, and always in direct mode, which has
+ * no server count.
  */
-export const useAiUsageStore = create<{ usage: AiUsage | null }>()(() => ({ usage: null }));
+export const useAiUsageStore = create<{ usage: AiUsage | null }>()(
+    persist(() => ({ usage: null as AiUsage | null }), {
+        name: 'ai-usage',
+        storage: createJSONStorage(() => ({
+            getItem: (key) => storage.getString(key) ?? null,
+            setItem: (key, value) => storage.set(key, value),
+            removeItem: (key) => {
+                storage.remove(key);
+            },
+        })),
+    }),
+);
+
+/** `YYYY-MM-DD` of the next UTC month start, when the server renews builds. */
+export const nextUtcMonthStart = (now = new Date()): string =>
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
 
 const recordUsage = (headers: AxiosResponse['headers'] | undefined, userId: string | null) => {
     if (!headers || !userId) return;
@@ -178,6 +202,7 @@ export const requestCompletion = async ({
     json = false,
     signal,
     timeoutMs,
+    build,
 }: AiCompletionOptions): Promise<AiCompletionResult> => {
     if (!isAiEnabled()) {
         throw new AiError('DISABLED', 'AI is not configured for this build');
@@ -205,7 +230,11 @@ export const requestCompletion = async ({
         const { data, headers } = await aiClient.post<ChatCompletionResponse>(
             buildCompletionsUrl(),
             body,
-            { headers: request.headers, signal, timeout: timeoutMs ?? AI_CONFIG.timeoutMs },
+            {
+                headers: build ? { ...request.headers, 'X-Syn-Build': build } : request.headers,
+                signal,
+                timeout: timeoutMs ?? AI_CONFIG.timeoutMs,
+            },
         );
         recordUsage(headers, userId);
 
@@ -241,6 +270,14 @@ export const requestCompletion = async ({
         if (isAxiosError(error)) recordUsage(error.response?.headers, userId);
 
         const aiError = classifyError(error);
+
+        // The server said none are left; a proxy without the count headers
+        // (before 0012) would otherwise leave the device's own "3 left" showing.
+        if (aiError.code === 'USER_QUOTA' && userId) {
+            useAiUsageStore.setState({
+                usage: { userId, remaining: 0, resetsOn: nextUtcMonthStart() },
+            });
+        }
 
         // A truncation is retried shorter by the plan generator, and reported there
         // if the retry fails too — reporting it here showed an error for a plan

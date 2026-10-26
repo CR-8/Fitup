@@ -186,6 +186,7 @@ export const useSessionDay = (date: string, firstWeekday: number) => {
             dayTime: clock(dayTime),
             running: list.find((w) => w.status === 'in_progress') ?? null,
             workouts: list,
+            isLoading: !workouts,
         };
     }, [date, firstWeekday, workouts]);
 };

@@ -11,7 +11,7 @@ import {
 } from 'react-native-keyboard-controller';
 
 import { Box } from '@/components/primitives/box';
-import Spinner from '@/components/feedback/spinner';
+import { SkeletonList } from '@/components/feedback/skeleton';
 import { useUpdateExerciseSet, useWorkoutWithDetails } from '@/hooks/use-workouts';
 import { ExerciseSetSelect } from '@/db/schema';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
@@ -160,9 +160,7 @@ const WorkoutExerciseScreen: FC = () => {
             >
                 <Header exerciseInfo={exerciseInfo} setProgress={setProgress} />
                 {isLoading ? (
-                    <Box>
-                        <Spinner />
-                    </Box>
+                    <SkeletonList count={3} lines={1} />
                 ) : (
                     <>
                         <Pushes wrapperStyle={styles.pushes} />

@@ -829,7 +829,8 @@
         "clear": {
             "title": "Clear conversation",
             "message": "This removes every message and plan draft. Workouts you already added stay.",
-            "confirm": "Clear"
+            "confirm": "Clear",
+            "new": "New conversation"
         },
         "plan": {
             "day": "Day {{number}}",
@@ -926,6 +927,10 @@
             "title": "Sign in to use Syn",
             "message": "Syn builds plans on a secure server, so it needs you signed in.",
             "action": "Sign in"
+        },
+        "hub": {
+            "build": "Build",
+            "resets": "Resets {{date}}"
         }
     },
     "signIn": {
@@ -1393,7 +1398,8 @@
             "load": "Could not load today's water.",
             "add": "Could not log that drink. Try again.",
             "remove": "Could not remove that entry. Try again."
-        }
+        },
+        "history": "History"
     },
     "quota": {
         "left_one": "{{count}} of {{limit}} plan build left this month",
@@ -1506,12 +1512,14 @@
             "sections": {
                 "active": "Active",
                 "draft": "Drafts",
-                "archived": "Archived"
+                "archived": "Archived",
+                "ended": "Ended"
             },
             "status": {
                 "active": "Active",
                 "draft": "Draft",
-                "archived": "Archived"
+                "archived": "Archived",
+                "ended": "Ended"
             },
             "kind": {
                 "workout": "Workout plan",

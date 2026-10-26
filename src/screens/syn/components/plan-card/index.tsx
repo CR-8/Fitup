@@ -12,6 +12,7 @@ import { Button } from '@/components/buttons/base';
 import { Separator } from '@/components/layout/separator';
 import type { AiPlanSelect } from '@/db/schema';
 import { useApplyAiPlan } from '@/hooks/use-ai';
+import { planRange, planStatus } from '@/helpers/ai-plan';
 import { usePlanDiff } from '@/hooks/use-plan-diff';
 import { useMergePreviewStore } from '@/stores/merge-preview';
 import type { AiPlanMeal, AiPlanWorkout } from '@/types/ai';
@@ -256,7 +257,7 @@ const MealDay: FC<{ dayOffset: number; meals: AiPlanMeal[] }> = ({ dayOffset, me
 };
 
 export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
-    const { t } = useTranslation('screens');
+    const { t, i18n } = useTranslation('screens');
     const { theme } = useUnistyles();
     const [expanded, setExpanded] = useState(false);
     const { revert, isReverting } = useApplyAiPlan();
@@ -265,6 +266,7 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
 
     const payload = plan.payload;
     const isApplied = plan.status === 'applied';
+    const ended = planStatus(plan) === 'ended';
 
     const workoutDays = useMemo(() => groupByDay(payload.workouts), [payload.workouts]);
     const mealDays = useMemo(() => groupByDay(payload.meals), [payload.meals]);
@@ -306,16 +308,17 @@ export const PlanCard: FC<PlanCardProps> = ({ plan }) => {
                     style={[
                         styles.status,
                         {
-                            color: isApplied
-                                ? theme.colors.success
-                                : plan.status === 'discarded'
-                                  ? theme.colors.mutedTypography
-                                  : theme.colors.primary,
+                            color:
+                                isApplied && !ended
+                                    ? theme.colors.success
+                                    : plan.status === 'discarded'
+                                      ? theme.colors.mutedTypography
+                                      : theme.colors.primary,
                         },
                     ]}
                 >
                     {isApplied
-                        ? t('syn.plan.applied')
+                        ? `${t(ended ? 'coach.plans.status.ended' : 'syn.plan.applied')} · ${planRange(plan, i18n.language)}`
                         : t(
                               plan.status === 'discarded'
                                   ? 'coach.plans.status.archived'
